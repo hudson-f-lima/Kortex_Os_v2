@@ -1,0 +1,37 @@
+# Dependencies and builds
+node_modules/
+dist/
+build/
+coverage/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Logs, dumps and local databases
+*.log
+*.dump
+*.sql.gz
+*.sqlite
+*.sqlite3
+
+# Editor, OS and caches
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.cache/
+.tmp/
+
+# Runtime exports may contain PII
+data/exports/*
+!data/exports/.gitkeep
+
+# Supabase local runtime state
+supabase/.branches/
+supabase/.temp/

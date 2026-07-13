@@ -1,0 +1,4 @@
+﻿interface:
+  display_name: "Kortex QA Red Team"
+  short_description: "Define gates e testa fronteiras críticas"
+  default_prompt: "Use $kortex-qa-redteam para criar gates e um Red Team do incremento planejado no KortexOS."

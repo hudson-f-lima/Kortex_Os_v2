@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "kind": "clientes_fixture",
+  "synthetic_only": true,
+  "records": [
+    {
+      "external_id": "cliente-demo-001",
+      "nome": "Cliente Demonstração",
+      "telefone": "+5500000000000",
+      "email": "cliente.demo@example.invalid"
+    }
+  ]
+}

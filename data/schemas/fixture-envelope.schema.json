@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kortex.local/schemas/fixture-envelope.schema.json",
+  "title": "KortexOS synthetic fixture envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "kind", "synthetic_only", "records"],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "kind": {
+      "type": "string",
+      "minLength": 1
+    },
+    "synthetic_only": {
+      "const": true
+    },
+    "records": {
+      "type": "array"
+    }
+  }
+}

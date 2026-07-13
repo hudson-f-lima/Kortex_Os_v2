@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "kind": "catalogo_fixture",
+  "synthetic_only": true,
+  "records": [
+    {
+      "external_id": "servico-demo-001",
+      "tipo": "servico",
+      "nome": "Serviço Demonstração",
+      "preco_cents": 10000,
+      "duracao_minutos": 60,
+      "ativo": true
+    }
+  ]
+}
