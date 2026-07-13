@@ -1,0 +1,46 @@
+services:
+  - type: web
+    name: kortex-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3000"
+      - key: LOG_LEVEL
+        value: info
+      - key: SUPABASE_URL
+        value: https://kpedsuklnedlhjvadiyc.supabase.co
+      - key: SUPABASE_PUBLISHABLE_KEY
+        value: sb_publishable_zuyYub8jez-5WqURU9nBjA_OfsBabIL
+      - key: SUPABASE_JWKS_URL
+        value: https://kpedsuklnedlhjvadiyc.supabase.co/auth/v1/.well-known/jwks.json
+      # SEGREDO PROTEGIDO: O valor não deve ir para o Git. Configure no painel do Render.
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      # CORS: Permitir acesso do frontend no GitHub Pages
+      - key: CORS_ORIGINS
+        value: https://hudson-f-lima.github.io
+
+  - type: web
+    name: kortex-pwa
+    runtime: static
+    plan: free
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_SUPABASE_URL
+        value: https://kpedsuklnedlhjvadiyc.supabase.co
+      - key: VITE_SUPABASE_PUBLISHABLE_KEY
+        value: sb_publishable_zuyYub8jez-5WqURU9nBjA_OfsBabIL
+      # API BASE URL: Aponta para o backend hospedado no Render
+      - key: VITE_API_BASE_URL
+        value: https://kortex-os-v2.onrender.com/api/v1

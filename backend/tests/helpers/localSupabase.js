@@ -72,3 +72,39 @@ export async function setUpOrgWithRole(supabaseAdmin, role) {
 
   return { ...base, accessToken: member.accessToken, userId: member.userId };
 }
+
+// Every service now requires a service_group_id (docs/PLANEJAMENTO_COMISSOES.md
+// §4.1) — this is the one-liner tests reach for to get a valid group id
+// before creating a service, instead of duplicating the insert everywhere.
+export async function createServiceGroup(supabaseAdmin, organizationId, overrides = {}) {
+  const { data, error } = await supabaseAdmin
+    .from('service_groups')
+    .insert({
+      organization_id: organizationId,
+      name: overrides.name ?? `Grupo ${randomUUID().slice(0, 8)}`,
+      default_commission_type: overrides.defaultCommissionType ?? 'percentage',
+      default_commission_value: overrides.defaultCommissionValue ?? 4000,
+    })
+    .select('id')
+    .single();
+  if (error) throw new Error(`createServiceGroup failed: ${error.message}`);
+  return data.id;
+}
+
+// Every 'service' checkout item now requires a professional_id
+// (docs/PLANEJAMENTO_COMISSOES.md §4.6/Fase 5.1) — this is the one-liner
+// tests reach for to get a valid professionals.id, independent of the
+// membership/role setup done by setUpOrgWithRole.
+export async function createProfessional(supabaseAdmin, organizationId, overrides = {}) {
+  const { data, error } = await supabaseAdmin
+    .from('professionals')
+    .insert({
+      organization_id: organizationId,
+      name: overrides.name ?? `Profissional ${randomUUID().slice(0, 8)}`,
+      active: overrides.active ?? true,
+    })
+    .select('id')
+    .single();
+  if (error) throw new Error(`createProfessional failed: ${error.message}`);
+  return data.id;
+}

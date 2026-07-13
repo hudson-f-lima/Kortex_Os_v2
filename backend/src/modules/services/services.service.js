@@ -1,9 +1,27 @@
 import { HttpError } from '../../shared/httpError.js';
 import { mapPostgresError } from '../../shared/postgresError.js';
 
-const COLUMNS = 'id, name, price_cents, duration_minutes, active, created_at, updated_at';
+const COLUMNS =
+  'id, name, price_cents, duration_minutes, service_group_id, commission_type, commission_value, active, created_at, updated_at';
 
 export function createServicesService(supabaseAdmin) {
+  async function assertServiceGroupInOrg(organizationId, serviceGroupId) {
+    if (serviceGroupId === undefined) return;
+    const { data, error } = await supabaseAdmin
+      .from('service_groups')
+      .select('id')
+      .eq('organization_id', organizationId)
+      .eq('id', serviceGroupId)
+      .maybeSingle();
+    if (error) throw mapPostgresError(error);
+    if (!data) {
+      throw HttpError.badRequest(
+        'invalid_service_group_id',
+        'service_group_id must reference an existing service group in this organization',
+      );
+    }
+  }
+
   return {
     async list({ organizationId, active }) {
       let query = supabaseAdmin
@@ -32,6 +50,7 @@ export function createServicesService(supabaseAdmin) {
     },
 
     async create({ organizationId, patch }) {
+      await assertServiceGroupInOrg(organizationId, patch.service_group_id);
       const { data, error } = await supabaseAdmin
         .from('services')
         .insert({ organization_id: organizationId, ...patch })
@@ -42,6 +61,7 @@ export function createServicesService(supabaseAdmin) {
     },
 
     async update({ organizationId, serviceId, patch }) {
+      await assertServiceGroupInOrg(organizationId, patch.service_group_id);
       const { data, error } = await supabaseAdmin
         .from('services')
         .update(patch)

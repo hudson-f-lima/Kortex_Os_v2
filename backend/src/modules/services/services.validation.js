@@ -3,12 +3,23 @@ import {
   assertKnownFields,
   assertNonEmptyPatch,
   validateBoolean,
+  validateCommissionType,
+  validateCommissionValue,
   validateId,
   validateMoneyCents,
   validateRequiredString,
+  validateUuidField,
 } from '../../shared/validation.js';
 
-const ALLOWED_FIELDS = new Set(['name', 'price_cents', 'duration_minutes', 'active']);
+const ALLOWED_FIELDS = new Set([
+  'name',
+  'price_cents',
+  'duration_minutes',
+  'service_group_id',
+  'commission_type',
+  'commission_value',
+  'active',
+]);
 
 export const validateServiceId = validateId;
 
@@ -33,6 +44,27 @@ export function validateServicePayload(body, { requireAll = true } = {}) {
       );
     }
     patch.duration_minutes = value;
+  }
+
+  // Every service belongs to a group (commission cascade fallback,
+  // docs/PLANEJAMENTO_COMISSOES.md §4.1) — required on create, optional on patch.
+  if (requireAll || body.service_group_id !== undefined) {
+    patch.service_group_id = validateUuidField(body.service_group_id, 'service_group_id');
+  }
+
+  // commission_type/commission_value are an optional pair that overrides the
+  // group default for this one service; both or neither.
+  const patchingType = body.commission_type !== undefined;
+  const patchingValue = body.commission_value !== undefined;
+  if (patchingType || patchingValue) {
+    if (patchingType !== patchingValue) {
+      throw HttpError.badRequest(
+        'invalid_commission',
+        'commission_type and commission_value must be provided together',
+      );
+    }
+    patch.commission_type = validateCommissionType(body.commission_type);
+    patch.commission_value = validateCommissionValue(body.commission_value, patch.commission_type);
   }
 
   if (body.active !== undefined) {

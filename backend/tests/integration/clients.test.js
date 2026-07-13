@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import request from 'supertest';
 import { createApp } from '../../src/app.js';
 import { createSupabaseAdmin } from '../../src/shared/supabaseAdmin.js';
-import { localTestEnv, setUpOrgWithRole as setUpOrg } from '../helpers/localSupabase.js';
+import { createServiceGroup, localTestEnv, setUpOrgWithRole as setUpOrg } from '../helpers/localSupabase.js';
 
 const env = localTestEnv();
 const supabaseAdmin = createSupabaseAdmin(env);
@@ -153,9 +153,16 @@ test('deleting a client referenced by an appointment returns 409 instead of a ra
     .send({ name: 'Cliente Com Agendamento' });
   const clientId = created.body.client.id;
 
+  const serviceGroupId = await createServiceGroup(supabaseAdmin, organizationId);
   const { data: service, error: serviceError } = await supabaseAdmin
     .from('services')
-    .insert({ organization_id: organizationId, name: 'Corte', price_cents: 5000, duration_minutes: 30 })
+    .insert({
+      organization_id: organizationId,
+      name: 'Corte',
+      price_cents: 5000,
+      duration_minutes: 30,
+      service_group_id: serviceGroupId,
+    })
     .select('id')
     .single();
   assert.equal(serviceError, null, serviceError?.message);

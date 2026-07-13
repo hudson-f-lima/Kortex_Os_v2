@@ -1,8 +1,37 @@
 import { HttpError } from '../../shared/httpError.js';
 import { UUID_RE } from '../../shared/validation.js';
 
-const ITEM_KINDS = ['service', 'product'];
+const ITEM_KINDS = ['service', 'product', 'package'];
 const PAYMENT_METHODS = ['cash', 'pix', 'debit_card', 'credit_card', 'other'];
+
+// Keys are the package's component service_id, values the professional_id
+// who performed that component (docs/PLANEJAMENTO_COMISSOES.md §4.4/§6 — a
+// package can involve more than one professional). Keys are normalized to
+// lowercase because checkout_close matches them against service_id::text,
+// which Postgres always renders lowercase.
+function validateProfessionalsMap(value, index) {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw HttpError.badRequest(
+      'invalid_items',
+      `items[${index}].professionals must be an object mapping service_id to professional_id`,
+    );
+  }
+  const entries = Object.entries(value);
+  if (entries.length === 0) {
+    throw HttpError.badRequest('invalid_items', `items[${index}].professionals must not be empty`);
+  }
+  const normalized = {};
+  for (const [serviceId, professionalId] of entries) {
+    if (!UUID_RE.test(serviceId)) {
+      throw HttpError.badRequest('invalid_items', `items[${index}].professionals has a key that is not a uuid`);
+    }
+    if (typeof professionalId !== 'string' || !UUID_RE.test(professionalId)) {
+      throw HttpError.badRequest('invalid_items', `items[${index}].professionals.${serviceId} must be a uuid`);
+    }
+    normalized[serviceId.toLowerCase()] = professionalId;
+  }
+  return normalized;
+}
 
 function validateCheckoutItem(item, index) {
   if (item === null || typeof item !== 'object' || Array.isArray(item)) {
@@ -17,6 +46,25 @@ function validateCheckoutItem(item, index) {
   if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
     throw HttpError.badRequest('invalid_items', `items[${index}].quantity must be a positive integer`);
   }
+
+  if (item.kind === 'service') {
+    if (typeof item.professional_id !== 'string' || !UUID_RE.test(item.professional_id)) {
+      throw HttpError.badRequest('invalid_items', `items[${index}].professional_id is required for service items`);
+    }
+    return { kind: item.kind, id: item.id, quantity: item.quantity, professional_id: item.professional_id };
+  }
+
+  if (item.kind === 'package') {
+    // Selling two identical packages is two items in the payload, each
+    // expanding independently — avoids deciding how to duplicate a
+    // professional assignment map across multiple units of the same bundle.
+    if (item.quantity !== 1) {
+      throw HttpError.badRequest('invalid_items', `items[${index}].quantity must be 1 for package items`);
+    }
+    const professionals = validateProfessionalsMap(item.professionals, index);
+    return { kind: item.kind, id: item.id, quantity: item.quantity, professionals };
+  }
+
   return { kind: item.kind, id: item.id, quantity: item.quantity };
 }
 

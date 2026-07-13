@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { createApp } from '../../src/app.js';
 import { createSupabaseAdmin } from '../../src/shared/supabaseAdmin.js';
-import { localTestEnv, setUpOrgWithRole as setUpOrg } from '../helpers/localSupabase.js';
+import { createProfessional, createServiceGroup, localTestEnv, setUpOrgWithRole as setUpOrg } from '../helpers/localSupabase.js';
 
 const env = localTestEnv();
 const supabaseAdmin = createSupabaseAdmin(env);
@@ -13,19 +13,27 @@ const app = createApp(env, supabaseAdmin);
 const setUpOrgWithRole = (role) => setUpOrg(supabaseAdmin, role);
 
 async function closeACheckout(organizationId, actorUserId) {
+  const serviceGroupId = await createServiceGroup(supabaseAdmin, organizationId);
   const { data: service, error: serviceError } = await supabaseAdmin
     .from('services')
-    .insert({ organization_id: organizationId, name: 'Corte', price_cents: 4000, duration_minutes: 30 })
+    .insert({
+      organization_id: organizationId,
+      name: 'Corte',
+      price_cents: 4000,
+      duration_minutes: 30,
+      service_group_id: serviceGroupId,
+    })
     .select('id')
     .single();
   assert.equal(serviceError, null, serviceError?.message);
+  const professionalId = await createProfessional(supabaseAdmin, organizationId);
 
   const { error } = await supabaseAdmin.rpc('checkout_close', {
     p_organization_id: organizationId,
     p_actor_user_id: actorUserId,
     p_idempotency_key: `seed-${randomUUID()}`,
     p_payload: {
-      items: [{ kind: 'service', id: service.id, quantity: 1 }],
+      items: [{ kind: 'service', id: service.id, quantity: 1, professional_id: professionalId }],
       payments: [{ method: 'cash', amount_cents: 4000 }],
     },
   });

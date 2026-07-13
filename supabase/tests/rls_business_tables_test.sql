@@ -122,8 +122,11 @@ SELECT is(
 SELECT pg_temp.logout();
 
 -- === Agenda: no double-booking for the same professional (exclusion constraint) ===
-INSERT INTO public.services (organization_id, name, price_cents, duration_minutes)
-  VALUES (:'org1'::uuid, 'Corte', 5000, 30);
+INSERT INTO public.service_groups (organization_id, name, default_commission_type, default_commission_value)
+  VALUES (:'org1'::uuid, 'Cabelo', 'percentage', 4500)
+  RETURNING id AS group1 \gset
+INSERT INTO public.services (organization_id, name, price_cents, duration_minutes, service_group_id)
+  VALUES (:'org1'::uuid, 'Corte', 5000, 30, :'group1'::uuid);
 SELECT (id) AS service1 FROM public.services WHERE organization_id = :'org1'::uuid LIMIT 1 \gset
 SELECT (id) AS client1 FROM public.clients WHERE organization_id = :'org1'::uuid AND name = 'Cliente Org1' \gset
 INSERT INTO public.professionals (organization_id, name) VALUES (:'org1'::uuid, 'Prof Solo') RETURNING id AS prof1 \gset

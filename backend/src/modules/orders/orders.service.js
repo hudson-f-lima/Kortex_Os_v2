@@ -2,7 +2,9 @@ import { HttpError } from '../../shared/httpError.js';
 import { mapPostgresError } from '../../shared/postgresError.js';
 
 const ORDER_COLUMNS = 'id, client_id, status, subtotal_cents, discount_cents, total_cents, created_at, closed_at';
-const ITEM_COLUMNS = 'id, kind, service_id, product_id, description, quantity, unit_price_cents, total_cents';
+const ITEM_COLUMNS =
+  'id, kind, service_id, product_id, description, quantity, unit_price_cents, total_cents, ' +
+  'professional_id, commission_type, commission_value, commission_cents';
 const PAYMENT_COLUMNS = 'id, method, amount_cents, created_at';
 
 export function createOrdersService(supabaseAdmin) {

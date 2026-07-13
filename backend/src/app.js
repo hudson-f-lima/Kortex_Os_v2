@@ -10,6 +10,9 @@ import { organizationsRouter } from './modules/organizations/organizations.route
 import { clientsRouter } from './modules/clients/clients.route.js';
 import { professionalsRouter } from './modules/professionals/professionals.route.js';
 import { servicesRouter } from './modules/services/services.route.js';
+import { serviceGroupsRouter } from './modules/serviceGroups/serviceGroups.route.js';
+import { professionalCommissionsRouter } from './modules/professionalCommissions/professionalCommissions.route.js';
+import { packagesRouter } from './modules/packages/packages.route.js';
 import { productsRouter } from './modules/products/products.route.js';
 import { catalogRouter } from './modules/catalog/catalog.route.js';
 import { appointmentsRouter } from './modules/appointments/appointments.route.js';
@@ -48,6 +51,9 @@ export function createApp(env, supabaseAdmin) {
   apiRouter.use(clientsRouter({ supabaseAdmin, organizationContext }));
   apiRouter.use(professionalsRouter({ supabaseAdmin, organizationContext }));
   apiRouter.use(servicesRouter({ supabaseAdmin, organizationContext }));
+  apiRouter.use(serviceGroupsRouter({ supabaseAdmin, organizationContext }));
+  apiRouter.use(professionalCommissionsRouter({ supabaseAdmin, organizationContext }));
+  apiRouter.use(packagesRouter({ supabaseAdmin, organizationContext }));
   apiRouter.use(productsRouter({ supabaseAdmin, organizationContext }));
   apiRouter.use(catalogRouter({ supabaseAdmin, organizationContext }));
   apiRouter.use(appointmentsRouter({ supabaseAdmin, organizationContext }));

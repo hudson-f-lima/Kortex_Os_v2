@@ -38,6 +38,31 @@ export function validateBoolean(value, fieldName) {
   return value;
 }
 
+const COMMISSION_TYPES = ['percentage', 'fixed'];
+// Basis points: 10000 = 100.00%. Mirrors money-in-cents discipline — never
+// a float for anything that turns into a payout (docs/PLANEJAMENTO_COMISSOES.md §4.2).
+const MAX_COMMISSION_PERCENTAGE_BASIS_POINTS = 10000;
+
+export function validateCommissionType(value, fieldName = 'commission_type') {
+  if (!COMMISSION_TYPES.includes(value)) {
+    throw HttpError.badRequest(`invalid_${fieldName}`, `${fieldName} must be one of: ${COMMISSION_TYPES.join(', ')}`);
+  }
+  return value;
+}
+
+export function validateCommissionValue(value, type, fieldName = 'commission_value') {
+  if (!Number.isInteger(value) || value < 0) {
+    throw HttpError.badRequest(`invalid_${fieldName}`, `${fieldName} must be a non-negative integer`);
+  }
+  if (type === 'percentage' && value > MAX_COMMISSION_PERCENTAGE_BASIS_POINTS) {
+    throw HttpError.badRequest(
+      `invalid_${fieldName}`,
+      `${fieldName} must be at most ${MAX_COMMISSION_PERCENTAGE_BASIS_POINTS} basis points (100%) when commission_type is percentage`,
+    );
+  }
+  return value;
+}
+
 export function assertKnownFields(body, allowedFields) {
   if (body === null || typeof body !== 'object' || Array.isArray(body)) {
     throw HttpError.badRequest('invalid_payload', 'payload must be a JSON object');
