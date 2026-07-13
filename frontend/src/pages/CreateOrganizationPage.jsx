@@ -3,21 +3,12 @@ import { ApiError } from '../shared/apiClient.js';
 import { useAuth } from '../shared/AuthContext.jsx';
 import { useOrganization } from '../shared/OrganizationContext.jsx';
 import { createApiClient } from '../shared/apiClient.js';
+import { slugify } from '../shared/slugify.js';
 
-function slugify(name) {
-  return name
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(new RegExp('[\\u0300-\\u036f]', 'g'), '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
-
-// Bootstrap mínimo (nome + slug) — a gestão completa de organização/convite
-// de equipe é a Subfase 6.5 (docs/PWA_PLANEJAMENTO.md §6). Isto só existe
-// para o shell ter algo a mostrar quando o usuário não tem nenhuma
-// organização ainda.
+// Bootstrap mínimo (nome + slug) para o shell ter algo a mostrar quando o
+// usuário não tem nenhuma organização ainda. Criar uma organização adicional
+// (usuário que já tem uma) vive em OrganizacaoPage (Fase 6.5), reaproveitando
+// o mesmo slugify.
 export function CreateOrganizationPage() {
   const { accessToken, signOut } = useAuth();
   const { refresh } = useOrganization();

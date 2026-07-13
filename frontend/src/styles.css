@@ -462,7 +462,9 @@ button {
 .clientes-page,
 .equipe-page,
 .catalogo-page,
-.estoque-page {
+.estoque-page,
+.caixa-page,
+.organizacao-page {
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -481,6 +483,13 @@ button {
   padding: 0.5rem;
   border: 1px solid var(--border);
   border-radius: 6px;
+}
+
+.list-toolbar label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
 }
 
 .inline-checkbox {
