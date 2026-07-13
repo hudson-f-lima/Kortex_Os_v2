@@ -1,6 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { AgendaPage } from './AgendaPage.jsx';
+
+function renderAgenda() {
+  return render(
+    <MemoryRouter>
+      <AgendaPage />
+    </MemoryRouter>,
+  );
+}
 
 const useAuthMock = vi.fn();
 const useOrganizationMock = vi.fn();
@@ -60,7 +69,7 @@ describe('AgendaPage', () => {
       ],
     });
 
-    render(<AgendaPage />);
+    renderAgenda();
 
     await waitFor(() => expect(screen.getAllByText('Ana').length).toBeGreaterThan(0));
     expect(screen.getByText('Beatriz', { selector: '.agenda-grid-header-cell' })).toBeInTheDocument();
@@ -77,7 +86,7 @@ describe('AgendaPage', () => {
       throw new Error(`unexpected path: ${path}`);
     });
 
-    render(<AgendaPage />);
+    renderAgenda();
 
     await waitFor(() =>
       expect(screen.getByText(/Nenhum profissional cadastrado ainda/)).toBeInTheDocument(),
@@ -87,7 +96,7 @@ describe('AgendaPage', () => {
   it('shows a recoverable error state with retry when the lists fail to load', async () => {
     apiClientMock.get.mockRejectedValue(new Error('network down'));
 
-    render(<AgendaPage />);
+    renderAgenda();
 
     await waitFor(() =>
       expect(screen.getByText('Sem conexão. Verifique sua internet e tente novamente.')).toBeInTheDocument(),
@@ -100,7 +109,7 @@ describe('AgendaPage', () => {
     useOrganizationMock.mockReturnValue({ role: 'professional' });
     mockLists();
 
-    render(<AgendaPage />);
+    renderAgenda();
 
     await waitFor(() => expect(screen.getByText('Ana')).toBeInTheDocument());
     expect(screen.queryByText('Beatriz')).not.toBeInTheDocument();
@@ -111,7 +120,7 @@ describe('AgendaPage', () => {
   it('opens the create modal when clicking "+ Novo agendamento"', async () => {
     mockLists();
 
-    render(<AgendaPage />);
+    renderAgenda();
 
     await waitFor(() => expect(screen.getByText('+ Novo agendamento')).toBeInTheDocument());
     fireEvent.click(screen.getByText('+ Novo agendamento'));

@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ApiError } from '../../shared/apiClient.js';
+import { ClientPicker } from '../../shared/ClientPicker.jsx';
 import { ACTIVE_STATUSES, statusLabel } from './appointmentStatus.js';
 import { addMinutes, fromDateTimeLocalValue, toDateTimeLocalValue } from './dateUtils.js';
 
@@ -36,6 +38,7 @@ export function AppointmentModal({
   onSaved,
   onClientCreated,
 }) {
+  const navigate = useNavigate();
   const [clientId, setClientId] = useState(initialValues.client_id ?? '');
   const [professionalId, setProfessionalId] = useState(initialValues.professional_id ?? '');
   const [serviceId, setServiceId] = useState(initialValues.service_id ?? '');
@@ -43,10 +46,6 @@ export function AppointmentModal({
     initialValues.starts_at ? toDateTimeLocalValue(initialValues.starts_at) : '',
   );
   const [status, setStatus] = useState(initialValues.status ?? 'scheduled');
-  const [clientQuery, setClientQuery] = useState('');
-  const [showNewClient, setShowNewClient] = useState(false);
-  const [newClientName, setNewClientName] = useState('');
-  const [newClientPhone, setNewClientPhone] = useState('');
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -58,33 +57,6 @@ export function AppointmentModal({
     if (!start || !selectedService) return null;
     return addMinutes(start, selectedService.duration_minutes);
   }, [startValue, selectedService]);
-
-  const filteredClients = useMemo(() => {
-    const query = clientQuery.trim().toLowerCase();
-    if (!query) return clients;
-    return clients.filter((client) => client.name.toLowerCase().includes(query));
-  }, [clientQuery, clients]);
-
-  async function handleCreateClient(event) {
-    event.preventDefault();
-    setSubmitting(true);
-    setError(null);
-    try {
-      const { client } = await apiClient.post('/clients', {
-        name: newClientName.trim(),
-        ...(newClientPhone.trim() ? { phone: newClientPhone.trim() } : {}),
-      });
-      onClientCreated(client);
-      setClientId(client.id);
-      setShowNewClient(false);
-      setNewClientName('');
-      setNewClientPhone('');
-    } catch (err) {
-      setError(messageForError(err));
-    } finally {
-      setSubmitting(false);
-    }
-  }
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -134,55 +106,14 @@ export function AppointmentModal({
         <h2>{mode === 'edit' ? 'Editar agendamento' : 'Novo agendamento'}</h2>
 
         <form className="auth-form" onSubmit={handleSubmit}>
-          <label>
-            Cliente
-            <input
-              type="text"
-              placeholder="Buscar cliente por nome"
-              value={clientQuery}
-              onChange={(event) => setClientQuery(event.target.value)}
-              disabled={!canWrite}
-            />
-          </label>
-          <select
-            aria-label="Selecionar cliente"
+          <ClientPicker
+            clients={clients}
             value={clientId}
-            onChange={(event) => setClientId(event.target.value)}
+            onChange={setClientId}
+            apiClient={apiClient}
+            onClientCreated={onClientCreated}
             disabled={!canWrite}
-            required
-          >
-            <option value="">Selecione um cliente</option>
-            {filteredClients.map((client) => (
-              <option key={client.id} value={client.id}>
-                {client.name}
-              </option>
-            ))}
-          </select>
-
-          {canWrite && !showNewClient && (
-            <button type="button" className="link-button" onClick={() => setShowNewClient(true)}>
-              + Novo cliente
-            </button>
-          )}
-
-          {canWrite && showNewClient && (
-            <div className="inline-form">
-              <label>
-                Nome do novo cliente
-                <input value={newClientName} onChange={(event) => setNewClientName(event.target.value)} />
-              </label>
-              <label>
-                Telefone (opcional)
-                <input value={newClientPhone} onChange={(event) => setNewClientPhone(event.target.value)} />
-              </label>
-              <button type="button" disabled={!newClientName.trim() || submitting} onClick={handleCreateClient}>
-                Salvar cliente
-              </button>
-              <button type="button" className="link-button" onClick={() => setShowNewClient(false)}>
-                Cancelar
-              </button>
-            </div>
-          )}
+          />
 
           <label>
             Profissional
@@ -263,6 +194,9 @@ export function AppointmentModal({
 
           {canWrite && mode === 'edit' && status !== 'cancelled' && (
             <div className="modal-actions">
+              <button type="button" onClick={() => navigate(`/comanda?appointment_id=${initialValues.id}`)}>
+                Abrir comanda
+              </button>
               {!confirmingCancel ? (
                 <button type="button" className="danger-button" onClick={() => setConfirmingCancel(true)}>
                   Cancelar agendamento

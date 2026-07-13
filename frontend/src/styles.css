@@ -338,6 +338,127 @@ button {
   padding: 0.5rem 0.75rem;
 }
 
+.client-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.comanda-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 640px;
+}
+
+.comanda-catalog input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+}
+
+.comanda-catalog-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.comanda-catalog-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.comanda-cart-empty {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.comanda-cart-line {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.comanda-cart-line-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.comanda-cart-line-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.comanda-package-components {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-left: 0.5rem;
+  border-left: 2px solid var(--border);
+}
+
+.comanda-package-components label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.8rem;
+}
+
+.comanda-total {
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.comanda-payment-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.comanda-payment-row input {
+  width: 6rem;
+  padding: 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.comanda-payments-sum {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.comanda-closed {
+  align-items: flex-start;
+}
+
+.comanda-closed-id {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 @media (min-width: 768px) {
   .shell {
     flex-direction: row;

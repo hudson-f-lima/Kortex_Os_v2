@@ -107,7 +107,7 @@ Reaproveitar sem alteração a tabela normativa de `references/cache-policy.md` 
 |---|---|---|
 | 6.1 | ✅ App shell, autenticação (Supabase Auth só para login/sessão), navegação por papel, manifest + ícones instaláveis | — |
 | 6.2 | ✅ Módulo Agenda (grade, criar/mover/cancelar, filtro por profissional) | 6.1 |
-| 6.3 | Módulo Comanda/Checkout (abrir, adicionar item, fechar com idempotência, split/gorjeta) | 6.2 |
+| 6.3 | ✅ Módulo Comanda/Checkout (abrir, adicionar item, fechar com idempotência, split de pagamento — gorjeta fora do escopo, sem suporte no schema) | 6.2 |
 | 6.4 | Cadastros (clientes, equipe) + Catálogo + Estoque | 6.1 |
 | 6.5 | Caixa (leitura) + Organização/onboarding (criar org, convidar membro) | 6.1 |
 | 6.6 | Hardening PWA: service worker por classe de cache, fluxo de atualização controlada, estados de offline/conflito em todos os módulos, orçamento de performance (§7) | 6.2–6.5 |
@@ -121,6 +121,9 @@ Conforme a skill: medir bundle inicial, LCP, INP, payload de API por tela e taxa
 - **Não existe RPC de lançamento manual de caixa** (`income`/`expense`/`refund` avulsos) — se o produto precisar disso, é decisão de schema/backend fora do escopo desta PWA, não algo a contornar no frontend.
 - **Definição de "profissional puro" como papel de app** (login individual do profissional vs. acesso só via `reception`/`manager` na conta da organização) não está fechada no MVP técnico — impacta o §4.2 (composição por papel) e deveria ser decidida antes de 6.2.
 - **Reconciliação de conflito de agenda (409 `professional_double_booked`)** precisa de UX explícita (sugerir próximo horário livre), não só mensagem de erro.
+- **Gorjeta não existe no schema de checkout** — `checkout_close` exige que a soma de `payments` feche exatamente com o subtotal calculado dos itens (sem campo extra), então a Comanda (6.3) não a implementou. Se o produto precisar, é decisão de schema/RPC fora do escopo desta PWA (provavelmente um campo novo em `payments` ou `orders`, com as implicações de comissão que isso traria).
+- **Não existe vínculo persistido entre agendamento e pedido** (`appointments.id` não aparece em `orders`) — "abrir comanda a partir do agendamento" (6.3) é só pré-preenchimento de UI; a marcação do agendamento como `completed` após o fechamento é uma segunda chamada independente e best-effort, não uma transação única.
+- **`professional` não tem nenhuma permissão de escrita em `checkout` nem leitura em `orders`** no backend atual — a Comanda (6.3) mostra esse papel como indisponível para operar comandas, mesmo o módulo estando na lista de navegação dele. Se o produto quiser mesmo "checkout na cadeira pelo profissional" (§2.2), isso exige abrir esses allowlists no backend primeiro.
 
 ## Fontes
 
