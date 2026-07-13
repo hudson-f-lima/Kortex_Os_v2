@@ -11,9 +11,9 @@
 | Docker Desktop + WSL 2 | `REAL` | Docker Engine 29.6.1; contêiner de teste aprovado |
 | Supabase local | `REAL` | Auth e Studio HTTP 200; contêineres principais saudáveis |
 | Baseline Supabase | `REAL` local | migration aplicada por `supabase db reset` |
-| Auth/tenant/RLS | `REAL` no schema local | 13/13 tabelas públicas com RLS |
-| Checkout atômico | `PARCIAL` | RPC criada e migration aplicada; teste funcional de comando ainda pendente |
-| Backend Express | `BLOQUEADO` | não materializado |
+| Auth/tenant/RLS | `REAL` no schema local | 13/13 tabelas públicas com RLS; 69 testes pgTAP (grants, RLS, cross-tenant, invariante de owner) em `supabase/tests/`, todos `PASS` |
+| Checkout atômico | `REAL` no schema local | `rpc_checkout_close_test.sql` (14 testes): idempotência, replay divergente, estoque insuficiente, reconciliação de pagamento, cross-tenant, atomicidade em falha |
+| Backend Express | `PARCIAL` | `backend/` materializado: `/health`, middleware JWT (JWKS, ES256) e contexto de organização (`X-Organization-Id` + membership real); 12 testes (unit/integration/contract), incluindo fluxo real de signup no Supabase Auth local. CRM/agenda/checkout/caixa ainda não têm rota |
 | PWA | `BLOQUEADO` | não materializada |
 | CI/Render | `PARCIAL` | `render.yaml` real criado (URL e publishable key preenchidos, secrets como `sync: false`); `rootDir: backend`/`rootDir: frontend` ainda não existem, deploy falharia até materializar o código |
 
@@ -29,6 +29,9 @@
 - `supabase db advisors --local --type all --level warn --fail-on warn` retornou `No issues found`.
 - Auth e Studio respondem HTTP 200; schema contém 13 tabelas públicas, todas com RLS, e 4 RPCs de negócio.
 - `render.yaml` (raiz do repo) foi verificado: nenhum segredo real exposto (`SUPABASE_SERVICE_ROLE_KEY`/`SUPABASE_SECRET_KEY` como `sync: false`); porém `rootDir: backend`/`rootDir: frontend` apontam para diretórios ainda inexistentes.
+- Suíte pgTAP criada em `supabase/tests/` (6 arquivos, 69 testes): `rls_baseline_test.sql`, `rls_business_tables_test.sql`, `rpc_create_organization_test.sql`, `rpc_membership_set_test.sql`, `rpc_checkout_close_test.sql`, `rpc_inventory_adjust_test.sql`. `supabase test db --local` retorna `PASS` de forma reprodutível após `db reset --local --no-seed` limpo.
+- **Gap real encontrado e corrigido pelos testes de integração do backend:** a migration baseline nunca concedeu `SELECT/INSERT/UPDATE/DELETE` em tabelas públicas para `service_role` (só `EXECUTE` nas 4 RPCs); `service_role` tem `BYPASS RLS` mas isso é inócuo sem grants. O backend recebia `permission denied for table memberships` ao listar organizações. Corrigido pela migration `20260713034222_grant_service_role_tables.sql`; `db advisors` seguiu limpo e a suíte pgTAP (69 testes) segue `PASS` após o reset.
+- `backend/` materializado (`src/config`, `middleware`, `shared`, `modules/{health,organizations}`, `tests/{unit,integration,contract}`). Testado com `npm test` (Node test runner + supertest): 12/12 `PASS`, incluindo um fluxo real contra o Supabase Auth local (signup real, JWT ES256 validado via JWKS, `X-Organization-Id` sem membership rejeitado com 403, contrato de erro estável sem stack/segredo). Servidor real também subido via `node src/server.js` e `/health` respondeu 200 por HTTP.
 
 ## Decisão vigente
 
@@ -36,4 +39,4 @@ Os SQL enviados pelo usuário são exemplos. A arquitetura foi redefinida sem co
 
 ## Próxima ação
 
-Adicionar testes funcionais de Auth/RLS/cross-tenant e das RPCs; depois materializar o backend Express com middleware JWT e contexto de organização.
+Materializar os módulos de negócio no backend Express (clientes, profissionais, catálogo, agenda, checkout, caixa) chamando as RPCs existentes via `service_role`, com testes de contrato HTTP para cada rota; depois iniciar a PWA modular.
