@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 // Well-known Supabase local-dev demo credentials (identical on every
 // `supabase start`, documented publicly). Never used outside local tests.
 const LOCAL_API_URL = 'http://127.0.0.1:54321';
@@ -32,4 +34,41 @@ export async function signUpTestUser(email, password) {
     throw new Error(`signUpTestUser failed: ${response.status} ${JSON.stringify(data)}`);
   }
   return { accessToken: data.access_token, userId: data.user.id };
+}
+
+// Creates a fresh organization with an owner, then optionally a second member
+// with the requested role. Returns the credentials tests should act as
+// (owner's own, when role === 'owner'), plus the owner's credentials
+// separately so tests can perform further privileged setup either way.
+export async function setUpOrgWithRole(supabaseAdmin, role) {
+  const ownerEmail = `test-owner-${randomUUID()}@test.local`;
+  const owner = await signUpTestUser(ownerEmail, 'S3nhaForte!123');
+  const { data: org, error } = await supabaseAdmin.rpc('create_organization', {
+    p_actor_user_id: owner.userId,
+    p_name: 'Test Org',
+    p_slug: `test-org-${randomUUID()}`,
+  });
+  if (error) throw new Error(`create_organization failed: ${error.message}`);
+
+  const base = {
+    organizationId: org.id,
+    ownerUserId: owner.userId,
+    ownerAccessToken: owner.accessToken,
+  };
+
+  if (role === 'owner') {
+    return { ...base, accessToken: owner.accessToken, userId: owner.userId };
+  }
+
+  const memberEmail = `test-member-${randomUUID()}@test.local`;
+  const member = await signUpTestUser(memberEmail, 'S3nhaForte!123');
+  const { error: memberError } = await supabaseAdmin.rpc('membership_set', {
+    p_organization_id: org.id,
+    p_actor_user_id: owner.userId,
+    p_target_user_id: member.userId,
+    p_role: role,
+  });
+  if (memberError) throw new Error(`membership_set failed: ${memberError.message}`);
+
+  return { ...base, accessToken: member.accessToken, userId: member.userId };
 }

@@ -1,40 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { createApp } from '../../src/app.js';
 import { createSupabaseAdmin } from '../../src/shared/supabaseAdmin.js';
-import { localTestEnv, signUpTestUser } from '../helpers/localSupabase.js';
+import { localTestEnv, setUpOrgWithRole as setUpOrg } from '../helpers/localSupabase.js';
 
 const env = localTestEnv();
 const supabaseAdmin = createSupabaseAdmin(env);
 const app = createApp(env, supabaseAdmin);
 
-async function setUpOrgWithRole(role) {
-  const email = `clients-test-${randomUUID()}@test.local`;
-  const owner = await signUpTestUser(email, 'S3nhaForte!123');
-  const { data: org, error } = await supabaseAdmin.rpc('create_organization', {
-    p_actor_user_id: owner.userId,
-    p_name: 'Clients Test Org',
-    p_slug: `clients-test-org-${randomUUID()}`,
-  });
-  assert.equal(error, null, `create_organization failed: ${error?.message}`);
-
-  if (role === 'owner') {
-    return { organizationId: org.id, accessToken: owner.accessToken, userId: owner.userId };
-  }
-
-  const memberEmail = `clients-test-member-${randomUUID()}@test.local`;
-  const member = await signUpTestUser(memberEmail, 'S3nhaForte!123');
-  const { error: memberError } = await supabaseAdmin.rpc('membership_set', {
-    p_organization_id: org.id,
-    p_actor_user_id: owner.userId,
-    p_target_user_id: member.userId,
-    p_role: role,
-  });
-  assert.equal(memberError, null, `membership_set failed: ${memberError?.message}`);
-  return { organizationId: org.id, accessToken: member.accessToken, userId: member.userId };
-}
+const setUpOrgWithRole = (role) => setUpOrg(supabaseAdmin, role);
 
 test('owner can create, list, update and delete a client', async () => {
   const { organizationId, accessToken } = await setUpOrgWithRole('owner');

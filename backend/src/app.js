@@ -8,6 +8,7 @@ import { HttpError } from './shared/httpError.js';
 import { healthRouter } from './modules/health/health.route.js';
 import { organizationsRouter } from './modules/organizations/organizations.route.js';
 import { clientsRouter } from './modules/clients/clients.route.js';
+import { professionalsRouter } from './modules/professionals/professionals.route.js';
 
 export function createApp(env, supabaseAdmin) {
   const app = express();
@@ -36,6 +37,7 @@ export function createApp(env, supabaseAdmin) {
   apiRouter.use(auth);
   apiRouter.use(organizationsRouter({ supabaseAdmin, organizationContext }));
   apiRouter.use(clientsRouter({ supabaseAdmin, organizationContext }));
+  apiRouter.use(professionalsRouter({ supabaseAdmin, organizationContext }));
   app.use('/api/v1', apiRouter);
 
   app.use((req, res, next) => {
