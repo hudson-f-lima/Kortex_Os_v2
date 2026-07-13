@@ -9,6 +9,9 @@ import { healthRouter } from './modules/health/health.route.js';
 import { organizationsRouter } from './modules/organizations/organizations.route.js';
 import { clientsRouter } from './modules/clients/clients.route.js';
 import { professionalsRouter } from './modules/professionals/professionals.route.js';
+import { servicesRouter } from './modules/services/services.route.js';
+import { productsRouter } from './modules/products/products.route.js';
+import { catalogRouter } from './modules/catalog/catalog.route.js';
 
 export function createApp(env, supabaseAdmin) {
   const app = express();
@@ -38,6 +41,9 @@ export function createApp(env, supabaseAdmin) {
   apiRouter.use(organizationsRouter({ supabaseAdmin, organizationContext }));
   apiRouter.use(clientsRouter({ supabaseAdmin, organizationContext }));
   apiRouter.use(professionalsRouter({ supabaseAdmin, organizationContext }));
+  apiRouter.use(servicesRouter({ supabaseAdmin, organizationContext }));
+  apiRouter.use(productsRouter({ supabaseAdmin, organizationContext }));
+  apiRouter.use(catalogRouter({ supabaseAdmin, organizationContext }));
   app.use('/api/v1', apiRouter);
 
   app.use((req, res, next) => {
