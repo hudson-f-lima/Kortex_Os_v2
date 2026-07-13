@@ -108,7 +108,7 @@ Reaproveitar sem alteração a tabela normativa de `references/cache-policy.md` 
 | 6.1 | ✅ App shell, autenticação (Supabase Auth só para login/sessão), navegação por papel, manifest + ícones instaláveis | — |
 | 6.2 | ✅ Módulo Agenda (grade, criar/mover/cancelar, filtro por profissional) | 6.1 |
 | 6.3 | ✅ Módulo Comanda/Checkout (abrir, adicionar item, fechar com idempotência, split de pagamento — gorjeta fora do escopo, sem suporte no schema) | 6.2 |
-| 6.4 | Cadastros (clientes, equipe) + Catálogo + Estoque | 6.1 |
+| 6.4 | ✅ Cadastros (clientes, equipe) + Catálogo (grupos, serviços, produtos, pacotes) + Estoque (ajuste, movimentações) | 6.1 |
 | 6.5 | Caixa (leitura) + Organização/onboarding (criar org, convidar membro) | 6.1 |
 | 6.6 | Hardening PWA: service worker por classe de cache, fluxo de atualização controlada, estados de offline/conflito em todos os módulos, orçamento de performance (§7) | 6.2–6.5 |
 
@@ -124,6 +124,9 @@ Conforme a skill: medir bundle inicial, LCP, INP, payload de API por tela e taxa
 - **Gorjeta não existe no schema de checkout** — `checkout_close` exige que a soma de `payments` feche exatamente com o subtotal calculado dos itens (sem campo extra), então a Comanda (6.3) não a implementou. Se o produto precisar, é decisão de schema/RPC fora do escopo desta PWA (provavelmente um campo novo em `payments` ou `orders`, com as implicações de comissão que isso traria).
 - **Não existe vínculo persistido entre agendamento e pedido** (`appointments.id` não aparece em `orders`) — "abrir comanda a partir do agendamento" (6.3) é só pré-preenchimento de UI; a marcação do agendamento como `completed` após o fechamento é uma segunda chamada independente e best-effort, não uma transação única.
 - **`professional` não tem nenhuma permissão de escrita em `checkout` nem leitura em `orders`** no backend atual — a Comanda (6.3) mostra esse papel como indisponível para operar comandas, mesmo o módulo estando na lista de navegação dele. Se o produto quiser mesmo "checkout na cadeira pelo profissional" (§2.2), isso exige abrir esses allowlists no backend primeiro.
+- **Não existe convite de membro por e-mail** (Fase 6.4) — `membership_set` (`PUT /memberships/:userId`) exige um `user_id` que já seja uma sessão real do Supabase Auth; o backend não expõe busca de usuário por e-mail nem um fluxo de convite. A Equipe (6.4) só permite alterar papel/atividade de uma membership que já existe (listada por `user_id` truncado, sem e-mail/nome — o backend nunca expôs isso). "Convidar membro" (§6, Subfase 6.5) continua em aberto até existir uma decisão de produto/backend para esse fluxo — não inventado no frontend.
+- **Cliente não tem campo de preferências/observações/alergias** no schema (`clients` só tem `name`/`phone`/`email`/`active`) — o "perfil como registro vivo" do §2.3 foi implementado como cadastro + histórico de agendamentos (via `GET /appointments?client_id=`), sem o dado experiencial que o schema não sustenta.
+- **Comissão por profissional×serviço (`professional_service_commissions`, Fase 5.1) não tem UI própria** — a Fase 6.4 cobre a cascata até o nível 2 (grupo → serviço, editável em Catálogo); o override de nível 1 (profissional específico) só existe hoje via API direta, não foi adicionado a Equipe nem a Catálogo por não estar no mapa de módulos do §4.1 e para não inflar o escopo desta subfase.
 
 ## Fontes
 
