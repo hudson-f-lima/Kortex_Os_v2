@@ -1,6 +1,6 @@
 # PROJECT STATE — KortexOS MVP técnico
 
-**Atualizado:** 2026-07-12
+**Atualizado:** 2026-07-13
 
 ## Estado
 
@@ -15,7 +15,7 @@
 | Checkout atômico | `PARCIAL` | RPC criada e migration aplicada; teste funcional de comando ainda pendente |
 | Backend Express | `BLOQUEADO` | não materializado |
 | PWA | `BLOQUEADO` | não materializada |
-| CI/Render | `BLOQUEADO` | apenas exemplo de Blueprint |
+| CI/Render | `PARCIAL` | `render.yaml` real criado (URL e publishable key preenchidos, secrets como `sync: false`); `rootDir: backend`/`rootDir: frontend` ainda não existem, deploy falharia até materializar o código |
 
 ## Validação executada
 
@@ -28,6 +28,7 @@
 - `supabase db reset --local --no-seed` concluiu duas vezes; a segunda execução ficou limpa.
 - `supabase db advisors --local --type all --level warn --fail-on warn` retornou `No issues found`.
 - Auth e Studio respondem HTTP 200; schema contém 13 tabelas públicas, todas com RLS, e 4 RPCs de negócio.
+- `render.yaml` (raiz do repo) foi verificado: nenhum segredo real exposto (`SUPABASE_SERVICE_ROLE_KEY`/`SUPABASE_SECRET_KEY` como `sync: false`); porém `rootDir: backend`/`rootDir: frontend` apontam para diretórios ainda inexistentes.
 
 ## Decisão vigente
 
