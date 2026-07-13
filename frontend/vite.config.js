@@ -28,10 +28,24 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Navegação/HTML: network-first com fallback de shell seguro.
-        // API autenticada e mutações: network-only, nunca cacheado/enfileirado
-        // (docs/.agents/skills/kortex-pwa-architect/references/cache-policy.md).
-        navigateFallback: null,
+        // Classes de cache (docs/.agents/skills/kortex-pwa-architect/references/cache-policy.md):
+        // - HTML/app shell: network-first, com fallback ao shell precacheado
+        //   quando a rede falha (offline ou navegação direta a uma rota da
+        //   SPA) — `navigateFallback` era `null` até a Fase 6.6 (bug: o
+        //   comentário já afirmava "com fallback", mas nenhum existia,
+        //   então uma recarga offline em qualquer rota falhava por inteiro).
+        // - JS/CSS com hash: cache-first — já coberto pelo precache do
+        //   `generateSW` (globPatterns), sem precisar de regra própria.
+        // - ícones próprios: idem, precacheados (mais forte que
+        //   stale-while-revalidate, adequado a asset versionado por build).
+        //   Não há fontes/imagens carregadas em runtime nesta fase para
+        //   justificar uma regra de stale-while-revalidate ainda.
+        // - API autenticada e mutações: network-only, nunca
+        //   cacheado/enfileirado (checkout/estoque/caixa exigem
+        //   Idempotency-Key para retry seguro, não fila offline).
+        cleanupOutdatedCaches: true,
+        navigateFallback: 'index.html',
+        navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
           {
             urlPattern: ({ request }) => request.mode === 'navigate',

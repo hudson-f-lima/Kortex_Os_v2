@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../shared/AuthContext.jsx';
 import { useOrganization } from '../shared/OrganizationContext.jsx';
@@ -42,7 +43,9 @@ export function App() {
       </nav>
 
       <main className="shell-content">
-        <Outlet />
+        <Suspense fallback={<p>Carregando módulo…</p>}>
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   );

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { EstoquePage } from './EstoquePage.jsx';
+import { ApiError } from '../../shared/apiClient.js';
 
 const useOrganizationMock = vi.fn();
 const apiClientMock = {
@@ -91,5 +92,34 @@ describe('EstoquePage', () => {
         expect.objectContaining({ headers: expect.objectContaining({ 'Idempotency-Key': expect.any(String) }) }),
       ),
     );
+  });
+
+  it('rejects a negative quantity for purchase client-side, mirroring the RPC invariant', async () => {
+    mockLists();
+    render(<EstoquePage />);
+
+    await waitFor(() => expect(screen.getAllByText('Shampoo').length).toBeGreaterThan(0));
+    fireEvent.click(screen.getByText('Ajustar estoque'));
+    fireEvent.change(screen.getByLabelText('Quantidade (negativa para saída)'), { target: { value: '-3' } });
+    fireEvent.click(screen.getByText('Confirmar ajuste'));
+
+    expect(
+      screen.getByText('Compra e devolução só aceitam entrada de estoque (quantidade positiva). Use "Ajuste" para saída.'),
+    ).toBeInTheDocument();
+    expect(apiClientMock.post).not.toHaveBeenCalled();
+  });
+
+  it('maps an insufficient-stock conflict from inventory_adjust to a Portuguese message', async () => {
+    mockLists();
+    apiClientMock.post.mockRejectedValue(new ApiError(409, 'operation_rejected', 'insufficient stock', 'req-1'));
+    render(<EstoquePage />);
+
+    await waitFor(() => expect(screen.getAllByText('Shampoo').length).toBeGreaterThan(0));
+    fireEvent.click(screen.getByText('Ajustar estoque'));
+    fireEvent.change(screen.getByLabelText('Quantidade (negativa para saída)'), { target: { value: '-100' } });
+    fireEvent.change(screen.getByLabelText('Motivo'), { target: { value: 'adjustment' } });
+    fireEvent.click(screen.getByText('Confirmar ajuste'));
+
+    await waitFor(() => expect(screen.getByText('Esse ajuste deixaria o estoque negativo.')).toBeInTheDocument());
   });
 });

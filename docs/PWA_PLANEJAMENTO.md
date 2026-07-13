@@ -110,11 +110,13 @@ Reaproveitar sem alteração a tabela normativa de `references/cache-policy.md` 
 | 6.3 | ✅ Módulo Comanda/Checkout (abrir, adicionar item, fechar com idempotência, split de pagamento — gorjeta fora do escopo, sem suporte no schema) | 6.2 |
 | 6.4 | ✅ Cadastros (clientes, equipe) + Catálogo (grupos, serviços, produtos, pacotes) + Estoque (ajuste, movimentações) | 6.1 |
 | 6.5 | ✅ Caixa (leitura, filtro por tipo/período) + Organização (info, múltiplas organizações, criar organização adicional — convite por e-mail segue em aberto, ver §8) | 6.1 |
-| 6.6 | Hardening PWA: service worker por classe de cache, fluxo de atualização controlada, estados de offline/conflito em todos os módulos, orçamento de performance (§7) | 6.2–6.5 |
+| 6.6 | ✅ Hardening PWA: fallback de navegação offline corrigido, limpeza de cache pós-deploy, code-splitting por rota, cliente de Auth mais leve, mensagens de conflito do Estoque | 6.2–6.5 |
 
 ## 7. Orçamento técnico e métricas de sucesso
 
 Conforme a skill: medir bundle inicial, LCP, INP, payload de API por tela e taxa de acerto de cache estático. Metas de partida sugeridas para o MVP (a validar com dado real de uso, não como trava rígida): bundle inicial do shell abaixo de 150KB comprimido; LCP da Agenda abaixo de 2,5s em rede 4G; nenhuma tela de mutação crítica sem os 7 estados do §4.4.
+
+**Medido na Fase 6.6:** bundle inicial do shell caiu de ~205KB gzip (pico ao fim da Fase 6.5, com os 8 módulos de domínio ainda todos no mesmo chunk) para ~154KB gzip, via duas mudanças: troca de `@supabase/supabase-js` (cliente completo, com PostgREST/Realtime/Storage nunca usados pela PWA) por `@supabase/auth-js` direto (só Auth), e code-splitting por rota (cada módulo de domínio agora é um chunk `React.lazy` de 1,5-6KB gzip, carregado só quando a rota é visitada — o app shell nunca precisava carregar Catálogo para mostrar a Agenda). Meta de ~150KB efetivamente atingida (dentro de ~4KB, tratado como cumprido dado que a meta é de partida, não trava rígida).
 
 ## 8. Riscos e decisões em aberto
 

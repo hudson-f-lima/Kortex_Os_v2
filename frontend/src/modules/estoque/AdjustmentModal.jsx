@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ApiError } from '../../shared/apiClient.js';
+import { messageForInventoryError } from './inventoryErrors.js';
 
 const REASONS = [
   { value: 'purchase', label: 'Compra/reposição' },
@@ -7,13 +7,10 @@ const REASONS = [
   { value: 'return', label: 'Devolução' },
 ];
 
-function messageForError(err) {
-  if (err instanceof ApiError) {
-    if (err.status === 403) return 'Seu papel não tem permissão para esta ação.';
-    return err.message;
-  }
-  return 'Erro inesperado. Tente novamente.';
-}
+// Espelha o invariante do RPC (migration: "p_reason in ('purchase','return')
+// and p_quantity_delta < 0" é rejeitado) — só 'adjustment' aceita saída
+// negativa (perda/quebra); compra/devolução sempre entram estoque.
+const REASONS_REQUIRING_POSITIVE_DELTA = new Set(['purchase', 'return']);
 
 // Idempotency-Key gerada uma vez por tentativa de ajuste e reaproveitada só
 // em reenvios da mesma tentativa (docs/PWA_PLANEJAMENTO.md §4.3) — reabrir o
@@ -32,6 +29,10 @@ export function AdjustmentModal({ product, apiClient, onClose, onAdjusted }) {
       setError('Informe uma quantidade inteira diferente de zero (negativa para saída).');
       return;
     }
+    if (REASONS_REQUIRING_POSITIVE_DELTA.has(reason) && delta < 0) {
+      setError('Compra e devolução só aceitam entrada de estoque (quantidade positiva). Use "Ajuste" para saída.');
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -42,7 +43,7 @@ export function AdjustmentModal({ product, apiClient, onClose, onAdjusted }) {
       );
       onAdjusted();
     } catch (err) {
-      setError(messageForError(err));
+      setError(messageForInventoryError(err));
     } finally {
       setSubmitting(false);
     }
