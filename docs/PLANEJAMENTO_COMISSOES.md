@@ -102,3 +102,28 @@ Soma alocada = R$ 70,40 + R$ 52,80 + R$ 96,80 = **R$ 220,00**, exata (sem sobra/
 - [Zenoti — Salon Commission Structures: The Complete Guide](https://www.zenoti.com/thecheckin/salon-commission-structure)
 - [Mangomint — Successful salon and spa packages](https://www.mangomint.com/blog/salon-package-examples/)
 - [Square — Salon Pay Structures](https://squareup.com/us/en/the-bottom-line/managing-your-finances/salon-pay-structures)
+
+## 8. Evolução Aprovada: Comissões Avançadas, Absorção de Desconto e Vínculo N:N
+
+Com base na decisão de elevar o sistema ao estado da arte global (Vagaro, Zenoti, Phorest), a modelagem de comissão (Fase 3.1/5.1) foi expandida e aprovada para receber as seguintes capacidades (pendentes de execução):
+
+### 8.1 Comissionamento Escalonado (Tiered Commissions)
+O padrão fixo de cascata será aprimorado com faixas de performance para retenção de talentos.
+- **Tabela `commission_tiers`**: Definirá faixas (ex: Faixa 1 até R$ 5.000 gera 40%; Faixa 2 acima de R$ 5.000 gera 45%).
+- A RPC `checkout_close` será adaptada para ler o faturamento acumulado do mês do profissional e determinar a faixa aplicável no momento da venda.
+
+### 8.2 Flexibilidade na Absorção de Descontos e Custos
+- A tabela `organizations` receberá uma flag de **Política de Desconto**:
+  1. `net_price_split` (Padrão de Mercado): Desconto e custo são abatidos do bruto. A comissão é calculada sobre o valor líquido.
+  2. `gross_price_salon_absorbs`: A comissão é calculada sobre o preço de tabela (bruto). O salão assume a perda do desconto sozinho.
+  3. `deduct_after_commission`: Comissão sobre o bruto, subtraindo o custo fixo no fim do repasse do profissional.
+
+### 8.3 Vínculo N:N (Profissional ↔ Serviços)
+Para garantir inteligência de agenda e impedir que um cliente agende um serviço com um profissional não capacitado:
+- **Tabela `professional_services`**: Relacionamento explícito substituindo a presunção de que todos fazem tudo.
+- Conterá overrides: `duration_override_minutes` (profissional mais veloz) e `price_override_cents` (cobrança premium).
+
+### 8.4 Autenticação e Portal do Profissional (Staff Login)
+O profissional deve conseguir acessar seus próprios agendamentos e repasses (redução de atrito de fim de mês):
+- **Convite (Invite Flow)**: API disparando Magic Link ou Senha Provisória (Supabase Auth) ao registrar o e-mail no cadastro.
+- **RLS Isolado**: O registro em `memberships` com papel `professional` vai blindar via RLS para que ele só acesse os registros ligados ao seu `professional_id`, não enxergando o faturamento global da organização.

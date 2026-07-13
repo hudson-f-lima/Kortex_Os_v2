@@ -1,6 +1,6 @@
 # PROJECT STATE — KortexOS MVP técnico
 
-**Atualizado:** 2026-07-13 (Fase 7 — CI, observabilidade e Red Team; Render aguarda o usuário)
+**Atualizado:** 2026-07-13 (Roadmap Pós-MVP estruturado e Comissões Avançadas aprovadas para execução)
 
 ## Estado
 
@@ -61,6 +61,11 @@ Os SQL enviados pelo usuário são exemplos. A arquitetura foi redefinida sem co
 
 ## Próxima ação
 
-Todos os domínios de negócio e o onboarding do MVP técnico (`docs/KORTEX_MVP_TECNICO.md` §4/§5) estão expostos via HTTP e testados contra Supabase local real, o roteiro de comissão (`docs/PLANEJAMENTO_COMISSOES.md`) está completo, e a Fase 6 inteira (`docs/PWA_PLANEJAMENTO.md §6`, subfases 6.1-6.6: app shell, Agenda, Comanda/Checkout, Cadastros/Catálogo/Estoque, Caixa/Organização, hardening) está real e verificada no browser. A "definição de profissional puro como papel de app" (`PWA_PLANEJAMENTO.md §8`) segue tratada com a leitura mais direta do schema existente desde a Fase 2 — `professional` nunca esteve no allowlist de escrita de `appointments`/`checkout`/leitura de `orders`, então tanto Agenda quanto Comanda tratam esse papel como recorte próprio somente-leitura (ou indisponível, no caso da Comanda); isso não fecha a discussão mais ampla (login individual vs. conta compartilhada). **Gorjeta ficou de fora do roteiro da Comanda** por não existir suporte no schema (`checkout_close` exige que os pagamentos fechem exatamente com o subtotal) — decisão de produto/schema fora do escopo de "materializar no frontend", registrada como gap real em vez de contornada. **Convite de membro por e-mail e lançamento manual de caixa continuam sem solução** — nenhum dos dois tem RPC/endpoint no backend, então nenhum foi simulado no frontend; são decisões de produto/backend em aberto, não bloqueios da Fase 6.
+A arquitetura básica do MVP técnico e PWA (Fase 6) foi finalizada e testada localmente (`KORTEX_MVP_TECNICO.md`). Além disso:
+- **Roadmap Pós-MVP (`docs/PLANEJAMENTO_ROADMAP_POS_MVP.md`)**: estruturado com pesquisa global, definindo módulos futuros como Waitlist e Memberships Mínimas (Acoplamento Limpo).
+- **Comissões Avançadas (`docs/PLANEJAMENTO_COMISSOES.md §8`)**: o plano de evolução (comissões escalonadas, absorção de descontos, vínculo N:N de profissionais e serviços, e portal próprio via login) foi aprovado pela regra do estado da arte.
 
-Com a Fase 7, o roteiro completo do `KORTEX_MVP_TECNICO.md §10` (fases 1-7) está com todos os gates locais/CI verificados (`docs/REDTEAM_FASE7.md`, veredito `PASS COM RISCO ACEITO`). **Único bloqueio remanescente do MVP técnico**: o backend hospedado no Render (`kortex-api`, `https://kortex-os-v2.onrender.com`) não respondeu a `/health` nesta verificação — precisa que o usuário confirme no painel do Render se o serviço existe/está ativo (free tier pode ter sido pausado por inatividade, ou o deploy nunca foi de fato criado) antes de a Fase 7 poder ser fechada como `REAL` de ponta a ponta. Também em aberto, sem bloquear: decidir se `kortex-pwa` (site estático no `render.yaml`) ainda deve existir junto do GitHub Pages, que já publica a PWA de fato.
+**Único bloqueio de infraestrutura**: o backend hospedado no Render (`kortex-api`) não respondeu na verificação anterior. Precisa de verificação manual se o tier foi pausado.
+
+**PRÓXIMO PASSO IMEDIATO DE ENGENHARIA**:
+Iniciar o desenvolvimento do plano de evolução de comissões aprovado (migrations para `professional_services`, `commission_tiers`, lógica flexível de descontos em `checkout_close` e fluxo de login/invite de staff no backend).
