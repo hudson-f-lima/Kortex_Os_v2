@@ -46,8 +46,19 @@ jobs:
         env:
           # Para produção no GitHub Pages, usamos a URL do backend hospedado no Render
           VITE_API_BASE_URL: "https://kortex-os-v2.onrender.com/api/v1"
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://lzkxmqmpxwctnysfzjwv.supabase.co' }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          # Valores públicos (URL + chave publicável), iguais a render.yaml e ao
+          # .env real deste workspace — nenhum repo secret está configurado
+          # (confirmado via `gh secret list`), então o fallback abaixo sempre era
+          # o valor de fato usado, e apontava para um projeto Supabase diferente
+          # (lzkxmqmpxwctnysfzjwv) do que o backend/render.yaml realmente usa
+          # (kpedsuklnedlhjvadiyc) — o build publicado no GitHub Pages estava
+          # falando com o Supabase errado.
+          VITE_SUPABASE_URL: "https://kpedsuklnedlhjvadiyc.supabase.co"
+          VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_zuyYub8jez-5WqURU9nBjA_OfsBabIL"
+
+      - name: Copy index.html to 404.html (for SPA routing)
+        run: cp dist/index.html dist/404.html
+        working-directory: ./frontend
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

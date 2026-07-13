@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { requestId } from './middleware/requestId.js';
+import { accessLog } from './middleware/accessLog.js';
 import { createAuthMiddleware } from './middleware/auth.js';
 import { createOrganizationContextMiddleware } from './middleware/organizationContext.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -26,6 +27,7 @@ export function createApp(env, supabaseAdmin) {
   const app = express();
 
   app.use(requestId);
+  app.use(accessLog);
   app.use(express.json({ limit: '1mb' }));
   app.use(
     cors({

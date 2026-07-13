@@ -4,9 +4,9 @@ import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 
 export default [
+  { ignores: ["dist/**", "node_modules/**"] },
   js.configs.recommended,
   {
-    ignores: ["dist/**", "node_modules/**"],
     files: ["**/*.{js,jsx}"],
     languageOptions: {
       ecmaVersion: 2022,
@@ -24,6 +24,8 @@ export default [
         navigator: "readonly",
         fetch: "readonly",
         URL: "readonly",
+        URLSearchParams: "readonly",
+        crypto: "readonly",
       },
     },
     plugins: {
@@ -42,6 +44,14 @@ export default [
     },
     settings: {
       react: { version: "18.3" },
+    },
+  },
+  {
+    files: ["**/*.test.{js,jsx}", "src/setupTests.js"],
+    languageOptions: {
+      globals: {
+        global: "readonly",
+      },
     },
   },
 ];
