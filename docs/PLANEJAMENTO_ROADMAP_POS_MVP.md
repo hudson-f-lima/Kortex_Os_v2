@@ -9,9 +9,10 @@ Conforme estabelecido em `AGENTS.md` e `docs/KORTEX_MVP_TECNICO.md`, a maior par
 Este documento não autoriza implementações no MVP. O seu propósito é:
 1. Mapear domínio-a-domínio (D00–D31) o estado real contra o repositório atual;
 2. Classificar o nível de esforço e acoplamento arquitetural para os domínios fora do MVP (o que acopla limpo vs. o que exige rearquitetura de fundação);
-3. Apresentar uma pesquisa global sobre retenção, rebooking automático, assinaturas, memberships e anti-gap para basear decisões de roadmap pós-MVP.
+3. Apresentar uma pesquisa global sobre retenção, rebooking automático, assinaturas, memberships e anti-gap para basear decisões de roadmap pós-MVP;
+4. Detalhar, como estudo de caso do domínio D24 (Trust & Retention), um mecanismo concreto e determinístico de cobrança por no-show (§5) e a mensageria de custo zero que o viabiliza sem gateway pago (§6).
 
-*Nota de governança:* A tabela de domínios considera as restrições arquiteturais. Por exemplo, D11 (Resource Orchestration) existe hoje apenas de forma implícita (o profissional é o recurso primário), e D31 (Gates/QA) é exercido via skills e processos locais, não sendo uma feature transacional do produto.
+*Nota de governança:* A tabela de domínios considera as restrições arquiteturais. Por exemplo, D11 (Resource Orchestration) existe hoje apenas de forma implícita (o profissional é o recurso primário), e D31 (Gates/QA) é exercido via skills e processos locais, não sendo uma feature transacional do produto. **Kortex.ai (D22) permanece bloqueado em todo este documento** — nenhum motor de retenção/no-show/mensageria proposto aqui depende de IA; todos são regra determinística de backend, na mesma linha do restante do MVP.
 
 ---
 
@@ -114,14 +115,82 @@ Plataformas como ClassPass e Wellhub validam o modelo de subsídio onde a empres
 
 ---
 
-## 5. Recomendação de Sequenciamento
+## 5. Mecanismo de Cobrança por No-Show (State Machine determinística, sem IA)
+
+**Reforço de governança:** este mecanismo é 100% regra determinística de backend. **Kortex.ai (D22) segue bloqueado** — nenhuma parte deste fluxo depende de IA, linguagem natural ou decisão automática de modelo; é um `CASE`/state machine sobre `appointments.status`, igual em espírito ao restante do MVP (preço/comissão/disponibilidade já são sempre backend-only, nunca IA).
+
+### 5.1 Pesquisa global — o padrão de mercado já confirma a régua pedida
+
+O desenho de 3 níveis (aviso → depósito obrigatório → bloqueio) não é invenção do produto: é o padrão documentado do setor.
+
+| Nível de mercado | Ação típica | Fonte |
+|---|---|---|
+| 1ª falta | Aviso amigável + lembrete de política, sem cobrança retroativa | SICUS — Salon Deposit Policy Template; DaySmart |
+| 2ª falta | Depósito/sinal passa a ser obrigatório nos próximos agendamentos (tipicamente 25–50% do valor do serviço) | Vagaro — Policies & Procedures; GlossGenius — Salon Deposit Policy |
+| 3ª falta/reincidência | Pré-pagamento de até 100%, ou bloqueio/dispensa do cliente | Boulevard — Salon Cancellation Policy Guide; Holland Hair Co — Salon No-Show Policy |
+
+Isso confirma a régua pedida pelo usuário (1ª falta = conscientização, 2ª falta = aviso de cobrança futura, próximo agendamento = sinal de 50% ou o configurado) como estado da arte do nicho, não uma política experimental.
+
+### 5.2 Estados propostos (por cliente, dentro de uma organização)
+
+```
+sem_restricao
+   │  appointments.status = 'no_show' (1ª ocorrência)
+   ▼
+aviso_emitido           — mensagem de conscientização enviada; nenhuma cobrança, nenhum bloqueio
+   │  appointments.status = 'no_show' (2ª ocorrência)
+   ▼
+sinal_obrigatorio       — próximo agendamento não confirma sem sinal pago; % configurável por organização (default sugerido: 50%)
+   │  sinal pago e registrado
+   ▼
+confirmado_com_sinal    — agendamento confirmado; se concluído com sucesso, cliente pode retornar a sem_restricao (healing) após N atendimentos seguidos sem falta (parâmetro de organização, ex.: 3)
+   │  novo no_show enquanto em sinal_obrigatorio
+   ▼
+bloqueado_ate_quitar    — sem novo agendamento liberado até ação manual do dono/gerente (Action Request humano, não automático)
+```
+
+Todos os limiares (nº de faltas para cada transição, percentual do sinal, nº de atendimentos para "healing") são **parâmetros de organização**, não hardcoded — mesma disciplina de configuração já usada em `service_groups.default_commission_value`.
+
+### 5.3 Onde isso entra na arquitetura atual (por que é "acopla limpo")
+
+- **Tabela nova aditiva:** algo como `client_reliability_state` (`organization_id`, `client_id`, `state`, `no_show_count`, `updated_at`) — não toca `appointments`/`orders`/`checkout_close` existentes, só é lida por eles.
+- **Gatilho:** transição de estado roda quando um `appointment.status` muda para `no_show` (já existe como valor do enum de status hoje) — pode ser feito na própria RPC que já marca esse status, sem nova infraestrutura de evento.
+- **Ponto de imposição do sinal:** a criação de um novo `appointment` para um cliente em `sinal_obrigatorio` exige um pagamento associado (via `payments`/`checkout` já existentes) **antes** de o agendamento passar de "solicitado" para "confirmado" — reaproveita o conceito de pagamento antecipado, só adiciona a condição de bloqueio.
+
+### 5.4 O gap honesto: cobrança remota de sinal não existe ainda no MVP
+
+`KORTEX_MVP_TECNICO.md §11` já declara integrações de pagamento fora do MVP — hoje o `checkout_close` só reconcilia pagamento presencial (dinheiro/Pix/cartão já liquidado na hora). Cobrar um "sinal de 50% antes do próximo agendamento" à distância exige **algum** canal de recebimento remoto (link de Pix, ou um gateway). Duas rotas honestas, sem fingir automação que não existe:
+
+1. **Rota mínima (acopla limpo, sem gateway):** o sinal é solicitado por mensagem (ver §6) com uma chave Pix estática/QR code do próprio salão; a recepção confirma manualmente o recebimento no sistema (um botão "sinal recebido", não uma RPC de pagamento online) — o agendamento só é confirmado depois dessa confirmação manual. Zero integração de pagamento nova, 100% dentro do MVP.
+2. **Rota completa (exige fundação, fora do MVP):** link de cobrança Pix dinâmico ou gateway de cartão para pagamento remoto automático, com webhook de confirmação — isso é a "integração de pagamento" que §11 já colocou como não-objetivo. Só faz sentido revisitar esse não-objetivo depois do Ledger (Camada 4 do §7 abaixo).
+
+## 6. Mensageria Dinâmica de Custo Zero via Mecanismos Nativos do Mobile
+
+Pesquisa dedicada, complementando o D21 (KortexLink básico) já classificado como "acopla limpo" no §3 — como enviar o aviso/cobrança do §5 sem contratar um gateway de mensageria pago.
+
+### 6.1 Comparativo das opções nativas de custo zero
+
+| Mecanismo | Como funciona | Custo | Automação real | Suporte |
+|---|---|---|---|---|
+| **Web Share API** (`navigator.share()`) | Abre a folha de compartilhamento nativa do SO (WhatsApp, SMS, e-mail, Telegram etc., conforme o que o cliente/recepção tem instalado) com texto pré-preenchido | Zero — API nativa do navegador, sem gateway | Nenhuma — exige clique explícito do usuário (`transient activation`); só funciona em contexto seguro (HTTPS) | ~92% dos navegadores mobile (caniuse); sem suporte confiável em desktop |
+| **`wa.me/<numero>?text=<mensagem>`** (WhatsApp Click-to-Chat) | Link comum que abre o WhatsApp do destinatário/remetente com o número e texto pré-preenchidos | Zero — não usa a WhatsApp Business Platform (API paga), funciona com qualquer número | Nenhuma — quem abre o link ainda aperta "enviar" | Universal (é só uma URL) |
+| **`sms:`/`tel:`/`mailto:` (URI schemes)** | Abrem o app nativo de SMS/discador/e-mail do aparelho com destinatário e corpo pré-preenchidos | Zero | Nenhuma — mesma limitação: ação humana final | Bom em mobile (Safari iOS, Chrome/Firefox Android); fraco/inexistente em desktop |
+| *(referência, não zero-custo)* WhatsApp Business Platform (API oficial) | Envio 100% automático server-side, com templates aprovados | Modelo mudou em 2025: preço por mensagem entregue (não mais por conversa de 24h); mensagens utilitárias dentro da janela de atendimento de 24h iniciada pelo cliente continuam gratuitas | Total (server-to-server, sem toque humano) | Requer conta Business Platform + provedor (Twilio/360dialog/etc.) |
+
+### 6.2 Síntese e recomendação para o KortexOS
+
+Para o pós-MVP sem orçamento de gateway, a combinação **Web Share API + link `wa.me` pré-formatado** cobre exatamente o caso de uso do §5: a PWA monta a mensagem certa (aviso de 1ª falta, aviso de cobrança futura, cobrança do sinal com valor calculado) e a recepção dispara com um toque, usando o WhatsApp/SMS que já está no aparelho — **zero linha de código de gateway, zero custo por mensagem**. A limitação deve ficar documentada sem meias-palavras (mesmo princípio anti-mock dos outros `PLANEJAMENTO_*.md`): **isto não é automação server-side** — é envio assistido por humano, sempre depende de alguém tocar em "enviar". Se o produto precisar de lembrete 100% automático e assíncrono (disparado por um job, sem recepção logada), isso exige a WhatsApp Business Platform (ou SMS via provedor), que tem custo por mensagem e pertence à Camada 4 (KortexLink avançado), não ao "acopla limpo" imediato.
+
+Implementação mínima: um helper de frontend que monta a URL `https://wa.me/<telefone_e164>?text=<encodeURIComponent(mensagem)>` a partir dos dados já existentes (`clients.phone`, `appointments`, valor do sinal calculado no backend) e, quando `navigator.share` estiver disponível, oferece a folha nativa como alternativa — nenhuma tabela nova, nenhuma rota de backend nova além de calcular o texto/valor da mensagem (que já é dado que o backend possui).
+
+## 7. Recomendação de Sequenciamento
 
 O foco primário se mantém conforme `KORTEX_MVP_TECNICO.md §11`: fechar os gaps essenciais para operação. Após o MVP, sugerimos a seguinte ordem baseada no retorno vs. esforço (priorizando os itens que "acoplam limpo"):
 
 1. **Camada 1 (Finalização do MVP):** Fechar os gaps já identificados de comissionamento, rateio financeiro e fluxo de gorjeta.
 2. **Camada 2 (Alto Impacto / Acopla Limpo):** 
-   - Waitlist simples (Anti-gap básico via SMS).
-   - Trust & Retention (Cálculo de Score por faltas e cancelamentos para penalização progressiva e bloqueio preventivo no checkout).
+   - Waitlist simples (Anti-gap básico via SMS/WhatsApp).
+   - Trust & Retention: state machine de cobrança por no-show (§5) + mensageria zero-custo via Web Share API/`wa.me` (§6) para disparar os avisos/cobranças da régua.
    - Portal Client Experience (Web Booking App apenas para consumo, tirando peso da recepção manual).
 3. **Camada 3 (Crescimento de Recorrência):**
    - Módulo de Assinaturas (Vouchers renováveis de forma mensal mínima, sem Ledger Complexo).
@@ -131,9 +200,30 @@ O foco primário se mantém conforme `KORTEX_MVP_TECNICO.md §11`: fechar os gap
 
 ---
 
-## 6. Fontes Globais
+## 8. Fontes Globais
+
+### Retenção, rebooking, membership, anti-gap (§4)
 
 - **Zenoti Benchmark:** [The Power of Memberships](https://www.zenoti.com/)
 - **Phorest Insights:** [Reducing No-Shows with Automated Reminders](https://www.phorest.com/)
 - **Vagaro / Mindbody:** Relatórios sobre MRR e previsibilidade na indústria de Spa/Salon.
 - **Lutily / Meevo:** Estudos de caso sobre o impacto psicológico do pre-pagamento e aumento no ticket vitalício (LTV).
+
+### Política de no-show em camadas (§5)
+
+- [SICUS — Salon Deposit Policy Template (2026): Free Examples & No-Show Clauses](https://www.sicusmedia.com/blog/salon-deposit-policy-template.html)
+- [DaySmart — How to Reduce Salon No-Shows: Deposits, Reminders & Cancellation Policy](https://www.daysmart.com/salon/blog/how-to-reduce-salon-no-shows/)
+- [Holland Hair Co — Salon No Show Policy: Protect Your Time and Income](https://hollandhairco.com/blog/what-should-a-salon-no-show-policy-include)
+- [Vagaro — Salon Policies 101: No-Shows, Cancellations & Payment Rules](https://www.vagaro.com/learn/policies-procedures-for-clients-in-salons-examples)
+- [GlossGenius — How to Set Up Your Salon Deposit Policy (Template)](https://glossgenius.com/blog/salon-deposit-policy)
+- [Boulevard — Salon Cancellation Policy Guide With Templates and Examples](https://www.joinblvd.com/blog/salon-cancellation-policy)
+
+### Mensageria nativa de custo zero (§6)
+
+- [MDN — Web Share API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Share_API)
+- [MDN — Navigator: share() method](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/share)
+- [MDN — Navigator: canShare() method](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/canShare)
+- [Chatarmin — Click to Chat for WhatsApp: How to Turn It Into Revenue](https://chatarmin.com/en/blog/click-to-chat-for-whatsapp)
+- [Rick Strahl — Prefilling an SMS on Mobile Devices with the sms: Uri Scheme](https://weblog.west-wind.com/posts/2013/Oct/09/Prefilling-an-SMS-on-Mobile-Devices-with-the-sms-Uri-Scheme)
+- [Meta for Developers — Pricing on the WhatsApp Business Platform](https://developers.facebook.com/documentation/business-messaging/whatsapp/pricing)
+- [Blueticks — WhatsApp Business API Pricing in 2026: Conversation Categories, Costs, and What Changed](https://blueticks.co/blog/whatsapp-business-api-pricing-2026)
