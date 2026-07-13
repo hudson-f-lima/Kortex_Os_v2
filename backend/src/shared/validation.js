@@ -9,6 +9,13 @@ export function validateId(id) {
   return id;
 }
 
+export function validateUuidField(value, fieldName) {
+  if (typeof value !== 'string' || !UUID_RE.test(value)) {
+    throw HttpError.badRequest(`invalid_${fieldName}`, `${fieldName} must be a uuid`);
+  }
+  return value;
+}
+
 export function validateRequiredString(value, fieldName, { min = 1, max = 160 } = {}) {
   const str = typeof value === 'string' ? value.trim() : '';
   if (str.length < min || str.length > max) {

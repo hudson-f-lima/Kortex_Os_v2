@@ -12,6 +12,11 @@ export function mapPostgresError(error) {
       return HttpError.badRequest('constraint_violation', 'payload violates a database constraint');
     case '23505':
       return HttpError.conflict('already_exists', 'a record with the same unique value already exists');
+    case '23P01':
+      return HttpError.conflict(
+        'professional_double_booked',
+        'the professional already has an appointment overlapping this time range',
+      );
     case '23502':
       return HttpError.badRequest('missing_required_field', 'a required field is missing');
     case '22001':

@@ -12,6 +12,7 @@ import { professionalsRouter } from './modules/professionals/professionals.route
 import { servicesRouter } from './modules/services/services.route.js';
 import { productsRouter } from './modules/products/products.route.js';
 import { catalogRouter } from './modules/catalog/catalog.route.js';
+import { appointmentsRouter } from './modules/appointments/appointments.route.js';
 
 export function createApp(env, supabaseAdmin) {
   const app = express();
@@ -44,6 +45,7 @@ export function createApp(env, supabaseAdmin) {
   apiRouter.use(servicesRouter({ supabaseAdmin, organizationContext }));
   apiRouter.use(productsRouter({ supabaseAdmin, organizationContext }));
   apiRouter.use(catalogRouter({ supabaseAdmin, organizationContext }));
+  apiRouter.use(appointmentsRouter({ supabaseAdmin, organizationContext }));
   app.use('/api/v1', apiRouter);
 
   app.use((req, res, next) => {
