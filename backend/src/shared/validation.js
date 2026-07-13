@@ -53,3 +53,15 @@ export function assertNonEmptyPatch(patch) {
     throw HttpError.badRequest('empty_payload', 'at least one field must be provided');
   }
 }
+
+// Mirrors the idempotency_keys.key check constraint (length between 8 and 200)
+// shared by checkout_close and inventory_adjust.
+export function validateIdempotencyKey(headerValue) {
+  if (typeof headerValue !== 'string' || headerValue.length < 8 || headerValue.length > 200) {
+    throw HttpError.badRequest(
+      'missing_idempotency_key',
+      'Idempotency-Key header is required and must be 8-200 characters',
+    );
+  }
+  return headerValue;
+}

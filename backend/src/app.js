@@ -13,6 +13,10 @@ import { servicesRouter } from './modules/services/services.route.js';
 import { productsRouter } from './modules/products/products.route.js';
 import { catalogRouter } from './modules/catalog/catalog.route.js';
 import { appointmentsRouter } from './modules/appointments/appointments.route.js';
+import { checkoutRouter } from './modules/checkout/checkout.route.js';
+import { inventoryRouter } from './modules/inventory/inventory.route.js';
+import { ordersRouter } from './modules/orders/orders.route.js';
+import { cashEntriesRouter } from './modules/cashEntries/cashEntries.route.js';
 
 export function createApp(env, supabaseAdmin) {
   const app = express();
@@ -46,6 +50,10 @@ export function createApp(env, supabaseAdmin) {
   apiRouter.use(productsRouter({ supabaseAdmin, organizationContext }));
   apiRouter.use(catalogRouter({ supabaseAdmin, organizationContext }));
   apiRouter.use(appointmentsRouter({ supabaseAdmin, organizationContext }));
+  apiRouter.use(checkoutRouter({ supabaseAdmin, organizationContext }));
+  apiRouter.use(inventoryRouter({ supabaseAdmin, organizationContext }));
+  apiRouter.use(ordersRouter({ supabaseAdmin, organizationContext }));
+  apiRouter.use(cashEntriesRouter({ supabaseAdmin, organizationContext }));
   app.use('/api/v1', apiRouter);
 
   app.use((req, res, next) => {
