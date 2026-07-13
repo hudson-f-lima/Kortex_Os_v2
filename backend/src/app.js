@@ -7,6 +7,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { HttpError } from './shared/httpError.js';
 import { healthRouter } from './modules/health/health.route.js';
 import { organizationsRouter } from './modules/organizations/organizations.route.js';
+import { clientsRouter } from './modules/clients/clients.route.js';
 
 export function createApp(env, supabaseAdmin) {
   const app = express();
@@ -34,6 +35,7 @@ export function createApp(env, supabaseAdmin) {
   const apiRouter = express.Router();
   apiRouter.use(auth);
   apiRouter.use(organizationsRouter({ supabaseAdmin, organizationContext }));
+  apiRouter.use(clientsRouter({ supabaseAdmin, organizationContext }));
   app.use('/api/v1', apiRouter);
 
   app.use((req, res, next) => {

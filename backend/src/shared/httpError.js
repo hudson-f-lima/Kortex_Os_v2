@@ -22,4 +22,8 @@ export class HttpError extends Error {
   static notFound(code, message, details) {
     return new HttpError(404, code, message, details);
   }
+
+  static conflict(code, message, details) {
+    return new HttpError(409, code, message, details);
+  }
 }
