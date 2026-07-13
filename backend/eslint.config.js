@@ -13,10 +13,12 @@ export default [
         Buffer: "readonly",
         setTimeout: "readonly",
         clearTimeout: "readonly",
+        fetch: "readonly",
+        URL: "readonly",
       },
     },
     rules: {
-      "no-unused-vars": "warn",
+      "no-unused-vars": ["warn", { ignoreRestSiblings: true }],
       "no-undef": "warn"
     },
   },

@@ -33,6 +33,7 @@ export default [
     },
     rules: {
       "react/prop-types": "off",
+      "react/jsx-uses-vars": "error",
       "react-refresh/only-export-components": "warn",
       "no-unused-vars": "warn",
       "no-undef": "warn",
