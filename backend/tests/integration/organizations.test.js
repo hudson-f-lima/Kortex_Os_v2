@@ -65,3 +65,57 @@ test('a valid Supabase session lists only the caller organizations, and X-Organi
   assert.equal(correctOrg.body.organization_id, org.id);
   assert.equal(correctOrg.body.role, 'owner');
 });
+
+test('POST /api/v1/organizations creates an organization and makes the caller its owner', async () => {
+  const email = `backend-test-${randomUUID()}@test.local`;
+  const { accessToken } = await signUpTestUser(email, 'S3nhaForte!123');
+  const slug = `onboarding-org-${randomUUID()}`;
+
+  const created = await request(app)
+    .post('/api/v1/organizations')
+    .set('Authorization', `Bearer ${accessToken}`)
+    .send({ name: 'Onboarding Org', slug });
+  assert.equal(created.status, 201);
+  assert.equal(created.body.organization.name, 'Onboarding Org');
+  assert.equal(created.body.organization.slug, slug);
+  assert.equal(created.body.role, 'owner');
+
+  const listed = await request(app).get('/api/v1/organizations').set('Authorization', `Bearer ${accessToken}`);
+  assert.equal(listed.status, 200);
+  assert.equal(listed.body.organizations.length, 1);
+  assert.equal(listed.body.organizations[0].id, created.body.organization.id);
+  assert.equal(listed.body.organizations[0].role, 'owner');
+
+  const currentContext = await request(app)
+    .get('/api/v1/organizations/current')
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', created.body.organization.id);
+  assert.equal(currentContext.status, 200);
+  assert.equal(currentContext.body.role, 'owner');
+});
+
+test('POST /api/v1/organizations rejects a duplicate slug and an invalid payload', async () => {
+  const email = `backend-test-${randomUUID()}@test.local`;
+  const { accessToken } = await signUpTestUser(email, 'S3nhaForte!123');
+  const slug = `dup-org-${randomUUID()}`;
+
+  const first = await request(app)
+    .post('/api/v1/organizations')
+    .set('Authorization', `Bearer ${accessToken}`)
+    .send({ name: 'First Org', slug });
+  assert.equal(first.status, 201);
+
+  const duplicate = await request(app)
+    .post('/api/v1/organizations')
+    .set('Authorization', `Bearer ${accessToken}`)
+    .send({ name: 'Second Org', slug });
+  assert.equal(duplicate.status, 409);
+  assert.equal(duplicate.body.code, 'already_exists');
+
+  const invalid = await request(app)
+    .post('/api/v1/organizations')
+    .set('Authorization', `Bearer ${accessToken}`)
+    .send({ name: 'X', slug: 'valid-slug' });
+  assert.equal(invalid.status, 400);
+  assert.equal(invalid.body.code, 'invalid_name');
+});
