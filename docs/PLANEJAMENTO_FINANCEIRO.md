@@ -26,7 +26,7 @@ Lido diretamente de `supabase/migrations/20260712235319_mvp_baseline.sql`, `chec
 | `orders.discount_cents` | `CONTRADITÓRIO` | a coluna e o `check` existem, mas `checkout_close` sempre insere e atualiza `discount_cents = 0` — nenhum caminho de código o altera; hoje é uma promessa de schema sem funcionalidade |
 | `orders.status` (`draft`/`cancelled`/`refunded`) | `PARCIAL` | o `check` permite os 4 valores, mas `checkout_close` é o único inserter e sempre grava `'closed'` — não existe "comanda aberta" persistida no banco nem cancelamento/estorno |
 | `cash_entries.kind` (`income`/`expense`/`refund`) | `PARCIAL` | o `check` permite os 4 valores; só `'sale'` é alcançável (via `checkout_close`) — o próprio código documenta isso (`cashEntries.service.js`: "There is no RPC yet for manual income/expense/refund entries") |
-| Atribuição de profissional por item vendido | `AUSENTE` | `order_items` não tem `professional_id` nem qualquer coluna de comissão — impossível hoje saber quem produziu cada venda |
+| Atribuição de profissional por item vendido | `REAL` (fechado na Fase 5.1, ver `docs/PLANEJAMENTO_COMISSOES.md`) | `order_items` tem `professional_id`/`commission_type`/`commission_value`/`commission_cents`, obrigatório para `kind='service'` e proibido para `kind='product'` (CHECK constraint), resolvido e congelado por `private.resolve_commission` dentro de `checkout_close` |
 | Gorjeta (gorjeta/tip) | `AUSENTE` | não existe em `payments` nem em nenhuma tabela |
 | Taxa de cartão / custo de adquirência | `AUSENTE` | `payments.method` distingue `debit_card`/`credit_card`, mas nenhum valor de taxa é capturado |
 | Ledger de partidas dobradas (saldo derivado, soma zero) | `AUSENTE` (decisão de design) | `cash_entries` é um log categorizado *append-only*; o saldo depende da aplicação somar com sinal correto por `kind` — nada no banco garante consistência como no §3.1 |
@@ -60,9 +60,9 @@ O padrão (Stripe PaymentIntent: `requires_payment_method → processing → req
 **Camada 0 — já é estado da arte, não mexer.** Centavos inteiros, checkout atômico, idempotência server-side. Nenhuma ação.
 
 **Camada 1 — gap barato hoje, caro depois (recomendo priorizar).**
-- `order_items.professional_id`: sem essa coluna agora, qualquer relatório futuro de "quem vendeu o quê" exige migração com backfill impossível (o dado simplesmente não foi capturado). É uma coluna e uma linha a mais no payload de `checkout_close`, adicionável sem tocar no não-objetivo de "analytics avançado" — só captura o fato, não calcula comissão.
-- Resolver a contradição de `discount_cents`: ou remover o `check`/coluna morta, ou implementar de fato (decisão de produto: o checkout aceita desconto?).
-- Decidir se `orders.status`/`cash_entries.kind` além de `closed`/`sale` são necessários para o MVP (ex.: **estorno** é razoavelmente esperado num sistema de checkout, mesmo mínimo) — hoje uma venda fechada é permanente e não há caminho de reversão.
+- ~~`order_items.professional_id`~~ — **resolvido na Fase 5.1** (`docs/PLANEJAMENTO_COMISSOES.md`): coluna existe, é obrigatória para itens de serviço e alimenta a cascata de comissão dentro de `checkout_close`. Item fechado, mantido aqui só como registro histórico da decisão.
+- Resolver a contradição de `discount_cents`: ou remover o `check`/coluna morta, ou implementar de fato (decisão de produto: o checkout aceita desconto?). **Ainda em aberto** — `checkout_close` continua sempre gravando `discount_cents = 0`.
+- Decidir se `orders.status`/`cash_entries.kind` além de `closed`/`sale` são necessários para o MVP (ex.: **estorno** é razoavelmente esperado num sistema de checkout, mesmo mínimo) — hoje uma venda fechada é permanente e não há caminho de reversão. **Ainda em aberto.**
 
 **Camada 2 — estado da arte genuíno, mas contraria `KORTEX_MVP_TECNICO.md §11` hoje (não iniciar sem revisar o não-objetivo).**
 - Ledger de partidas dobradas para `cash_entries` (§3.1).
@@ -73,7 +73,7 @@ O padrão (Stripe PaymentIntent: `requires_payment_method → processing → req
 
 ## 5. Recomendação
 
-Tratar a Camada 1 como uma decisão de produto a resolver **antes** de fechar a fase de checkout como definitivamente encerrada — o custo de adicionar `professional_id` a `order_items` agora é uma migration pequena; feito depois de haver dados em produção, vira backfill impossível (o histórico não tem a informação). A Camada 2 permanece corretamente fora do MVP por enquanto, mas agora com pesquisa concreta (§3) para quando a fase for reaberta — nenhum código dos docs legados deve ser copiado literalmente (usa nomenclatura e campos que não existem no schema atual), mas os *padrões* (ledger imutável de soma zero, split via conta transitória, FSM de pagamento) são a referência a seguir quando chegar a hora.
+**Atualização pós-Fase 5.1:** o item mais urgente da Camada 1 (`professional_id`) já foi resolvido — ver `docs/PLANEJAMENTO_COMISSOES.md` e `docs/PROJECT_STATE.md`. Os dois itens restantes da Camada 1 (`discount_cents` morto, ausência de estorno/`refunded`) seguem em aberto e continuam sendo decisão de produto barata de resolver agora, antes de haver dados de produção. A Camada 2 permanece corretamente fora do MVP por enquanto, mas agora com pesquisa concreta (§3) para quando a fase for reaberta — nenhum código dos docs legados deve ser copiado literalmente (usa nomenclatura e campos que não existem no schema atual), mas os *padrões* (ledger imutável de soma zero, split via conta transitória, FSM de pagamento) são a referência a seguir quando chegar a hora.
 
 ## Fontes
 

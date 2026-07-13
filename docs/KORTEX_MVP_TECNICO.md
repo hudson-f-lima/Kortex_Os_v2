@@ -40,7 +40,7 @@ O frontend gerencia sessão e interface. O Express valida o JWT, resolve members
 | Financeiro mínimo | `cash_entries` |
 | Infra transacional | `private.idempotency_keys` |
 
-`service_groups`/`services.commission_type`/`services.commission_value` sustentam a cascata de comissão (profissional > serviço > grupo, ver `docs/PLANEJAMENTO_COMISSOES.md`); `packages`/`package_items` são pacotes compostos de serviços vendidos por um preço próprio. Nenhum dos dois ainda é consumido por `checkout_close` — isso é a Fase 5.1.
+`service_groups`/`services.commission_type`/`services.commission_value` sustentam a cascata de comissão (profissional > serviço > grupo, ver `docs/PLANEJAMENTO_COMISSOES.md`); `packages`/`package_items` são pacotes compostos de serviços vendidos por um preço próprio. Ambos são consumidos por `checkout_close` desde a Fase 5.1 (`professional_service_commissions`, `order_items.professional_id`/`commission_*`, expansão de pacote com alocação proporcional) — ver `docs/PROJECT_STATE.md`.
 
 Todas as referências de negócio importantes carregam `organization_id` e usam FKs compostas para impedir referências cross-tenant.
 

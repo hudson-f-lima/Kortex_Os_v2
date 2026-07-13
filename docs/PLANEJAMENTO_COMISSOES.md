@@ -1,6 +1,6 @@
 # Planejamento — Comissões de Serviços e Pacotes
 
-**Status:** planejamento. Nenhuma migration criada. Este documento detalha e resolve em decisão de modelo de dados o que `docs/PLANEJAMENTO_FINANCEIRO.md §4` já havia identificado como "Camada 1" (atribuição de profissional) e parte da "Camada 2" (engine de comissão) — aqui as duas se fundem numa única proposta, porque, como o §5 deste documento mostra, não dá para resolver uma sem a outra.
+**Status:** `REAL` — implementado nas Fases 3.1 (`20260713050000_service_groups_and_packages.sql`) e 5.1 (`20260713060000_professional_commissions_checkout.sql`), ver `docs/PROJECT_STATE.md`. O conteúdo abaixo é o design original; mantido como documento de referência da decisão de modelo de dados, não como plano pendente. Este documento detalha e resolve em decisão de modelo de dados o que `docs/PLANEJAMENTO_FINANCEIRO.md §4` já havia identificado como "Camada 1" (atribuição de profissional) e parte da "Camada 2" (engine de comissão) — aqui as duas se fundem numa única proposta, porque, como o §5 deste documento mostra, não dá para resolver uma sem a outra.
 
 **Ordem de leitura antes deste documento:** `AGENTS.md` → `docs/KORTEX_MVP_TECNICO.md` → `docs/PLANEJAMENTO_FINANCEIRO.md` (auditoria anterior desta mesma área).
 

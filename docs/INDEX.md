@@ -6,6 +6,7 @@
 - [PLANEJAMENTO_FINANCEIRO.md](PLANEJAMENTO_FINANCEIRO.md) — auditoria do estado financeiro real vs. docs legados vs. estado da arte global (ledger, comissão, idempotência)
 - [PLANEJAMENTO_COMISSOES.md](PLANEJAMENTO_COMISSOES.md) — modelo de comissão de serviços/pacotes: cascata grupo→serviço→profissional, pesquisa global
 - [PLANEJAMENTO_ROADMAP_POS_MVP.md](PLANEJAMENTO_ROADMAP_POS_MVP.md) — mapeamento D00–D31 vs. MVP técnico, classificação de acoplamento e pesquisa global (retenção, rebooking, memberships)
+- [REDTEAM_FASE7.md](REDTEAM_FASE7.md) — veredito adversarial da Fase 7 (CI, Render, observabilidade), evidência re-executada
 - [../AGENTS.md](../AGENTS.md) — limites permanentes e formato de handoff
 - [../.agents/skills/kortex-mvpt-orchestrator/SKILL.md](../.agents/skills/kortex-mvpt-orchestrator/SKILL.md) — orquestrador do sistema
 
