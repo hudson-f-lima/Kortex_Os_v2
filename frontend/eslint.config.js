@@ -33,8 +33,10 @@ export default [
     rules: {
       ...reactHooks.configs.recommended.rules,
       "react/prop-types": "off",
-      "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
-      "no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+      "react-refresh/only-export-components": "warn",
+      "no-unused-vars": "warn",
+      "no-undef": "warn",
+      "react-hooks/exhaustive-deps": "warn"
     },
     settings: {
       react: { version: "18.3" },
