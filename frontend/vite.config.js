@@ -8,6 +8,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 // cliente variáveis prefixadas VITE_ — os segredos do backend no mesmo
 // arquivo (SUPABASE_SERVICE_ROLE_KEY etc.) nunca entram no build.
 export default defineConfig({
+  base: '/Kortex_Os_v2/',
   envDir: '..',
   plugins: [
     react(),

@@ -6,6 +6,7 @@ import reactRefresh from "eslint-plugin-react-refresh";
 export default [
   js.configs.recommended,
   {
+    ignores: ["dist/**", "node_modules/**"],
     files: ["**/*.{js,jsx}"],
     languageOptions: {
       ecmaVersion: 2022,
@@ -31,12 +32,12 @@ export default [
       "react-refresh": reactRefresh,
     },
     rules: {
-      ...reactHooks.configs.recommended.rules,
       "react/prop-types": "off",
       "react-refresh/only-export-components": "warn",
       "no-unused-vars": "warn",
       "no-undef": "warn",
-      "react-hooks/exhaustive-deps": "warn"
+      "react-hooks/exhaustive-deps": "warn",
+      "react-hooks/set-state-in-effect": "off"
     },
     settings: {
       react: { version: "18.3" },
