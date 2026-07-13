@@ -105,8 +105,8 @@ Reaproveitar sem alteração a tabela normativa de `references/cache-policy.md` 
 
 | Subfase | Entrega | Depende de |
 |---|---|---|
-| 6.1 | App shell, autenticação (Supabase Auth só para login/sessão), navegação por papel, manifest + ícones instaláveis | — |
-| 6.2 | Módulo Agenda (grade, criar/mover/cancelar, filtro por profissional) | 6.1 |
+| 6.1 | ✅ App shell, autenticação (Supabase Auth só para login/sessão), navegação por papel, manifest + ícones instaláveis | — |
+| 6.2 | ✅ Módulo Agenda (grade, criar/mover/cancelar, filtro por profissional) | 6.1 |
 | 6.3 | Módulo Comanda/Checkout (abrir, adicionar item, fechar com idempotência, split/gorjeta) | 6.2 |
 | 6.4 | Cadastros (clientes, equipe) + Catálogo + Estoque | 6.1 |
 | 6.5 | Caixa (leitura) + Organização/onboarding (criar org, convidar membro) | 6.1 |
