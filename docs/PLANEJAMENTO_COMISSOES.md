@@ -105,6 +105,9 @@ Soma alocada = R$ 70,40 + R$ 52,80 + R$ 96,80 = **R$ 220,00**, exata (sem sobra/
 
 ## 8. Evolução Aprovada: Comissões Avançadas, Absorção de Desconto e Vínculo N:N
 
+> [!WARNING]
+> O sequenciamento a seguir foi desmembrado, detalhado e **superseded**. As decisões e a execução destas seções foram realocadas para as Fases 10, 11 e 12 no documento `PLANEJAMENTO_EXECUCAO_UNIFICADO.md`. Consulte-o como única fonte de verdade.
+
 Com base na decisão de elevar o sistema ao estado da arte global (Vagaro, Zenoti, Phorest), a modelagem de comissão (Fase 3.1/5.1) foi expandida e aprovada para receber as seguintes capacidades (pendentes de execução):
 
 ### 8.1 Comissionamento Escalonado (Tiered Commissions)

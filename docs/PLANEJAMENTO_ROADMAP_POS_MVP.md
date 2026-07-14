@@ -185,6 +185,9 @@ Implementação mínima: um helper de frontend que monta a URL `https://wa.me/<t
 
 ## 7. Recomendação de Sequenciamento
 
+> [!WARNING]
+> O sequenciamento a seguir (Camadas 1 a 4) foi reclassificado e **superseded**. A alocação oficial e as Fases de Execução atualizadas (Fases 8 a 16) encontram-se agora centralizadas no documento `PLANEJAMENTO_EXECUCAO_UNIFICADO.md`. Consulte-o como única fonte de verdade antes de iniciar qualquer desenvolvimento.
+
 O foco primário se mantém conforme `KORTEX_MVP_TECNICO.md §11`: fechar os gaps essenciais para operação. Após o MVP, sugerimos a seguinte ordem baseada no retorno vs. esforço (priorizando os itens que "acoplam limpo"):
 
 1. **Camada 1 (Finalização do MVP):** Fechar os gaps já identificados de comissionamento, rateio financeiro e fluxo de gorjeta.

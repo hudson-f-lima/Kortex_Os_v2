@@ -57,6 +57,9 @@ O padrão (Stripe PaymentIntent: `requires_payment_method → processing → req
 
 ## 4. Classificação em camadas (para decisão, não implementação automática)
 
+> [!WARNING]
+> O sequenciamento a seguir foi unificado e **superseded**. A alocação oficial em Fases (ex: Camada 1 = Fase 9) encontra-se agora centralizada em `PLANEJAMENTO_EXECUCAO_UNIFICADO.md`. Consulte-o antes de implementar qualquer item.
+
 **Camada 0 — já é estado da arte, não mexer.** Centavos inteiros, checkout atômico, idempotência server-side. Nenhuma ação.
 
 **Camada 1 — gap barato hoje, caro depois (recomendo priorizar).**

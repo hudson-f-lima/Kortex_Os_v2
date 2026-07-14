@@ -68,4 +68,4 @@ A arquitetura básica do MVP técnico e PWA (Fase 6) foi finalizada e testada lo
 **Único bloqueio de infraestrutura**: o backend hospedado no Render (`kortex-api`) não respondeu na verificação anterior. Precisa de verificação manual se o tier foi pausado.
 
 **PRÓXIMO PASSO IMEDIATO DE ENGENHARIA**:
-Iniciar o desenvolvimento do plano de evolução de comissões aprovado (migrations para `professional_services`, `commission_tiers`, lógica flexível de descontos em `checkout_close` e fluxo de login/invite de staff no backend).
+Ver [PLANEJAMENTO_EXECUCAO_UNIFICADO.md](PLANEJAMENTO_EXECUCAO_UNIFICADO.md) (Fase atual: 8 — Consolidação Documental). A regra permanente é: "A próxima ação sempre aponta para o Planejamento Unificado".

@@ -115,6 +115,8 @@ Render hospeda API Node e PWA estática; Supabase permanece serviço externo. Us
 6. PWA modular, offline apenas para shell/rascunhos não críticos.
 7. CI, Render, observabilidade e Red Team.
 
+Fases 8+ vivem em `PLANEJAMENTO_EXECUCAO_UNIFICADO.md`.
+
 ## 11. Não objetivos
 
 Ledger contábil completo, fiscal, folha, marketplace, assinatura, IA, múltiplas unidades complexas, integrações de pagamento e analytics avançado ficam fora do MVP.
