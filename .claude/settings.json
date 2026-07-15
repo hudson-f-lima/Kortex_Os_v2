@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "uptimerobot": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@mcp-servers/uptimerobot"
+      ],
+      "env": {
+        "UPTIMEROBOT_API_KEY": "${UPTIMEROBOT_API_KEY}"
+      }
+    }
+  }
+}
