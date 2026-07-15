@@ -1,7 +1,7 @@
 # PLANEJAMENTO_EXECUCAO_UNIFICADO
 
 Status: CANÔNICO — única fonte de numeração de fases a partir da Fase 8
-Fase atual: 8 | Última atualização: 2026-07-13 | Supersede sequenciamentos de:
+Fase atual: 9 | Última atualização: 2026-07-15 | Supersede sequenciamentos de:
 PLANEJAMENTO_FINANCEIRO §4-5, PLANEJAMENTO_COMISSOES §8, PLANEJAMENTO_ROADMAP_POS_MVP §7
 
 ## 1. Objetivo e Regra de Canonicidade
@@ -19,7 +19,7 @@ Estado atual:
 - **Módulos PWA**: 8.
 - **Testes**: 123 pgTAP + ~195 backend + 69 frontend.
 - **CI**: Fase 7 rodou e passou.
-- **Render**: `BLOQUEADO` (Fase 7 fechou como "PASS COM RISCO ACEITO", backend `kortex-api` com erro de timeout/503).
+- **Render**: `REAL` (Fase 7 fechou; backend `kortex-api` validado online com `/health` OK).
 
 **Tabela de Rastreabilidade**
 
@@ -50,7 +50,7 @@ Esta é a equação-alvo de reconciliação que será definida **UMA única vez*
 
 ## 4. Fases de Execução (Fase 8 a 13)
 
-### Fase 8 — Consolidação documental e fechamento real do MVP
+### Fase 8 — Consolidação documental e fechamento real do MVP [CONCLUÍDA]
 **Escopo**: merge (fast-forward) da branch de docs; criação deste documento; higiene documental de todos os arquivos; fechamento da pendência Render; parametrização de `deploy-pages.yml`.
 **Dependências**: Nenhuma técnica — é o pré-requisito de TODAS as outras. (Uma divergência de documentação impede o sequenciamento correto no main).
 **Entregáveis**: Higiene nos docs concluída (ADRs ajustados, INDEX renomeado, supersedes adicionados).
