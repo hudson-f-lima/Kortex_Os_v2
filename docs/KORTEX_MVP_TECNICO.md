@@ -37,10 +37,10 @@ O frontend gerencia sessão e interface. O Express valida o JWT, resolve members
 | Operação | `professionals`, `services`, `service_groups`, `packages`, `package_items`, `appointments` |
 | Estoque | `products`, `inventory_movements` |
 | Venda | `orders`, `order_items`, `payments` |
-| Financeiro mínimo | `cash_entries` |
+| Financeiro mínimo | `cash_entries` (inclui entrada/saída manual e estornos) |
 | Infra transacional | `private.idempotency_keys` |
 
-`service_groups`/`services.commission_type`/`services.commission_value` sustentam a cascata de comissão (profissional > serviço > grupo, ver `docs/PLANEJAMENTO_COMISSOES.md`); `packages`/`package_items` são pacotes compostos de serviços vendidos por um preço próprio. Ambos são consumidos por `checkout_close` desde a Fase 5.1 (`professional_service_commissions`, `order_items.professional_id`/`commission_*`, expansão de pacote com alocação proporcional) — ver `docs/PROJECT_STATE.md`.
+`service_groups`/`services.commission_type`/`services.commission_value` sustentam a cascata de comissão (profissional > serviço > grupo, ver `docs/PLANEJAMENTO_COMISSOES.md`); `packages`/`package_items` são pacotes compostos de serviços vendidos por um preço próprio. Ambos são consumidos por `checkout_close` desde a Fase 5.1 (`professional_service_commissions`, `order_items.professional_id`/`commission_*`, expansão de pacote com alocação proporcional). A Fase 9 estendeu `checkout_close` com rateio por Maior Resto de Descontos e Gorjetas, congelados na venda (ver `docs/PROJECT_STATE.md`).
 
 Todas as referências de negócio importantes carregam `organization_id` e usam FKs compostas para impedir referências cross-tenant.
 
@@ -58,7 +58,7 @@ Todas as referências de negócio importantes carregam `organization_id` e usam 
 
 `intenção + idempotency key → autorização → catálogo server-side → lock de produtos → baixa de estoque → itens → pagamentos → caixa → resposta`.
 
-O checkout usa uma única função transacional. Mesma chave com payload diferente falha; o frontend nunca envia preço confiável. Ajustes de estoque usam RPC própria, também idempotente, e toda alteração de saldo gera `inventory_movements`.
+O checkout usa uma única função transacional. Mesma chave com payload diferente falha; o frontend nunca envia preço confiável, apenas intenções (ex: desconto e gorjeta globais). Ajustes de estoque e Lançamentos de Caixa Manuais usam RPCs próprias, também idempotentes. Estornos (`order_refund`) revertem estoques automaticamente e devolvem dinheiro ao caixa.
 
 ## 6. Estrutura de repositório
 

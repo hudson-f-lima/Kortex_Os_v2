@@ -55,6 +55,7 @@
 
 - **Fase 7 (`docs/KORTEX_MVP_TECNICO.md §10`) materializada parcialmente: CI, observabilidade e Red Team fecham.** O gate do Render foi desbloqueado (o endpoint `/health` responde com sucesso `{"status":"ok"}`, indicando que o cold-start do free tier foi superado).
 - **Fase 8 (`docs/PLANEJAMENTO_EXECUCAO_UNIFICADO.md`) concluída:** Documentação higienizada, unificada e SSoT estabelecido. Problema de variáveis de ambiente no deploy-pages corrigido.
+- **Fase 9 (`docs/PLANEJAMENTO_EXECUCAO_UNIFICADO.md`) iniciada:** Estruturada e criada a migration da fundação financeira (`20260715103200_fase9_foundation.sql`), suportando descontos, gorjeta rateada, lançamentos de caixa e estornos (com devolução ao estoque).
 
 ## Decisão vigente
 
