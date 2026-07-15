@@ -1,7 +1,7 @@
 # PLANEJAMENTO_EXECUCAO_UNIFICADO
 
 Status: CANÔNICO — única fonte de numeração de fases a partir da Fase 8
-Fase atual: 9 (escopo reduzido em 2026-07-15 — `cash_sessions` saiu para fase própria, ainda sem número) | Última atualização: 2026-07-15 | Supersede sequenciamentos de:
+Fase atual: 9 [CONCLUÍDA] | Última atualização: 2026-07-15 (Fase 12 alocada — `cash_sessions` formalizado em ADR 0007) | Supersede sequenciamentos de:
 PLANEJAMENTO_FINANCEIRO §4-5, PLANEJAMENTO_COMISSOES §8, PLANEJAMENTO_ROADMAP_POS_MVP §7, PLANEJAMENTO_CALENDARIO_OPERACIONAL §11, PLANEJAMENTO_AGENDA_TRANSACIONAL §13
 
 ## 1. Objetivo e Regra de Canonicidade
@@ -29,13 +29,14 @@ Estado atual:
 | `PLANEJAMENTO_FINANCEIRO` Camada 1 | Fase 9 |
 | `PLANEJAMENTO_COMISSOES` §8.3 | Fase 10 |
 | `PLANEJAMENTO_COMISSOES` §8.4 | Fase 11 |
-| `PLANEJAMENTO_COMISSOES` §8.1+8.2 | Fase 12 |
-| `PLANEJAMENTO_ROADMAP_POS_MVP` §5/§6 | Fase 13 |
-| `PLANEJAMENTO_CALENDARIO_OPERACIONAL` (completo) | Fase 14 |
-| `PLANEJAMENTO_AGENDA_TRANSACIONAL` (completo) | Fase 15 |
-| `PLANEJAMENTO_ROADMAP_POS_MVP` Camada 2 (restante — waitlist/anti-gap) | Fase 16 |
-| `PLANEJAMENTO_ROADMAP_POS_MVP` §5/portal do cliente | Fase 17 |
-| `PLANEJAMENTO_ROADMAP_POS_MVP` Camada 3 (memberships) | Fase 18 |
+| ADR 0007 — `cash_sessions` + Void vs. Refund (novo) | Fase 12 |
+| `PLANEJAMENTO_COMISSOES` §8.1+8.2 | Fase 13 |
+| `PLANEJAMENTO_ROADMAP_POS_MVP` §5/§6 | Fase 14 |
+| `PLANEJAMENTO_CALENDARIO_OPERACIONAL` (completo) | Fase 15 |
+| `PLANEJAMENTO_AGENDA_TRANSACIONAL` (completo) | Fase 16 |
+| `PLANEJAMENTO_ROADMAP_POS_MVP` Camada 2 (restante — waitlist/anti-gap) | Fase 17 |
+| `PLANEJAMENTO_ROADMAP_POS_MVP` §5/portal do cliente | Fase 18 |
+| `PLANEJAMENTO_ROADMAP_POS_MVP` Camada 3 (memberships) | Fase 19 |
 | `PLANEJAMENTO_ROADMAP_POS_MVP` Camada 4 | Bloqueado (§6) |
 
 ## 3. Invariantes Transversais e Arquitetura-alvo do Checkout
@@ -43,7 +44,7 @@ Estado atual:
 Esta é a equação-alvo de reconciliação que será definida **UMA única vez** e implementada em fatias pelas próximas fases.
 `sum(payments) == subtotal - discount_total + tip_total - deposit_credit`
 
-(Hoje `discount` = `tip` = `deposit` = 0 forçados. A Fase 9 ativará discount/tip e a Fase 13 ativará deposit_credit; contudo, a equação e os checks nascerão completos já na Fase 9).
+(Hoje `discount` = `tip` = `deposit` = 0 forçados. A Fase 9 ativará discount/tip e a Fase 14 ativará deposit_credit; contudo, a equação e os checks nascerão completos já na Fase 9).
 
 - **Contrato de payload extensível** na `checkout_close` com campos opcionais, valores default e **versionamento do hash de idempotência** (para evitar falhas no retry cruzando o deploy de novos campos).
 - **Invariantes permanentes**: 
@@ -101,44 +102,52 @@ Esta é a equação-alvo de reconciliação que será definida **UMA única vez*
 **Riscos**: Vazamento intra-org.
 **Gate de saída**: Teste E2E de convite com e-mail REAL. Red team testando um vazamento de dados de profissionais diferentes na mesma organização.
 
-### Fase 12 — Comissões Escalonadas + Política de Absorção de Desconto
+### Fase 12 — Sessões de Caixa + Reabertura de Comanda (Void)
+**Escopo**: Tabela nova `cash_sessions` (abertura/fechamento por período/turno com auditoria); coluna `session_id` em `cash_entries` para referenciar sessão; RPC nova `order_void` (distinta de `order_refund`, para correção operacional de erro de recepção); RPCs `cash_session_open`/`cash_session_close` (restritas a `owner`/`manager`); RLS que travam edição de comanda se sessão já fechou; PWA novo fluxo de reabertura dentro de Histórico de Caixa.
+**Dependências**: Após Fase 9 (fundação de caixa já existe). Antes de Fase 13 (Comissões) — `cash_sessions` é o contêiner sobre o qual fronteiras de acumulado (ex.: mês) serão definidas na Fase 13. Pesquisa realizada em AppBarber, Trinks, Avec, Nex (padrão local convergente de bloqueio por sessão aberta) — ver ADR 0007.
+**Entregáveis**: Migration de `cash_sessions` + RLS; alteração em `cash_entries` com FK; RPC `order_void` (distinta de `order_refund`); RPCs de gerenciamento de sessão; backend CRUD de sessão + integrações; PWA com reabertura controlada de comanda por sessão aberta.
+**Decisões em aberto**: Qual o escopo mínimo de `closing_balance_cents` (calculado automaticamente ou preenchido manualmente)? `order_void` reverter comissão (recomendação: não, aguardar ADR 0005 e classificação do profissional)? Granularidade: por dia/turno/customizável (recomendação: por turno/dia, flexível por organização)?
+**Riscos**: Bloquear erroneamente uma correção legítima se sessão foi fechada muito cedo. Calcular `closing_balance` incorretamente (reconhecimento: é um problema de auditoria, exige validação com dados reais).
+**Gate de saída**: pgTAP validando restrição de `order_void` com sessão fechada; teste de transição de estado (abrir → editar → fechar); red team de abertura múltipla da mesma sessão (impossível); teste de E2E reabrindo comanda de sessão aberta vs. rejeitando de sessão fechada; auditoria de quem abriu/fechou com timestamps. Ver ADR 0007 para contexto de pesquisa.
+
+### Fase 13 — Comissões Escalonadas + Política de Absorção de Desconto
 **Escopo**: Tabela `commission_tiers` + flag na organização de política de desconto (`net_price_split`, `gross_price_salon_absorbs`, `deduct_after_commission`).
-**Dependências**: Fase 9 (Desconto) e Fase 10 (Preços Finais) devem estar estabilizadas. Por ser complexa, fica por último e maximiza o tempo de definição.
-**Achado de pesquisa (ADR 0004)**: o Zenoti — benchmark citado no próprio ADR — não usa uma única flag por organização; tem granularidade por tipo de item (serviço: "Sale price before discount" vs. "Revenue"; produto/membership: opção separada "Sale price after discount" vs. "Revenue", com dedução adicional). A Fase 9 já hardcodou o equivalente a "Revenue" só para serviços, sem flag. Avaliar se a Fase 12 deve granularizar por tipo de item em vez de uma flag única por organização, alinhando com o padrão de mercado em vez de simplificar demais.
+**Dependências**: Fase 9 (Desconto), Fase 10 (Preços Finais) e **Fase 12 (`cash_sessions` — fronteira de período)** devem estar estabilizadas. Por ser complexa, fica por último e maximiza o tempo de definição.
+**Achado de pesquisa (ADR 0004)**: o Zenoti — benchmark citado no próprio ADR — não usa uma única flag por organização; tem granularidade por tipo de item (serviço: "Sale price before discount" vs. "Revenue"; produto/membership: opção separada "Sale price after discount" vs. "Revenue", com dedução adicional). A Fase 9 já hardcodou o equivalente a "Revenue" só para serviços, sem flag. Avaliar se a Fase 13 deve granularizar por tipo de item em vez de uma flag única por organização, alinhando com o padrão de mercado em vez de simplificar demais.
 **Entregáveis**: Alterações finais em `checkout_close`; módulo CRUD de Tiers; flag na Org e no PWA.
 **Decisões em aberto (Obrigatório resolver antes)**: Marginal vs Cliff (recomendado marginal para não re-calcular comissões antigas). Como dividir split de vendas cruzando o limiar? Timezone de fronteira de mês para Org. Concorrência: leitura com lock (`FOR UPDATE`) no faturamento. O override anula o tier ou o tier escala o override? Estorno altera a comissão acumulada de vendas futuras do mês (recomenda-se não retroagir, ver ADR 0005)? Flag única por organização ou granular por tipo de item (serviço vs. produto), seguindo o padrão Zenoti?
 **Riscos**: Deadlocks em transações ou recálculo retroativo inválido de pagamentos efetuados.
 **Gate de saída**: Testes de concorrência com dois checkouts batendo o limiar do tier ao mesmo tempo; pgTAP de fronteira mensal/timezone; red team em acumulo manipulado via estornos.
 
-### Fase 13 — No-show FSM + Sinal + Mensageria nativa
+### Fase 14 — No-show FSM + Sinal + Mensageria nativa
 **Escopo**: Tabelas de log de estado por cliente×org (`no_show_count`, limiares); Sinal como `deposit_credit` habilitado na RPC `checkout_close` e lançado manualmente no caixa via Pix. PWA envia template manual via Web Share API / `wa.me` sem uso de bot.
-**Dependências**: Fase 9 obrigatória (Lançamentos manuais de caixa para sinal). Não depende das F10 a F12.
+**Dependências**: Fase 9 obrigatória (Lançamentos manuais de caixa para sinal). Não depende das F10 a F13.
 **Entregáveis**: Módulo Backend/Banco de máquina de estados para no-show; botão de Mensageria PWA nativo; check de impedimento em agendamento (cobrando depósito).
 **Decisões em aberto**: Histórico antigo de faltas conta (backfill)? Cancelar status de no-show é idempotente? Políticas de retenção LGPD. Qual o valor do sinal (Fixo vs Percentual)?
 **Riscos**: Bloqueio equivocado de clientes ou LGPD.
 **Gate de saída**: pgTAP em todas arestas do State Machine; reentrada idempotente; Red team de crédito duplo de depósito; Nota LGPD no repositório.
 
-### Fase 14 — Calendário Operacional & Availability Engine
-**Escopo**: Timezone da organização (decisão ÚNICA compartilhada com a fronteira de mês da Fase 12 — não decidir duas vezes); `business_hours_template`/`professional_working_hours_template` (jornada semanal); `business_hours_exception`/`professional_working_hours_exception` (feriados, folgas, jornadas especiais); `query_resolve_effective_availability` (a Availability Engine — cálculo de horários livres sob demanda, sem materializar slots). Especificação completa em `docs/PLANEJAMENTO_CALENDARIO_OPERACIONAL.md`.
-**Dependências**: Depois da Fase 10 (consome `duration_override_minutes`/buffers das capacidades). Antes da Fase 15 (motor transacional consome a disponibilidade calculada aqui) e da Fase 16 (waitlist precisa saber o que está livre).
+### Fase 15 — Calendário Operacional & Availability Engine
+**Escopo**: Timezone da organização (decisão ÚNICA compartilhada com a fronteira de mês da Fase 13 — não decidir duas vezes); `business_hours_template`/`professional_working_hours_template` (jornada semanal); `business_hours_exception`/`professional_working_hours_exception` (feriados, folgas, jornadas especiais); `query_resolve_effective_availability` (a Availability Engine — cálculo de horários livres sob demanda, sem materializar slots). Especificação completa em `docs/PLANEJAMENTO_CALENDARIO_OPERACIONAL.md`.
+**Dependências**: Depois da Fase 10 (consome `duration_override_minutes`/buffers das capacidades). Antes da Fase 16 (motor transacional consome a disponibilidade calculada aqui) e da Fase 17 (waitlist precisa saber o que está livre).
 **Entregáveis**: 4 tabelas novas + RLS + pgTAP; endpoint de resolução de disponibilidade (leitura); UI de configuração de horários (só depois dos contratos fechados).
 **Decisões em aberto (ver documento completo §5)**: "Unidade" vira entidade própria ou `organization_id` continua sendo o nível único (recomendado: manter único, sem entidade nova, até haver evidência de multiunidade)? Profissional sem jornada cadastrada = indisponível por padrão ou herda o expediente da organização (recomendado: indisponível por padrão)? Change Sets (preview/apply/revert em lote) do briefing 5.1.1 — não recomendado para este porte; edição direta + auditoria cobre o mesmo resultado com menos complexidade.
 **Riscos**: Fechar um dia (exceção de organização) sem antes consultar quais appointments existentes são afetados — a query de impacto deve existir antes de qualquer exceção ir para produção.
 **Gate de saída**: pgTAP de todos os cenários do documento (§12: abrir domingo fechado, abrir feriado, fechar dia aberto, múltiplos intervalos, interseção vazia unidade-fechada×profissional-com-jornada, exceção duplicada rejeitada); teste de timezone.
 
-### Fase 15 — Agenda Dinâmica Transacional
-**Escopo**: Contrato de mutação `move-plan`/`move` (troca de horário, profissional, serviço), matriz de conflitos com códigos estruturados, auditoria append-only de mutações (`appointment_change_log`), UI de drag-and-drop consumindo a disponibilidade real da Fase 14 (fim da grade hardcoded de `dateUtils.js`). Especificação completa em `docs/PLANEJAMENTO_AGENDA_TRANSACIONAL.md`.
-**Dependências**: Depois da Fase 14 (consome `query_resolve_effective_availability`) e do hardening da Fase 10 (`version`, guard de status, `ends_at` server-side já devem existir).
+### Fase 16 — Agenda Dinâmica Transacional
+**Escopo**: Contrato de mutação `move-plan`/`move` (troca de horário, profissional, serviço), matriz de conflitos com códigos estruturados, auditoria append-only de mutações (`appointment_change_log`), UI de drag-and-drop consumindo a disponibilidade real da Fase 15 (fim da grade hardcoded de `dateUtils.js`). Especificação completa em `docs/PLANEJAMENTO_AGENDA_TRANSACIONAL.md`.
+**Dependências**: Depois da Fase 15 (consome `query_resolve_effective_availability`) e do hardening da Fase 10 (`version`, guard de status, `ends_at` server-side já devem existir).
 **Entregáveis**: Endpoints `move-plan`(preview, sem estado persistido)/`move`(aplicação, idempotente); tabela de auditoria; matriz de conflitos versionada; PWA com drag-and-drop.
 **Decisões em aberto (ver documento completo §5)**: Contrato two-step com `planToken` persistido (proposta do briefing 5.1.1) ou variante sem estado, recalculada a cada preview (recomendado — escala de salão único não justifica o token com TTL/GC)? Adotar os 8 estados de agendamento do briefing (`HOLD`/`PENDING_PAYMENT`/`EXPIRED`) ou mapear sem adotar (recomendado: mapear — esses três dependem de portal público e pagamento online, Fase 17+, bloqueados hoje)?
 **Riscos**: Mudança de contrato de `ends_at` (Fase 10) tem efeito observável em qualquer cliente de API existente — deve ser comunicada, não silenciosa.
 **Gate de saída**: pgTAP/integração de todos os cenários do documento (§14: grade 10min×serviço 45min, `expected_version` divergente, `completed` imutável, troca de profissional recalcula tudo, duas requisições concorrentes só uma aplica).
 
-## 5. Horizonte Reservado (Fases 16 a 18)
+## 5. Horizonte Reservado (Fases 17 a 19)
 Estas fases estão explicitamente marcadas como "reservadas, sem spec" (anti-mock). Elas só receberão detalhamento quando a fase que as antecede cruzar seus gates de saída com sucesso.
-- **Fase 16**: Lista de espera e anti-gap básico. (Depende da Fase 14 — precisa saber o que está livre para gerenciar espera).
-- **Fase 17**: Portal do cliente e booking online. (Requer Red Team próprio na superfície anônima/pública).
-- **Fase 18**: Memberships Mínimas de retenção. (Exigirá a revogação formal em ADR do não-objetivo do MVP antes de ser executada).
+- **Fase 17**: Lista de espera e anti-gap básico. (Depende da Fase 15 — precisa saber o que está livre para gerenciar espera).
+- **Fase 18**: Portal do cliente e booking online. (Requer Red Team próprio na superfície anônima/pública).
+- **Fase 19**: Memberships Mínimas de retenção. (Exigirá a revogação formal em ADR do não-objetivo do MVP antes de ser executada).
 
 ## 6. Explicitamente Bloqueado
 
@@ -150,19 +159,19 @@ Itens bloqueados exigem a criação de um **novo ADR** + alocação de Fase nest
 | Ledger Partidas Dobradas | FINANCEIRO §3.1 | Apenas se o Lançamento Manual (F9) falhar operacionalmente em volume. |
 | Gateways Pagamento / Escrow | MVP TECNICO §11 | Apenas se o controle de recebimento via Pix/Manual mostrar atritos. |
 | Carteiras de Cliente (Wallets) | ROADMAP | Depende integralmente da quebra de bloqueio do Ledger Partidas Dobradas. |
-| Yield e Preço Dinâmico | ROADMAP | Depende da captação prévia de ocupação robusta (Pós-F16). |
+| Yield e Preço Dinâmico | ROADMAP | Depende da captação prévia de ocupação robusta (Pós-F17). |
 | Fiscal, NF-e, Marketplace | MVP TECNICO §11 | Fora de escopo até revisão formal da arquitetura geral em ADR. |
 | Kortex Autonomous Operations Engine / Automações (Master Briefing 5.1.1 §11-§12) | `docs/legacy/KORTEXOS_5_1_1_MASTER_BRIEFING_CANONICO.md` | O próprio briefing (§1.3) declara que não é autoridade de implementação. Nenhum item do Opportunity Engine, heatmaps, matching, Reliability Score ou automação progressiva é desbloqueado por este documento ter chegado — segue exigindo ADR + alocação de fase como qualquer outro item desta tabela. |
 
 ## 7. Riscos Transversais e Operação
 - **Escala de pgTAP**: Cada tabela adicionada + novo Papel intra-org (`professional`) trará um aumento combinatorial na suíte. O orçamento da CI deve ser avaliado e splits da suite previstos para acelerar testes localmente.
-- **Backup / Restore**: Dados vitais financeiros como sinal pago, comissões em tier e caixa manual elevam os danos em caso de corrupção. As políticas de backup do tier local do Supabase e scripts de dump devem estar definidos antes das Fases 12 e 13.
+- **Backup / Restore**: Dados vitais financeiros como sessões de caixa, sinal pago, comissões em tier e lançamentos manuais elevam os danos em caso de corrupção. As políticas de backup do tier local do Supabase e scripts de dump devem estar definidos antes das Fases 12, 13 e 14.
 - **LGPD**:
   - Punições da máquina de estado do no-show representam perfis de consumo e penalidades comportamentais (PII); necessitam de fluxos de "exclusão de cliente".
   - O uso do Web Share e WhatsApp (`wa.me`) revela o número da recepcionista/clínica e o telefone do usuário; requer política limpa de opt-in.
   - Links de convites e emails gerados também tratam e geram registros auditáveis.
-- **Timezone**: Sem as configurações de Fuso Horário fixadas em Org (America/Sao_Paulo vs UTC), a fronteira do "Final de Mês" do comissionamento (Fase 12) falhará em horários noturnos nos dias 31. **Decisão única**: a coluna `organizations.timezone` é compartilhada entre a Fase 12 (fronteira de mês) e a Fase 14 (jornada/expediente) — não decidir duas vezes em dois documentos.
-- **Sessão de caixa (confirmado por concorrentes diretos)**: `cash_entries` não tem fronteira de sessão/período — sem isso, não é possível replicar o padrão local (AppBarber/Trinks/Avec/Nex) de travar edição de comanda por caixa fechado. **Decisão registrada em 2026-07-15**: `cash_sessions` sai do escopo da Fase 9 e vira fase própria (numeração ainda não alocada); até lá, correção de comanda por erro operacional não tem caminho no sistema.
+- **Timezone**: Sem as configurações de Fuso Horário fixadas em Org (America/Sao_Paulo vs UTC), a fronteira do "Final de Mês" do comissionamento (Fase 13) falhará em horários noturnos nos dias 31. **Decisão única**: a coluna `organizations.timezone` é compartilhada entre a Fase 13 (fronteira de mês) e a Fase 15 (jornada/expediente) — não decidir duas vezes em dois documentos.
+- **Sessão de caixa (confirmado por concorrentes diretos — ADR 0007)**: `cash_entries` não tem fronteira de sessão/período — sem isso, não é possível replicar o padrão local (AppBarber/Trinks/Avec/Nex) de travar edição de comanda por caixa fechado. **Decisão alocada em 2026-07-15**: `cash_sessions` é Fase 12 (tabela nova + RPC `order_void` + RLS que trava edição por sessão aberta), formalizado em ADR 0007. Antes da Fase 12, correção de comanda por erro operacional não tem caminho no sistema.
 - **Agenda — ausência total de fundação de disponibilidade (auditoria 2026-07-15)**: hoje a agenda só impede colisão de horário (exclusion constraint); não existe jornada, exceção, timezone, lock otimista, guard de status ou auditoria de mutação. `ends_at` é calculado no frontend e o backend aceita qualquer valor — risco de integridade real, não só lacuna de feature (ver Fase 10 estendida). Ver `PLANEJAMENTO_CALENDARIO_OPERACIONAL.md` e `PLANEJAMENTO_AGENDA_TRANSACIONAL.md`.
 
 ## 8. Fontes de Planejamento e ADRs
@@ -180,6 +189,7 @@ Itens bloqueados exigem a criação de um **novo ADR** + alocação de Fase nest
 - `docs/adr/0004-politica-absorcao-descontos.md`
 - `docs/adr/0005-reversao-de-comissao-em-estornos.md`
 - `docs/adr/0006-gorjeta-fora-da-comissao-e-motivo-do-estorno.md`
+- `docs/adr/0007-cash-sessions-void-vs-refund.md`
 
 **Benchmarks Externos (Padrões da Indústria)**
 - **Comissões e Absorção de Descontos:** Zenoti (Employee Commissions; [Configure Service Commissions based on a Percentage of Revenue](https://help.zenoti.com/en/articles/700184-configure-service-commissions-based-on-a-percentage-of-revenue); [Configure Product Commissions based on a Percentage of Sales Price](https://help.zenoti.com/en/articles/700228-configure-product-commissions-based-on-a-percentage-of-sales-price)), Vagaro (Payroll & Commission Setting), Phorest.
