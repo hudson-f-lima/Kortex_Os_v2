@@ -32,6 +32,7 @@ Debates longos não devem se perder em chats. O *porquê* de escolhas técnicas 
 - [ADR 0002: Checkout Atômico e Idempotente via Server-Side](adr/0002-checkout-atomico-idempotente-server-side.md)
 - [ADR 0003: Comissões Escalonadas](adr/0003-comissoes-escalonadas.md)
 - [ADR 0004: Política de Absorção de Descontos](adr/0004-politica-absorcao-descontos.md)
+- [ADR 0005: Reversão de Comissão em Estornos](adr/0005-reversao-de-comissao-em-estornos.md)
 
 ---
 
