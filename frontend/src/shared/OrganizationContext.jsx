@@ -1,8 +1,8 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createApiClient } from './apiClient.js';
-import { useAuth } from './AuthContext.jsx';
+import { useAuth } from './useAuth.js';
+import { OrganizationContext } from './useOrganization.js';
 
-const OrganizationContext = createContext(null);
 const STORAGE_KEY = 'kortex.selectedOrganizationId';
 
 export function OrganizationProvider({ children }) {
@@ -66,10 +66,4 @@ export function OrganizationProvider({ children }) {
   };
 
   return <OrganizationContext.Provider value={value}>{children}</OrganizationContext.Provider>;
-}
-
-export function useOrganization() {
-  const ctx = useContext(OrganizationContext);
-  if (!ctx) throw new Error('useOrganization must be used within OrganizationProvider');
-  return ctx;
 }

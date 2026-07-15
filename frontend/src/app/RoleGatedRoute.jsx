@@ -1,4 +1,4 @@
-import { useOrganization } from '../shared/OrganizationContext.jsx';
+import { useOrganization } from '../shared/useOrganization.js';
 import { modulesForRole } from '../shared/nav.js';
 
 // Estado "sem permissão" explícito quando o papel do usuário na organização

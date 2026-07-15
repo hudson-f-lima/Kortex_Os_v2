@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useOrganization } from '../shared/OrganizationContext.jsx';
+import { useOrganization } from '../shared/useOrganization.js';
 
 // Estados explícitos exigidos pela skill kortex-pwa-architect: loading,
 // vazio (sem organização ainda) e erro recuperável.

@@ -5,7 +5,7 @@ import { RequireOrganization } from './RequireOrganization.jsx';
 import { OrganizationProvider } from '../shared/OrganizationContext.jsx';
 
 const useAuthMock = vi.fn();
-vi.mock('../shared/AuthContext.jsx', () => ({
+vi.mock('../shared/useAuth.js', () => ({
   useAuth: () => useAuthMock(),
 }));
 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ApiError } from '../shared/apiClient.js';
-import { useAuth } from '../shared/AuthContext.jsx';
-import { useOrganization } from '../shared/OrganizationContext.jsx';
+import { useAuth } from '../shared/useAuth.js';
+import { useOrganization } from '../shared/useOrganization.js';
 import { createApiClient } from '../shared/apiClient.js';
 import { slugify } from '../shared/slugify.js';
 

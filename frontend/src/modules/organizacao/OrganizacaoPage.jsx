@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useApiClient } from '../../shared/useApiClient.js';
-import { useOrganization } from '../../shared/OrganizationContext.jsx';
+import { useOrganization } from '../../shared/useOrganization.js';
 import { OrganizationModal } from './OrganizationModal.jsx';
 
 // nav.js só mostra este módulo para owner/admin — RoleGatedRoute já cobre o

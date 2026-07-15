@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ApiError } from '../../shared/apiClient.js';
 import { useApiClient } from '../../shared/useApiClient.js';
-import { useOrganization } from '../../shared/OrganizationContext.jsx';
+import { useOrganization } from '../../shared/useOrganization.js';
 import { ProfessionalModal } from './ProfessionalModal.jsx';
 import { MembershipRow } from './MembershipRow.jsx';
 

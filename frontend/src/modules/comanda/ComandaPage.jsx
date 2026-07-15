@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ApiError } from '../../shared/apiClient.js';
 import { useApiClient } from '../../shared/useApiClient.js';
-import { useOrganization } from '../../shared/OrganizationContext.jsx';
+import { useOrganization } from '../../shared/useOrganization.js';
 import { ClientPicker } from '../../shared/ClientPicker.jsx';
 import { formatCents, reaisToCents } from '../../shared/money.js';
 import { messageForCheckoutError } from './comandaErrors.js';

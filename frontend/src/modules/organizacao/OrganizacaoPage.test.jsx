@@ -10,7 +10,7 @@ const apiClientMock = {
   delete: vi.fn(),
 };
 
-vi.mock('../../shared/OrganizationContext.jsx', () => ({
+vi.mock('../../shared/useOrganization.js', () => ({
   useOrganization: () => useOrganizationMock(),
 }));
 vi.mock('../../shared/useApiClient.js', () => ({

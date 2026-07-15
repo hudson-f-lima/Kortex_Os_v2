@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError } from '../../shared/apiClient.js';
 import { useApiClient } from '../../shared/useApiClient.js';
-import { useOrganization } from '../../shared/OrganizationContext.jsx';
+import { useOrganization } from '../../shared/useOrganization.js';
 import { formatCents } from '../../shared/money.js';
 
 // Mirrors backend/src/modules/cashEntries/cashEntries.route.js READ_ROLES
