@@ -54,7 +54,7 @@ Esta é a equação-alvo de reconciliação que será definida **UMA única vez*
 **Escopo**: merge (fast-forward) da branch de docs; criação deste documento; higiene documental de todos os arquivos; fechamento da pendência Render; parametrização de `deploy-pages.yml`.
 **Dependências**: Nenhuma técnica — é o pré-requisito de TODAS as outras. (Uma divergência de documentação impede o sequenciamento correto no main).
 **Entregáveis**: Higiene nos docs concluída (ADRs ajustados, INDEX renomeado, supersedes adicionados).
-**Decisões em aberto**: (a) /health do Render: corrigir agora ou re-escopar formalmente o deploy do backend? (b) confirmar fast-forward vs cherry-pick; (c) nome do agrupamento no INDEX (proposto "Trilhas A–D").
+**Decisões em aberto**: (a) `/health` do Render: corrigir agora ou re-escopar formalmente o deploy do backend? (~~b) fast-forward vs cherry-pick~~ — resolvido: merge fast-forward aplicado; ~~c) nome do agrupamento no INDEX~~ — resolvido: "Trilhas A–D").
 **Riscos**: Manter a pendência de devops silenciada.
 **Gate de saída**: main = única verdade; CI verde; evidência real do /health 200 em produção OU decisão registrada de re-escopo documentado. INDEX sem colisão de numeração.
 
