@@ -2,7 +2,7 @@
 
 Status: CANÔNICO — única fonte de numeração de fases a partir da Fase 8
 Fase atual: 9 | Última atualização: 2026-07-15 | Supersede sequenciamentos de:
-PLANEJAMENTO_FINANCEIRO §4-5, PLANEJAMENTO_COMISSOES §8, PLANEJAMENTO_ROADMAP_POS_MVP §7
+PLANEJAMENTO_FINANCEIRO §4-5, PLANEJAMENTO_COMISSOES §8, PLANEJAMENTO_ROADMAP_POS_MVP §7, PLANEJAMENTO_CALENDARIO_OPERACIONAL §11, PLANEJAMENTO_AGENDA_TRANSACIONAL §13
 
 ## 1. Objetivo e Regra de Canonicidade
 
@@ -31,8 +31,11 @@ Estado atual:
 | `PLANEJAMENTO_COMISSOES` §8.4 | Fase 11 |
 | `PLANEJAMENTO_COMISSOES` §8.1+8.2 | Fase 12 |
 | `PLANEJAMENTO_ROADMAP_POS_MVP` §5/§6 | Fase 13 |
-| `PLANEJAMENTO_ROADMAP_POS_MVP` Camada 2 (restante) | Fase 14–15 |
-| `PLANEJAMENTO_ROADMAP_POS_MVP` Camada 3 | Fase 16 |
+| `PLANEJAMENTO_CALENDARIO_OPERACIONAL` (completo) | Fase 14 |
+| `PLANEJAMENTO_AGENDA_TRANSACIONAL` (completo) | Fase 15 |
+| `PLANEJAMENTO_ROADMAP_POS_MVP` Camada 2 (restante — waitlist/anti-gap) | Fase 16 |
+| `PLANEJAMENTO_ROADMAP_POS_MVP` §5/portal do cliente | Fase 17 |
+| `PLANEJAMENTO_ROADMAP_POS_MVP` Camada 3 (memberships) | Fase 18 |
 | `PLANEJAMENTO_ROADMAP_POS_MVP` Camada 4 | Bloqueado (§6) |
 
 ## 3. Invariantes Transversais e Arquitetura-alvo do Checkout
@@ -49,7 +52,7 @@ Esta é a equação-alvo de reconciliação que será definida **UMA única vez*
   - A comissão é sempre congelada no checkout (não retroage).
   - Toda tabela nova nasce com a matriz RLS completa e testes pgTAP por papel.
 
-## 4. Fases de Execução (Fase 8 a 13)
+## 4. Fases de Execução (Fase 8 a 15)
 
 ### Fase 8 — Consolidação documental e fechamento real do MVP [CONCLUÍDA]
 **Escopo**: merge (fast-forward) da branch de docs; criação deste documento; higiene documental de todos os arquivos; fechamento da pendência Render; parametrização de `deploy-pages.yml`.
@@ -76,13 +79,13 @@ Esta é a equação-alvo de reconciliação que será definida **UMA única vez*
 **Riscos**: Regressão no cálculo de `checkout_close`; automatizar reversão de comissão sem a classificação do profissional é risco jurídico (CLT), não só técnico; escopo de `cash_sessions` pode estourar o tamanho já planejado da Fase 9.
 **Gate de saída**: pgTAP da equação nova com testes negativos e de desconto maior que o subtotal; testes de integração do backend; frontend operando descontos, gorjetas e estornos no Caixa; decisão registrada (não código) sobre `cash_sessions`/reabertura de comanda antes de fechar a fase.
 
-### Fase 10 — Capacidades N:N profissional×serviço
-**Escopo**: Tabela N:N (`professional_service_capabilities`) com `duration_override_minutes` (alimentando a janela GiST da agenda) e `price_override_cents`; PWA listando e filtrando agenda e catálogo por capacidades.
-**Dependências**: Ocorre depois da Fase 9 porque `price_override` altera a base sobre a qual o desconto/comissão incidem. Precisa ocorrer antes da Fase 12, pois a receita do profissional dependerá desses preços. Ordem trocável com a Fase 11 (sem dependência dura, mas recomendada por nascer RLS completo para as capacidades do profissional).
-**Entregáveis**: Migration de capabilities; backend CRUD para gerenciar a tabela; frontend com abas e filtros na Equipe.
-**Decisões em aberto**: Nome final da tabela? `price_override` aplica em pacotes ou só avulso? Profissional sem vínculo pode tudo ou nada?
-**Riscos**: Bloquear erroneamente um agendamento válido.
-**Gate de saída**: pgTAP validando o booking; teste de peso de pacote com override; red team de override negativo/zero.
+### Fase 10 — Capacidades N:N profissional×serviço + Hardening do Agendamento
+**Escopo**: Tabela N:N (`professional_service_capabilities`) com `duration_override_minutes` (alimentando a janela GiST da agenda), `buffer_before_min`/`buffer_after_min` (achado de `PLANEJAMENTO_AGENDA_TRANSACIONAL.md §6`) e `price_override_cents`; PWA listando e filtrando agenda e catálogo por capacidades. **Escopo estendido (auditoria de agenda, 2026-07-15)**: três correções de hardening no módulo `appointments` — (a) `ends_at` calculado no servidor a partir da duração resolvida (hoje aceito livre do cliente — risco de segurança real, não feature); (b) guard de transição de status (hoje um `completed` pode ser movido de volta para `scheduled` — nenhuma FSM existe); (c) coluna `appointments.version` para lock otimista (hoje updates concorrentes não-sobrepostos em horário não são detectados).
+**Dependências**: Ocorre depois da Fase 9 porque `price_override` altera a base sobre a qual o desconto/comissão incidem. Precisa ocorrer antes da Fase 12 (receita do profissional) e antes da Fase 14 (a Availability Engine consome `duration_override`/buffers desta tabela). Ordem trocável com a Fase 11. O hardening (a)-(c) foi absorvido aqui — domínio errado para a Fase 9 (financeira), pequeno demais para justificar mini-fase própria — em vez de uma Fase 10.5.
+**Entregáveis**: Migration de capabilities (incl. colunas de buffer); migration de hardening (`ends_at` server-side, guard de status, `version`); backend CRUD; frontend com abas e filtros na Equipe.
+**Decisões em aberto**: Nome final da tabela? `price_override` aplica em pacotes ou só avulso? Profissional sem vínculo pode tudo ou nada (recomendação em `PLANEJAMENTO_CALENDARIO_OPERACIONAL.md §10.3`: indisponível por padrão)? Confirmar: hardening entra aqui (decisão já tomada) — não reabrir sem motivo novo.
+**Riscos**: Bloquear erroneamente um agendamento válido; mudar `ends_at` para ser sempre server-side quebra silenciosamente qualquer cliente de API que hoje envie duração própria — deve ser comunicado, não silencioso (ver `PLANEJAMENTO_AGENDA_TRANSACIONAL.md §15`).
+**Gate de saída**: pgTAP validando o booking; teste de peso de pacote com override; red team de override negativo/zero; teste de regressão confirmando que `ends_at` do cliente é ignorado; teste de guard de status (completed imutável, exceto reversão privilegiada).
 
 ### Fase 11 — Acesso da Equipe (Convite + RLS self-view)
 **Escopo**: SMTP de produção (mailer default Supabase é rate-limited); Fluxo de convite (auth admin → membership → link `professionals.user_id` com UNIQUE garantido); Policies RLS na tabela `professional` focadas em self-view.
@@ -109,11 +112,27 @@ Esta é a equação-alvo de reconciliação que será definida **UMA única vez*
 **Riscos**: Bloqueio equivocado de clientes ou LGPD.
 **Gate de saída**: pgTAP em todas arestas do State Machine; reentrada idempotente; Red team de crédito duplo de depósito; Nota LGPD no repositório.
 
-## 5. Horizonte Reservado (Fases 14 a 16)
+### Fase 14 — Calendário Operacional & Availability Engine
+**Escopo**: Timezone da organização (decisão ÚNICA compartilhada com a fronteira de mês da Fase 12 — não decidir duas vezes); `business_hours_template`/`professional_working_hours_template` (jornada semanal); `business_hours_exception`/`professional_working_hours_exception` (feriados, folgas, jornadas especiais); `query_resolve_effective_availability` (a Availability Engine — cálculo de horários livres sob demanda, sem materializar slots). Especificação completa em `docs/PLANEJAMENTO_CALENDARIO_OPERACIONAL.md`.
+**Dependências**: Depois da Fase 10 (consome `duration_override_minutes`/buffers das capacidades). Antes da Fase 15 (motor transacional consome a disponibilidade calculada aqui) e da Fase 16 (waitlist precisa saber o que está livre).
+**Entregáveis**: 4 tabelas novas + RLS + pgTAP; endpoint de resolução de disponibilidade (leitura); UI de configuração de horários (só depois dos contratos fechados).
+**Decisões em aberto (ver documento completo §5)**: "Unidade" vira entidade própria ou `organization_id` continua sendo o nível único (recomendado: manter único, sem entidade nova, até haver evidência de multiunidade)? Profissional sem jornada cadastrada = indisponível por padrão ou herda o expediente da organização (recomendado: indisponível por padrão)? Change Sets (preview/apply/revert em lote) do briefing 5.1.1 — não recomendado para este porte; edição direta + auditoria cobre o mesmo resultado com menos complexidade.
+**Riscos**: Fechar um dia (exceção de organização) sem antes consultar quais appointments existentes são afetados — a query de impacto deve existir antes de qualquer exceção ir para produção.
+**Gate de saída**: pgTAP de todos os cenários do documento (§12: abrir domingo fechado, abrir feriado, fechar dia aberto, múltiplos intervalos, interseção vazia unidade-fechada×profissional-com-jornada, exceção duplicada rejeitada); teste de timezone.
+
+### Fase 15 — Agenda Dinâmica Transacional
+**Escopo**: Contrato de mutação `move-plan`/`move` (troca de horário, profissional, serviço), matriz de conflitos com códigos estruturados, auditoria append-only de mutações (`appointment_change_log`), UI de drag-and-drop consumindo a disponibilidade real da Fase 14 (fim da grade hardcoded de `dateUtils.js`). Especificação completa em `docs/PLANEJAMENTO_AGENDA_TRANSACIONAL.md`.
+**Dependências**: Depois da Fase 14 (consome `query_resolve_effective_availability`) e do hardening da Fase 10 (`version`, guard de status, `ends_at` server-side já devem existir).
+**Entregáveis**: Endpoints `move-plan`(preview, sem estado persistido)/`move`(aplicação, idempotente); tabela de auditoria; matriz de conflitos versionada; PWA com drag-and-drop.
+**Decisões em aberto (ver documento completo §5)**: Contrato two-step com `planToken` persistido (proposta do briefing 5.1.1) ou variante sem estado, recalculada a cada preview (recomendado — escala de salão único não justifica o token com TTL/GC)? Adotar os 8 estados de agendamento do briefing (`HOLD`/`PENDING_PAYMENT`/`EXPIRED`) ou mapear sem adotar (recomendado: mapear — esses três dependem de portal público e pagamento online, Fase 17+, bloqueados hoje)?
+**Riscos**: Mudança de contrato de `ends_at` (Fase 10) tem efeito observável em qualquer cliente de API existente — deve ser comunicada, não silenciosa.
+**Gate de saída**: pgTAP/integração de todos os cenários do documento (§14: grade 10min×serviço 45min, `expected_version` divergente, `completed` imutável, troca de profissional recalcula tudo, duas requisições concorrentes só uma aplica).
+
+## 5. Horizonte Reservado (Fases 16 a 18)
 Estas fases estão explicitamente marcadas como "reservadas, sem spec" (anti-mock). Elas só receberão detalhamento quando a fase que as antecede cruzar seus gates de saída com sucesso.
-- **Fase 14**: Lista de espera e anti-gap básico.
-- **Fase 15**: Portal do cliente e booking online. (Requer Red Team próprio na superfície anônima/pública).
-- **Fase 16**: Memberships Mínimas de retenção. (Exigirá a revogação formal em ADR do não-objetivo do MVP antes de ser executada).
+- **Fase 16**: Lista de espera e anti-gap básico. (Depende da Fase 14 — precisa saber o que está livre para gerenciar espera).
+- **Fase 17**: Portal do cliente e booking online. (Requer Red Team próprio na superfície anônima/pública).
+- **Fase 18**: Memberships Mínimas de retenção. (Exigirá a revogação formal em ADR do não-objetivo do MVP antes de ser executada).
 
 ## 6. Explicitamente Bloqueado
 
@@ -125,8 +144,9 @@ Itens bloqueados exigem a criação de um **novo ADR** + alocação de Fase nest
 | Ledger Partidas Dobradas | FINANCEIRO §3.1 | Apenas se o Lançamento Manual (F9) falhar operacionalmente em volume. |
 | Gateways Pagamento / Escrow | MVP TECNICO §11 | Apenas se o controle de recebimento via Pix/Manual mostrar atritos. |
 | Carteiras de Cliente (Wallets) | ROADMAP | Depende integralmente da quebra de bloqueio do Ledger Partidas Dobradas. |
-| Yield e Preço Dinâmico | ROADMAP | Depende da captação prévia de ocupação robusta (Pós-F14). |
+| Yield e Preço Dinâmico | ROADMAP | Depende da captação prévia de ocupação robusta (Pós-F16). |
 | Fiscal, NF-e, Marketplace | MVP TECNICO §11 | Fora de escopo até revisão formal da arquitetura geral em ADR. |
+| Kortex Autonomous Operations Engine / Automações (Master Briefing 5.1.1 §11-§12) | `docs/legacy/KORTEXOS_5_1_1_MASTER_BRIEFING_CANONICO.md` | O próprio briefing (§1.3) declara que não é autoridade de implementação. Nenhum item do Opportunity Engine, heatmaps, matching, Reliability Score ou automação progressiva é desbloqueado por este documento ter chegado — segue exigindo ADR + alocação de fase como qualquer outro item desta tabela. |
 
 ## 7. Riscos Transversais e Operação
 - **Escala de pgTAP**: Cada tabela adicionada + novo Papel intra-org (`professional`) trará um aumento combinatorial na suíte. O orçamento da CI deve ser avaliado e splits da suite previstos para acelerar testes localmente.
@@ -135,8 +155,9 @@ Itens bloqueados exigem a criação de um **novo ADR** + alocação de Fase nest
   - Punições da máquina de estado do no-show representam perfis de consumo e penalidades comportamentais (PII); necessitam de fluxos de "exclusão de cliente".
   - O uso do Web Share e WhatsApp (`wa.me`) revela o número da recepcionista/clínica e o telefone do usuário; requer política limpa de opt-in.
   - Links de convites e emails gerados também tratam e geram registros auditáveis.
-- **Timezone**: Sem as configurações de Fuso Horário fixadas em Org (America/Sao_Paulo vs UTC), a fronteira do "Final de Mês" do comissionamento (Fase 12) falhará em horários noturnos nos dias 31.
+- **Timezone**: Sem as configurações de Fuso Horário fixadas em Org (America/Sao_Paulo vs UTC), a fronteira do "Final de Mês" do comissionamento (Fase 12) falhará em horários noturnos nos dias 31. **Decisão única**: a coluna `organizations.timezone` é compartilhada entre a Fase 12 (fronteira de mês) e a Fase 14 (jornada/expediente) — não decidir duas vezes em dois documentos.
 - **Sessão de caixa (confirmado por concorrentes diretos)**: `cash_entries` não tem fronteira de sessão/período — sem isso, não é possível replicar o padrão local (AppBarber/Trinks/Avec/Nex) de travar edição de comanda por caixa fechado. Afeta diretamente a Fase 9 (ver decisões em aberto) e potencialmente o dimensionamento do escopo dessa fase.
+- **Agenda — ausência total de fundação de disponibilidade (auditoria 2026-07-15)**: hoje a agenda só impede colisão de horário (exclusion constraint); não existe jornada, exceção, timezone, lock otimista, guard de status ou auditoria de mutação. `ends_at` é calculado no frontend e o backend aceita qualquer valor — risco de integridade real, não só lacuna de feature (ver Fase 10 estendida). Ver `PLANEJAMENTO_CALENDARIO_OPERACIONAL.md` e `PLANEJAMENTO_AGENDA_TRANSACIONAL.md`.
 
 ## 8. Fontes de Planejamento e ADRs
 
@@ -145,6 +166,8 @@ Itens bloqueados exigem a criação de um **novo ADR** + alocação de Fase nest
 - `docs/PLANEJAMENTO_COMISSOES.md`
 - `docs/PWA_PLANEJAMENTO.md`
 - `docs/PLANEJAMENTO_ROADMAP_POS_MVP.md`
+- `docs/PLANEJAMENTO_CALENDARIO_OPERACIONAL.md`
+- `docs/PLANEJAMENTO_AGENDA_TRANSACIONAL.md`
 - `docs/adr/0001-record-architecture-decisions.md`
 - `docs/adr/0002-checkout-atomico-idempotente-server-side.md`
 - `docs/adr/0003-comissoes-escalonadas.md`

@@ -1,6 +1,6 @@
 # PROJECT STATE — KortexOS MVP técnico
 
-**Atualizado:** 2026-07-13 (Roadmap Pós-MVP estruturado e Comissões Avançadas aprovadas para execução)
+**Atualizado:** 2026-07-15 (Auditoria de Agenda + blueprint canônico Calendário Operacional/Agenda Transacional; Fase 9 segue em andamento)
 
 ## Estado
 
@@ -55,7 +55,8 @@
 
 - **Fase 7 (`docs/KORTEX_MVP_TECNICO.md §10`) materializada parcialmente: CI, observabilidade e Red Team fecham.** O gate do Render foi desbloqueado (o endpoint `/health` responde com sucesso `{"status":"ok"}`, indicando que o cold-start do free tier foi superado).
 - **Fase 8 (`docs/PLANEJAMENTO_EXECUCAO_UNIFICADO.md`) concluída:** Documentação higienizada, unificada e SSoT estabelecido. Problema de variáveis de ambiente no deploy-pages corrigido.
-- **Fase 9 (`docs/PLANEJAMENTO_EXECUCAO_UNIFICADO.md`) iniciada:** Estruturada e criada a migration da fundação financeira (`20260715103200_fase9_foundation.sql`), suportando descontos, gorjeta rateada, lançamentos de caixa e estornos (com devolução ao estoque).
+- **Fase 9 (`docs/PLANEJAMENTO_EXECUCAO_UNIFICADO.md`) iniciada, gate ainda não fechado:** Estruturada e criada a migration da fundação financeira (`20260715103200_fase9_foundation.sql`), suportando descontos, gorjeta rateada, lançamentos de caixa e estornos (com devolução ao estoque). Sem testes pgTAP, sem wiring no backend Express, sem PWA ainda.
+- **Auditoria de Agenda + Blueprint Calendário Operacional/Agenda Transacional (docs-only, 2026-07-15):** dois documentos novos (`docs/PLANEJAMENTO_CALENDARIO_OPERACIONAL.md`, `docs/PLANEJAMENTO_AGENDA_TRANSACIONAL.md`) auditam o estado real da agenda (só a exclusion constraint GiST é `REAL`; jornadas, exceções, timezone, lock otimista, guard de status e auditoria de mutação estão `AUSENTES`; `ends_at` é calculado no frontend hoje — risco de integridade real) e propõem a Fase 14 (Availability Engine) e Fase 15 (motor transacional de mutação), com hardening (P0) absorvido na Fase 10. Horizonte reservado renumerado: Waitlist→16, Portal→17, Memberships→18. Master Briefing 5.1.1 do usuário arquivado em `docs/legacy/` como referência de visão (não desbloqueia nada do §6 do plano unificado). Nenhum código alterado.
 
 ## Decisão vigente
 

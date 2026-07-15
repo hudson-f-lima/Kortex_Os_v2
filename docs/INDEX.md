@@ -22,6 +22,10 @@ A documentação do KortexOS é orgânica e construída em "fatias verticais".
 - [PLANEJAMENTO_ROADMAP_POS_MVP.md](PLANEJAMENTO_ROADMAP_POS_MVP.md) — O mapeamento completo contra a visão estendida do Kortex (D00-D31), pesquisa global sobre *Waitlist* Automática e *Memberships* de retenção.
 - [PLANEJAMENTO_EXECUCAO_UNIFICADO.md](PLANEJAMENTO_EXECUCAO_UNIFICADO.md) — O plano canônico de execução das Fases 8+, unificando e organizando as Fases das Trilhas acima.
 
+### Trilha E: Agenda e Disponibilidade
+- [PLANEJAMENTO_CALENDARIO_OPERACIONAL.md](PLANEJAMENTO_CALENDARIO_OPERACIONAL.md) — Auditoria e blueprint da Availability Engine: timezone, templates semanais, jornadas por profissional, exceções de data/feriados.
+- [PLANEJAMENTO_AGENDA_TRANSACIONAL.md](PLANEJAMENTO_AGENDA_TRANSACIONAL.md) — Auditoria e blueprint do motor de mutação de agendamentos: contrato move-plan/move, matriz de conflitos, lock otimista, auditoria.
+
 ---
 
 ## Architecture Decision Records (ADR)
@@ -39,4 +43,4 @@ Debates longos não devem se perder em chats. O *porquê* de escolhas técnicas 
 ## Governança
 
 - [../AGENTS.md](../AGENTS.md) — Limites permanentes e formato de handoff de IA.
-- [legacy/](legacy/) — **Pasta obsoleta reservada para backup manual.** Contém o Master Briefing 5.1 e blueprints legados. *Atenção: SQL e documentos presentes nessa pasta são fontes mortas e não ditam regras sobre a arquitetura do MVP técnico.*
+- [legacy/](legacy/) — **Pasta obsoleta reservada para backup manual.** Contém os Master Briefings 5.1/5.1.1 e blueprints legados. *Atenção: SQL e documentos presentes nessa pasta são fontes mortas e não ditam regras sobre a arquitetura do MVP técnico.* O Master Briefing 5.1.1 (`KORTEXOS_5_1_1_MASTER_BRIEFING_CANONICO.md`) originou a Trilha E acima, mas **não é autoridade de implementação** — o próprio documento (§1.3) exige evidência separada para qualquer afirmação de estado real.
