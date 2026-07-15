@@ -1,7 +1,7 @@
 -- Fase 9 — Fundação Financeira (Camada 1)
 
 alter table public.orders
-  drop constraint orders_total_cents_check;
+  drop constraint orders_check;
 alter table public.orders
   add column tip_cents bigint not null default 0 check (tip_cents >= 0),
   add constraint orders_total_cents_check check (total_cents >= 0 and total_cents = subtotal_cents - discount_cents + tip_cents);
