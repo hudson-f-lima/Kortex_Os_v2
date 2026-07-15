@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import { requireRole } from '../../middleware/requireRole.js';
-import { validateId } from '../../shared/validation.js';
+import { validateId, validateIdempotencyKey } from '../../shared/validation.js';
 import { createOrdersService } from './orders.service.js';
 
-// Mirrors orders_select / order_items_select / payments_select. Read-only:
-// orders are only ever created by the checkout_close RPC.
+// Mirrors orders_select / order_items_select / payments_select (read-only).
 const READ_ROLES = ['owner', 'admin', 'manager', 'reception'];
+// Mirrors order_refund's internal actor_has_role check.
+const REFUND_ROLES = ['owner', 'admin', 'manager'];
 
 export function ordersRouter({ supabaseAdmin, organizationContext }) {
   const router = Router();
@@ -27,6 +28,22 @@ export function ordersRouter({ supabaseAdmin, organizationContext }) {
       const orderId = validateId(req.params.id);
       const order = await service.get({ organizationId: req.auth.organizationId, orderId });
       res.status(200).json({ order });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.post('/orders/:id/refund', requireRole(...REFUND_ROLES), async (req, res, next) => {
+    try {
+      const orderId = validateId(req.params.id);
+      const idempotencyKey = validateIdempotencyKey(req.headers['idempotency-key']);
+      const result = await service.refund({
+        organizationId: req.auth.organizationId,
+        actorUserId: req.auth.userId,
+        orderId,
+        idempotencyKey,
+      });
+      res.status(200).json(result);
     } catch (err) {
       next(err);
     }

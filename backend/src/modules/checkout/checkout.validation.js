@@ -89,7 +89,7 @@ export function validateCheckoutPayload(body) {
     throw HttpError.badRequest('invalid_payload', 'payload must be a JSON object');
   }
 
-  const allowed = new Set(['client_id', 'items', 'payments']);
+  const allowed = new Set(['client_id', 'items', 'payments', 'discount_cents', 'tip_cents']);
   const unknown = Object.keys(body).filter((key) => !allowed.has(key));
   if (unknown.length > 0) {
     throw HttpError.badRequest('unknown_fields', 'payload has unsupported fields', { fields: unknown });
@@ -111,5 +111,15 @@ export function validateCheckoutPayload(body) {
   }
   const payments = body.payments.map(validateCheckoutPayment);
 
-  return { client_id: body.client_id ?? null, items, payments };
+  const discountCents = body.discount_cents ?? 0;
+  if (!Number.isInteger(discountCents) || discountCents < 0) {
+    throw HttpError.badRequest('invalid_discount_cents', 'discount_cents must be a non-negative integer');
+  }
+
+  const tipCents = body.tip_cents ?? 0;
+  if (!Number.isInteger(tipCents) || tipCents < 0) {
+    throw HttpError.badRequest('invalid_tip_cents', 'tip_cents must be a non-negative integer');
+  }
+
+  return { client_id: body.client_id ?? null, items, payments, discount_cents: discountCents, tip_cents: tipCents };
 }

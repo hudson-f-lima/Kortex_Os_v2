@@ -1,10 +1,8 @@
+import { mapRpcError } from '../../shared/rpcError.js';
 import { mapPostgresError } from '../../shared/postgresError.js';
 
 const COLUMNS = 'id, order_id, kind, amount_cents, description, created_at';
 
-// Read-only: cash_entries rows are only ever created by the checkout_close
-// RPC (kind = 'sale'). There is no RPC yet for manual income/expense/refund
-// entries, so the API does not expose writes here.
 export function createCashEntriesService(supabaseAdmin) {
   return {
     async list({ organizationId, kind }) {
@@ -18,6 +16,19 @@ export function createCashEntriesService(supabaseAdmin) {
       }
       const { data, error } = await query;
       if (error) throw mapPostgresError(error);
+      return data;
+    },
+
+    async createManualEntry({ organizationId, actorUserId, idempotencyKey, kind, amountCents, description }) {
+      const { data, error } = await supabaseAdmin.rpc('cash_entry_manual', {
+        p_organization_id: organizationId,
+        p_actor_user_id: actorUserId,
+        p_idempotency_key: idempotencyKey,
+        p_kind: kind,
+        p_amount_cents: amountCents,
+        p_description: description,
+      });
+      if (error) throw mapRpcError(error);
       return data;
     },
   };
