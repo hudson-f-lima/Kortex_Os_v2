@@ -35,6 +35,15 @@ O CI (`.github/workflows/ci.yml`, `.github/workflows/deploy-pages.yml`) já tinh
 - **`kortex-pwa` (site estático no `render.yaml`) parece redundante** com o `deploy-pages.yml` já publicando a PWA no GitHub Pages — não está claro se o serviço estático do Render ainda deveria existir. Não removido sem confirmação do usuário (pode ser intencional, ex.: ambiente de staging).
 - **Pin exato de Node** (`engines.node`) segue `>=20.0.0` (soft) em ambos `package.json`, enquanto a CI já roda em Node 22 explícito (`actions/setup-node` `node-version: 22`). Não é um defeito ativo (Render escolhe uma versão compatível por padrão), mas fica registrado como possível day-2 hardening, não bloqueador desta fase.
 
-## Veredito final da Fase 7
+## Veredito final da Fase 7 (histórico desta sessão, 2026-07-13)
 
 **`PASS COM RISCO ACEITO`** — todos os gates verificáveis localmente/via CI (backend, tenant, dinheiro, estoque, agenda, Supabase, PWA, segredos, histórico git) estão `PASS` com evidência re-executada nesta sessão; supply chain tem um risco aceito documentado (vulnerabilidade de dev-server do Vite, não afeta produção). O gate Render fica `BLOQUEADO` — não por falha de código, mas porque o backend hospedado não respondeu a `/health` nesta verificação e não há como este agente investigar ou corrigir o lado operacional do Render sem acesso ao painel. **A Fase 7 não pode ser declarada 100% `REAL` até o usuário confirmar/reativar o deploy do Render** e uma nova checagem de `/health` responder 200.
+
+## Atualização — gate Render desbloqueado (2026-07-15)
+
+O gate `BLOQUEADO` acima foi superado em sessão posterior (já registrado em `PROJECT_STATE.md` e `PLANEJAMENTO_EXECUCAO_UNIFICADO.md` como Fase 7/Render `REAL`) e reconfirmado nesta sessão com evidência independente:
+
+- `curl https://kortex-os-v2.onrender.com/health` → `200 OK` nesta sessão.
+- Monitores UptimeRobot consultados via API (`getMonitors`) mostram os dois serviços (`HOPE OS KeepAlive`, `kortexOs` → `kortex-os-v2.onrender.com/health`) com `status: 2` (up), checagem recorrente a cada 600s/840s desde a criação — não é um ping isolado, é disponibilidade sustentada.
+
+**Veredito final revisado: `PASS`** — nenhum gate desta fase segue bloqueado. O risco aceito de supply chain (vulnerabilidade de dev-server do Vite) permanece como decisão registrada, não como bloqueio.
