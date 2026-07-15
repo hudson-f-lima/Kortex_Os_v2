@@ -2,7 +2,7 @@
 -- Tests: checkout_close com desconto/gorjeta; cash_entry_manual; order_refund
 
 begin;
-select plan(38);
+select plan(28);
 
 -- Setup: create test org, user, professional, service, product
 do $$
@@ -80,10 +80,10 @@ select results_eq(
   'T1: checkout básico sem desconto/gorjeta fecha com status closed'
 );
 
--- T2: Verifica que desconto foi aplicado ao order
+-- T2: Verifica que a ordem sem desconto/gorjeta do T1 fechou com os dois zerados
 select results_eq(
   $$ select discount_cents, tip_cents, total_cents
-     from public.orders where discount_cents > 0 limit 1 $$,
+     from public.orders where total_cents = 10000 and discount_cents = 0 and tip_cents = 0 limit 1 $$,
   $$ select 0::bigint, 0::bigint, 10000::bigint $$,
   'T2: ordem sem desconto tem discount_cents=0, tip_cents=0, total=subtotal'
 );
@@ -111,7 +111,7 @@ select results_eq(
 
 -- T4: Verifica desconto rateado em order_items
 select results_eq(
-  $$ select sum(discount_cents) from public.order_items
+  $$ select sum(discount_cents)::bigint from public.order_items
      where order_id in (select id from public.orders where discount_cents = 2000 limit 1) $$,
   $$ select 2000::bigint $$,
   'T4: desconto foi rateado e somado nos items'
@@ -140,7 +140,7 @@ select results_eq(
 
 -- T6: Verifica gorjeta rateada em order_items
 select results_eq(
-  $$ select sum(tip_cents) from public.order_items
+  $$ select sum(tip_cents)::bigint from public.order_items
      where order_id in (select id from public.orders where tip_cents = 1000 limit 1) $$,
   $$ select 1000::bigint $$,
   'T6: gorjeta foi rateada e somada nos items'
@@ -187,8 +187,9 @@ select throws_ok(
       )
     )
   ) $$,
-  'P0001',
-  'T8: desconto maior que subtotal lança P0001'
+  '22023',
+  NULL,
+  'T8: desconto maior que subtotal lança 22023'
 );
 
 -- T9: Gorjeta sem itens de serviço rejeita
@@ -207,8 +208,9 @@ select throws_ok(
       )
     )
   ) $$,
-  'P0001',
-  'T9: gorjeta sem itens de serviço lança P0001'
+  '22023',
+  NULL,
+  'T9: gorjeta sem itens de serviço lança 22023'
 );
 
 -- T10: Desconto negativo rejeita
@@ -229,6 +231,7 @@ select throws_ok(
     )
   ) $$,
   '22023',
+  NULL,
   'T10: desconto negativo lança 22023'
 );
 
@@ -250,6 +253,7 @@ select throws_ok(
     )
   ) $$,
   '22023',
+  NULL,
   'T11: gorjeta negativa lança 22023'
 );
 
@@ -272,6 +276,7 @@ select throws_ok(
     )
   ) $$,
   '22023',
+  NULL,
   'T12: pagamento desatualizado (esperado 9000, recebido 8000) rejeita 22023'
 );
 
@@ -360,6 +365,7 @@ select throws_ok(
     )
   ) $$,
   '22023',
+  NULL,
   'T15: reuso da idempotency_key com payload diferente lança 22023'
 );
 
@@ -404,6 +410,7 @@ select throws_ok(
     'Teste'
   ) $$,
   '22023',
+  NULL,
   'T18: kind inválido lança 22023'
 );
 
@@ -418,6 +425,7 @@ select throws_ok(
     'Teste'
   ) $$,
   '22023',
+  NULL,
   'T19: montante negativo lança 22023'
 );
 
@@ -432,54 +440,45 @@ select throws_ok(
     'Teste'
   ) $$,
   '22023',
+  NULL,
   'T20: idempotency_key muito curta lança 22023'
 );
 
 -- ============ ORDER_REFUND ============
 
--- T21: Estorno de pedido fechado (ordena income/expense manualmente primeiro)
-do $$
-declare
-  v_closed_order_id uuid;
-begin
-  select id into v_closed_order_id from public.orders
-  where status = 'closed' limit 1;
+-- T21: Estorno de pedido fechado (usa o primeiro pedido 'closed' criado pelos testes acima)
+select results_eq(
+  $$ select (public.order_refund(
+       (select org_id from test_context),
+       (select user_id from test_context),
+       'refund-001',
+       (select id from public.orders where status = 'closed' order by created_at limit 1),
+       'customer_cancellation'
+     ) ->> 'status')::text $$,
+  $$ select 'refunded'::text $$,
+  'T21: estorno de pedido fechado muda status para refunded'
+);
 
-  if v_closed_order_id is not null then
-    select results_eq(
-      format($s$ select (res ->> 'status')::text from public.order_refund(
-        (select org_id from test_context),
-        (select user_id from test_context),
-        'refund-001',
-        %L::uuid
-      ) as res $s$, v_closed_order_id),
-      $$ select 'refunded'::text $$,
-      'T21: estorno de pedido fechado muda status para refunded'
-    );
-  end if;
-end $$;
+-- T21b: motivo do estorno gravado no pedido
+select results_eq(
+  $$ select refund_reason from public.orders where status = 'refunded' limit 1 $$,
+  $$ select 'customer_cancellation'::text $$,
+  'T21b: refund_reason gravado no pedido'
+);
 
 -- T22: Estorno duplicado rejeita
-do $$
-declare
-  v_refunded_order_id uuid;
-begin
-  select id into v_refunded_order_id from public.orders
-  where status = 'refunded' limit 1;
-
-  if v_refunded_order_id is not null then
-    select throws_ok(
-      format($s$ select public.order_refund(
-        (select org_id from test_context),
-        (select user_id from test_context),
-        'refund-002',
-        %L::uuid
-      ) $s$, v_refunded_order_id),
-      'P0001',
-      'T22: estorno duplicado lança P0001'
-    );
-  end if;
-end $$;
+select throws_ok(
+  $$ select public.order_refund(
+    (select org_id from test_context),
+    (select user_id from test_context),
+    'refund-002',
+    (select id from public.orders where status = 'refunded' limit 1),
+    'customer_cancellation'
+  ) $$,
+  'P0001',
+  NULL,
+  'T22: estorno duplicado lança P0001'
+);
 
 -- T23: Estorno de pedido inexistente rejeita
 select throws_ok(
@@ -487,20 +486,18 @@ select throws_ok(
     (select org_id from test_context),
     (select user_id from test_context),
     'refund-003',
-    'ffffffff-ffff-ffff-ffff-ffffffffffff'::uuid
+    'ffffffff-ffff-ffff-ffff-ffffffffffff'::uuid,
+    'customer_cancellation'
   ) $$,
   'P0002',
+  NULL,
   'T23: estorno de pedido inexistente lança P0002'
 );
 
 -- T24: Estorno reverte estoque de produtos
+-- Setup: fecha uma comanda avulsa de produto (5 unidades) e guarda o estoque pós-venda.
 do $$
-declare
-  v_order_with_product_id uuid;
-  v_product_stock_before integer;
-  v_product_stock_after integer;
 begin
-  -- Create a checkout with a product first
   perform public.checkout_close(
     (select org_id from test_context),
     (select user_id from test_context),
@@ -514,34 +511,30 @@ begin
       )
     )
   );
-
-  select id into v_order_with_product_id from public.orders
-  where status = 'closed' and exists (
-    select 1 from public.order_items oi
-    where oi.order_id = public.orders.id and oi.kind = 'product'
-  ) order by created_at desc limit 1;
-
-  if v_order_with_product_id is not null then
-    select stock_on_hand into v_product_stock_before
-    from public.products where id = (select product_id from test_context);
-
-    perform public.order_refund(
-      (select org_id from test_context),
-      (select user_id from test_context),
-      'stock-test-refund',
-      v_order_with_product_id
-    );
-
-    select stock_on_hand into v_product_stock_after
-    from public.products where id = (select product_id from test_context);
-
-    select results_eq(
-      $$select $1 = $2 + 5$$,
-      $$select true$$,
-      'T24: estorno incrementa estoque do produto (5 unidades)'
-    ) using v_product_stock_after, v_product_stock_before;
-  end if;
 end $$;
+
+create temp table t24_stock_before as
+select stock_on_hand from public.products where id = (select product_id from test_context);
+
+do $$
+begin
+  perform public.order_refund(
+    (select org_id from test_context),
+    (select user_id from test_context),
+    'stock-test-refund',
+    (select id from public.orders where status = 'closed' and exists (
+      select 1 from public.order_items oi
+      where oi.order_id = public.orders.id and oi.kind = 'product'
+    ) order by created_at desc limit 1),
+    'customer_default'
+  );
+end $$;
+
+select results_eq(
+  $$ select stock_on_hand from public.products where id = (select product_id from test_context) $$,
+  format($s$ select (%L::integer + 5) $s$, (select stock_on_hand from t24_stock_before)),
+  'T24: estorno incrementa estoque do produto (5 unidades)'
+);
 
 -- T25: Idempotency_key inválido no estorno rejeita
 select throws_ok(
@@ -549,10 +542,40 @@ select throws_ok(
     (select org_id from test_context),
     (select user_id from test_context),
     'bad',
-    (select id from public.orders where status = 'closed' limit 1)
+    (select id from public.orders where status = 'closed' limit 1),
+    'customer_cancellation'
   ) $$,
   '22023',
+  NULL,
   'T25: idempotency_key muito curta em order_refund lança 22023'
+);
+
+-- T26: Motivo ausente (null) no estorno rejeita
+select throws_ok(
+  $$ select public.order_refund(
+    (select org_id from test_context),
+    (select user_id from test_context),
+    'refund-missing-reason',
+    (select id from public.orders where status = 'closed' limit 1),
+    null
+  ) $$,
+  '22023',
+  NULL,
+  'T26: motivo ausente em order_refund lança 22023'
+);
+
+-- T27: Motivo inválido no estorno rejeita
+select throws_ok(
+  $$ select public.order_refund(
+    (select org_id from test_context),
+    (select user_id from test_context),
+    'refund-invalid-reason',
+    (select id from public.orders where status = 'closed' limit 1),
+    'because_i_said_so'
+  ) $$,
+  '22023',
+  NULL,
+  'T27: motivo inválido em order_refund lança 22023'
 );
 
 -- Cleanup

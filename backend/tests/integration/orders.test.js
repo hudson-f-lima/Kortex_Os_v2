@@ -93,3 +93,82 @@ test('an order from another organization is invisible (cross-tenant)', async () 
     .set('X-Organization-Id', orgB.organizationId);
   assert.equal(listedFromOrgB.body.orders.length, 0);
 });
+
+test('owner can refund a closed order with a valid reason (ADR 0006)', async () => {
+  const owner = await setUpOrgWithRole('owner');
+  const { orderId } = await closeACheckout(owner.organizationId, owner.ownerUserId);
+
+  const refunded = await request(app)
+    .post(`/api/v1/orders/${orderId}/refund`)
+    .set('Authorization', `Bearer ${owner.accessToken}`)
+    .set('X-Organization-Id', owner.organizationId)
+    .set('Idempotency-Key', `refund-${randomUUID()}`)
+    .send({ reason: 'customer_cancellation' });
+  assert.equal(refunded.status, 200, JSON.stringify(refunded.body));
+  assert.equal(refunded.body.status, 'refunded');
+
+  const getAfterRefund = await request(app)
+    .get(`/api/v1/orders/${orderId}`)
+    .set('Authorization', `Bearer ${owner.accessToken}`)
+    .set('X-Organization-Id', owner.organizationId);
+  assert.equal(getAfterRefund.body.order.status, 'refunded');
+  assert.equal(getAfterRefund.body.order.refund_reason, 'customer_cancellation');
+
+  const cashEntries = await request(app)
+    .get('/api/v1/cash-entries?kind=refund')
+    .set('Authorization', `Bearer ${owner.accessToken}`)
+    .set('X-Organization-Id', owner.organizationId);
+  assert.equal(cashEntries.body.cash_entries.length, 1);
+  assert.equal(cashEntries.body.cash_entries[0].amount_cents, 5000);
+});
+
+test('refund rejects reception, missing/invalid reason, and a second refund on the same order', async () => {
+  const reception = await setUpOrgWithRole('reception');
+  const { orderId: orderForReception } = await closeACheckout(reception.organizationId, reception.ownerUserId);
+  const forbidden = await request(app)
+    .post(`/api/v1/orders/${orderForReception}/refund`)
+    .set('Authorization', `Bearer ${reception.accessToken}`)
+    .set('X-Organization-Id', reception.organizationId)
+    .set('Idempotency-Key', `refund-${randomUUID()}`)
+    .send({ reason: 'customer_cancellation' });
+  assert.equal(forbidden.status, 403);
+  assert.equal(forbidden.body.code, 'insufficient_role');
+
+  const manager = await setUpOrgWithRole('manager');
+  const { orderId } = await closeACheckout(manager.organizationId, manager.ownerUserId);
+
+  const missingReason = await request(app)
+    .post(`/api/v1/orders/${orderId}/refund`)
+    .set('Authorization', `Bearer ${manager.accessToken}`)
+    .set('X-Organization-Id', manager.organizationId)
+    .set('Idempotency-Key', `refund-${randomUUID()}`)
+    .send({});
+  assert.equal(missingReason.status, 400);
+  assert.equal(missingReason.body.code, 'invalid_reason');
+
+  const invalidReason = await request(app)
+    .post(`/api/v1/orders/${orderId}/refund`)
+    .set('Authorization', `Bearer ${manager.accessToken}`)
+    .set('X-Organization-Id', manager.organizationId)
+    .set('Idempotency-Key', `refund-${randomUUID()}`)
+    .send({ reason: 'operator_typo' });
+  assert.equal(invalidReason.status, 400);
+  assert.equal(invalidReason.body.code, 'invalid_reason');
+
+  const firstRefund = await request(app)
+    .post(`/api/v1/orders/${orderId}/refund`)
+    .set('Authorization', `Bearer ${manager.accessToken}`)
+    .set('X-Organization-Id', manager.organizationId)
+    .set('Idempotency-Key', `refund-${randomUUID()}`)
+    .send({ reason: 'customer_default' });
+  assert.equal(firstRefund.status, 200);
+
+  const secondRefund = await request(app)
+    .post(`/api/v1/orders/${orderId}/refund`)
+    .set('Authorization', `Bearer ${manager.accessToken}`)
+    .set('X-Organization-Id', manager.organizationId)
+    .set('Idempotency-Key', `refund-${randomUUID()}`)
+    .send({ reason: 'customer_default' });
+  assert.equal(secondRefund.status, 409, JSON.stringify(secondRefund.body));
+  assert.equal(secondRefund.body.code, 'operation_rejected');
+});

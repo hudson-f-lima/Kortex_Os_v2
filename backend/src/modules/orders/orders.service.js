@@ -2,7 +2,8 @@ import { HttpError } from '../../shared/httpError.js';
 import { mapPostgresError } from '../../shared/postgresError.js';
 import { mapRpcError } from '../../shared/rpcError.js';
 
-const ORDER_COLUMNS = 'id, client_id, status, subtotal_cents, discount_cents, total_cents, created_at, closed_at';
+const ORDER_COLUMNS =
+  'id, client_id, status, subtotal_cents, discount_cents, tip_cents, total_cents, refund_reason, created_at, closed_at';
 const ITEM_COLUMNS =
   'id, kind, service_id, product_id, description, quantity, unit_price_cents, total_cents, ' +
   'professional_id, commission_type, commission_value, commission_cents';
@@ -48,12 +49,13 @@ export function createOrdersService(supabaseAdmin) {
       return { ...order, items: itemsResult.data, payments: paymentsResult.data };
     },
 
-    async refund({ organizationId, actorUserId, orderId, idempotencyKey }) {
+    async refund({ organizationId, actorUserId, orderId, idempotencyKey, reason }) {
       const { data, error } = await supabaseAdmin.rpc('order_refund', {
         p_organization_id: organizationId,
         p_actor_user_id: actorUserId,
         p_idempotency_key: idempotencyKey,
         p_order_id: orderId,
+        p_reason: reason,
       });
       if (error) throw mapRpcError(error);
       return data;

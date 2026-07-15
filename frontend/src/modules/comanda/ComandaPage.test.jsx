@@ -128,6 +128,109 @@ describe('ComandaPage', () => {
     );
   });
 
+  it('applies discount and tip, recalculates the total, and sends them to checkout', async () => {
+    mockLists();
+    apiClientMock.post.mockResolvedValue({ order_id: 'order-987654321', organization_id: 'org-1', total_cents: 4500, status: 'closed' });
+
+    renderComanda();
+
+    await waitFor(() => expect(screen.getByText('Corte', { exact: false })).toBeInTheDocument());
+    fireEvent.click(screen.getAllByText('+ Adicionar')[0]);
+    fireEvent.change(screen.getByLabelText('Profissional para Corte'), { target: { value: 'prof-1' } });
+    fireEvent.click(screen.getByText('Fechar comanda'));
+
+    fireEvent.change(screen.getByLabelText('Desconto'), { target: { value: '10,00' } });
+    fireEvent.change(screen.getByLabelText('Gorjeta'), { target: { value: '5,00' } });
+
+    expect(screen.getByText('Total a pagar: R$ 45,00')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Preencher restante'));
+    fireEvent.click(screen.getByText('Confirmar fechamento'));
+
+    await waitFor(() => expect(screen.getByText('Comanda fechada')).toBeInTheDocument());
+    expect(apiClientMock.post).toHaveBeenCalledWith(
+      '/checkout',
+      expect.objectContaining({ discount_cents: 1000, tip_cents: 500 }),
+      expect.anything(),
+    );
+  });
+
+  it('disables the tip field and rejects a discount larger than the subtotal', async () => {
+    mockLists();
+
+    renderComanda();
+
+    await waitFor(() => expect(screen.getByText('Shampoo', { exact: false })).toBeInTheDocument());
+    fireEvent.click(screen.getAllByText('+ Adicionar')[1]); // product only, no service line
+    fireEvent.click(screen.getByText('Fechar comanda'));
+
+    expect(screen.getByLabelText('Gorjeta')).toBeDisabled();
+    expect(screen.getByText(/Gorjeta só pode ser aplicada/)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Desconto'), { target: { value: '999,00' } });
+    expect(screen.getByText(/O desconto deve ser um valor entre 0 e o subtotal/)).toBeInTheDocument();
+    expect(screen.getByText('Confirmar fechamento')).toBeDisabled();
+  });
+
+  it('lists closed orders and refunds one with a required reason', async () => {
+    mockLists();
+    apiClientMock.get.mockImplementation((path) => {
+      if (path.startsWith('/professionals')) return Promise.resolve({ professionals: PROFESSIONALS });
+      if (path.startsWith('/catalog')) return Promise.resolve({ items: CATALOG_ITEMS });
+      if (path.startsWith('/clients')) return Promise.resolve({ clients: CLIENTS });
+      if (path === '/orders') {
+        return Promise.resolve({
+          orders: [{ id: 'order-abcdef123', status: 'closed', total_cents: 5000, created_at: '2026-07-15T12:00:00Z' }],
+        });
+      }
+      throw new Error(`unexpected path: ${path}`);
+    });
+    apiClientMock.post.mockResolvedValue({ order_id: 'order-abcdef123', organization_id: 'org-1', status: 'refunded' });
+
+    renderComanda();
+
+    await waitFor(() => expect(screen.getByText('Corte', { exact: false })).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Comandas fechadas'));
+    await waitFor(() => expect(screen.getByText(/Pedido #order-ab/)).toBeInTheDocument());
+
+    fireEvent.click(screen.getByText('Estornar'));
+    const confirmButton = screen.getByText('Confirmar estorno');
+    expect(confirmButton).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText('Motivo do estorno'), { target: { value: 'customer_cancellation' } });
+    fireEvent.click(screen.getByText('Confirmar estorno'));
+
+    await waitFor(() =>
+      expect(apiClientMock.post).toHaveBeenCalledWith(
+        '/orders/order-abcdef123/refund',
+        { reason: 'customer_cancellation' },
+        expect.objectContaining({ headers: expect.objectContaining({ 'Idempotency-Key': expect.any(String) }) }),
+      ),
+    );
+  });
+
+  it('hides the estornar action for reception (order_refund never included that role)', async () => {
+    useOrganizationMock.mockReturnValue({ role: 'reception' });
+    mockLists();
+    apiClientMock.get.mockImplementation((path) => {
+      if (path.startsWith('/professionals')) return Promise.resolve({ professionals: PROFESSIONALS });
+      if (path.startsWith('/catalog')) return Promise.resolve({ items: CATALOG_ITEMS });
+      if (path.startsWith('/clients')) return Promise.resolve({ clients: CLIENTS });
+      if (path === '/orders') {
+        return Promise.resolve({
+          orders: [{ id: 'order-abcdef123', status: 'closed', total_cents: 5000, created_at: '2026-07-15T12:00:00Z' }],
+        });
+      }
+      throw new Error(`unexpected path: ${path}`);
+    });
+
+    renderComanda();
+
+    await waitFor(() => expect(screen.getByText('Corte', { exact: false })).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Comandas fechadas'));
+    await waitFor(() => expect(screen.getByText(/Pedido #order-ab/)).toBeInTheDocument());
+    expect(screen.queryByText('Estornar')).not.toBeInTheDocument();
+  });
+
   it('prefills client and service from an appointment_id query param', async () => {
     mockLists();
     apiClientMock.get.mockImplementation((path) => {

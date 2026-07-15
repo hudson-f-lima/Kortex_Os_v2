@@ -75,4 +75,33 @@ describe('CaixaPage', () => {
 
     await waitFor(() => expect(apiClientMock.get).toHaveBeenCalledWith('/cash-entries?kind=expense'));
   });
+
+  it('creates a manual entry through the modal with an Idempotency-Key header, then refetches', async () => {
+    mockEntries();
+    apiClientMock.post.mockResolvedValue({ cash_entry_id: 'entry-2', organization_id: 'org-1', status: 'success' });
+    render(<CaixaPage />);
+
+    await waitFor(() => expect(screen.getByText('R$ 50,00')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('+ Novo lançamento'));
+    fireEvent.change(screen.getByLabelText('Tipo'), { target: { value: 'expense' } });
+    fireEvent.change(screen.getByLabelText('Valor (R$)'), { target: { value: '35,00' } });
+    fireEvent.change(screen.getByLabelText('Descrição'), { target: { value: 'Compra de material' } });
+    fireEvent.click(screen.getByText('Confirmar lançamento'));
+
+    await waitFor(() =>
+      expect(apiClientMock.post).toHaveBeenCalledWith(
+        '/cash-entries/manual',
+        { kind: 'expense', amount_cents: 3500, description: 'Compra de material' },
+        expect.objectContaining({ headers: expect.objectContaining({ 'Idempotency-Key': expect.any(String) }) }),
+      ),
+    );
+    await waitFor(() => expect(apiClientMock.get).toHaveBeenCalledTimes(2));
+  });
+
+  it('hides the manual entry action for reception (cash_entry_manual never included that role)', () => {
+    useOrganizationMock.mockReturnValue({ role: 'reception' });
+    render(<CaixaPage />);
+
+    expect(screen.queryByText('+ Novo lançamento')).not.toBeInTheDocument();
+  });
 });

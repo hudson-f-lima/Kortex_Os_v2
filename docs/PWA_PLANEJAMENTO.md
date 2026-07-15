@@ -65,7 +65,7 @@ Trinks é a referência doméstica mais próxima do segmento-alvo: agenda online
 | **Cadastros — Equipe** | `/professionals`, `/memberships` | owner/admin | perfil + papel + disponibilidade |
 | **Catálogo** | `/catalog`, `/services`, `/products` | manager | serviços e produtos, preço (exibido, nunca calculado no cliente) |
 | **Estoque** | `/inventory/adjustments`, `/inventory/movements` | manager | ajuste via RPC idempotente; leitura de movimentos |
-| **Caixa** | `/cash-entries` | owner/admin/manager | somente leitura (nenhuma RPC de lançamento manual existe ainda no backend — não inventar escrita na PWA) |
+| **Caixa** | `/cash-entries`, `/cash-entries/manual` | owner/admin/manager | leitura + lançamento manual de `income`/`expense` (Fase 9, `cash_entry_manual`); `refund` continua exclusivo de `order_refund` a partir de uma comanda fechada |
 | **Organização/Onboarding** | `/organizations`, `/memberships` | owner | criação de org, convite/edição de papel |
 
 Nenhum módulo novo é inventado além do que o backend já expõe — a PWA reflete os domínios de `KORTEX_MVP_TECNICO.md §4`, não os antecipa.
@@ -95,11 +95,13 @@ Reaproveitar sem alteração a tabela normativa de `references/cache-policy.md` 
 
 **5.1 Home = Agenda.** Grade do dia por profissional. Tocar em slot vazio → modal de novo agendamento (cliente, serviço, profissional, horário pré-preenchidos pelo slot); campo de cliente permite buscar ou criar inline. Tocar em agendamento existente → detalhe com ação primária "Abrir comanda".
 
-**5.2 Abrir comanda → checkout.** A partir do agendamento (itens do serviço pré-carregados) ou avulsa (walk-in, busca de cliente/produto). Adicionar itens do catálogo; total e descontos são sempre recalculados pelo backend antes de exibir (nunca somados no cliente). Fechar comanda = uma ação única com `Idempotency-Key`; tela de confirmação de pagamento (split, gorjeta) é o único momento antes do fechamento; depois de fechada, é somente leitura.
+**5.2 Abrir comanda → checkout.** A partir do agendamento (itens do serviço pré-carregados) ou avulsa (walk-in, busca de cliente/produto). Adicionar itens do catálogo; total e descontos são sempre recalculados pelo backend antes de exibir (nunca somados no cliente). Fechar comanda = uma ação única com `Idempotency-Key`; tela de confirmação de pagamento (split, desconto, gorjeta — Fase 9) é o único momento antes do fechamento; depois de fechada, é somente leitura, exceto pelo estorno (ver 5.4b).
 
 **5.3 Cadastro rápido.** Criar cliente ou profissional novo sem sair do fluxo de agendamento/comanda (campo "novo cliente" abre um formulário mínimo inline: nome + telefone; completar o resto depois no módulo de Cadastros).
 
-**5.4 Caixa.** Lista somente leitura de `cash_entries` com filtro por período/tipo — sem lançamento manual (não existe RPC para isso ainda; não inventar escrita client-side que o backend não sustenta).
+**5.4 Caixa.** Lista de `cash_entries` com filtro por período/tipo, mais lançamento manual de `income`/`expense` via modal (Fase 9, `cash_entry_manual`) — `refund` nunca é lançado manualmente aqui.
+
+**5.4b Estorno de comanda (Fase 9).** Aba "Comandas fechadas" dentro do módulo Comanda lista `GET /orders`; para uma comanda `closed`, `owner`/`admin`/`manager` podem estornar (`order_refund`) com motivo obrigatório (`customer_cancellation`/`customer_default`, ADR 0006) — nunca um valor default, nunca usado para corrigir erro operacional de digitação (esse fluxo é um void que depende de `cash_sessions`, fora de escopo).
 
 ## 6. Roteiro de subfases (dentro da Fase 6 de `KORTEX_MVP_TECNICO.md`)
 
@@ -107,10 +109,11 @@ Reaproveitar sem alteração a tabela normativa de `references/cache-policy.md` 
 |---|---|---|
 | 6.1 | ✅ App shell, autenticação (Supabase Auth só para login/sessão), navegação por papel, manifest + ícones instaláveis | — |
 | 6.2 | ✅ Módulo Agenda (grade, criar/mover/cancelar, filtro por profissional) | 6.1 |
-| 6.3 | ✅ Módulo Comanda/Checkout (abrir, adicionar item, fechar com idempotência, split de pagamento — gorjeta fora do escopo, sem suporte no schema) | 6.2 |
+| 6.3 | ✅ Módulo Comanda/Checkout (abrir, adicionar item, fechar com idempotência, split de pagamento) | 6.2 |
 | 6.4 | ✅ Cadastros (clientes, equipe) + Catálogo (grupos, serviços, produtos, pacotes) + Estoque (ajuste, movimentações) | 6.1 |
 | 6.5 | ✅ Caixa (leitura, filtro por tipo/período) + Organização (info, múltiplas organizações, criar organização adicional — convite por e-mail segue em aberto, ver §8) | 6.1 |
 | 6.6 | ✅ Hardening PWA: fallback de navegação offline corrigido, limpeza de cache pós-deploy, code-splitting por rota, cliente de Auth mais leve, mensagens de conflito do Estoque | 6.2–6.5 |
+| — | ✅ Fase 9 (Fundação Financeira): desconto/gorjeta na Comanda (5.2), lançamento manual de caixa (5.4), estorno com motivo obrigatório (5.4b) — ver `PLANEJAMENTO_EXECUCAO_UNIFICADO.md` Fase 9 | 6.3, 6.5 |
 
 ## 7. Orçamento técnico e métricas de sucesso
 
@@ -120,17 +123,18 @@ Conforme a skill: medir bundle inicial, LCP, INP, payload de API por tela e taxa
 
 ## 8. Riscos e decisões em aberto
 
-- **Não existe RPC de lançamento manual de caixa** (`income`/`expense`/`refund` avulsos) — se o produto precisar disso, é decisão de schema/backend fora do escopo desta PWA, não algo a contornar no frontend.
+- ~~Não existe RPC de lançamento manual de caixa~~ — **resolvido na Fase 9**: `cash_entry_manual` cobre `income`/`expense` avulsos (modal "+ Novo lançamento" na Caixa); `refund` continua exclusivo de `order_refund` a partir de uma comanda fechada, nunca lançado manualmente.
 - **Definição de "profissional puro" como papel de app** (login individual do profissional vs. acesso só via `reception`/`manager` na conta da organização) não está fechada no MVP técnico — impacta o §4.2 (composição por papel) e deveria ser decidida antes de 6.2.
 - **Reconciliação de conflito de agenda (409 `professional_double_booked`)** precisa de UX explícita (sugerir próximo horário livre), não só mensagem de erro.
-- **Gorjeta não existe no schema de checkout** — `checkout_close` exige que a soma de `payments` feche exatamente com o subtotal calculado dos itens (sem campo extra), então a Comanda (6.3) não a implementou. Se o produto precisar, é decisão de schema/RPC fora do escopo desta PWA (provavelmente um campo novo em `payments` ou `orders`, com as implicações de comissão que isso traria).
+- ~~Gorjeta não existe no schema de checkout~~ — **resolvida na Fase 9**: `checkout_close` aceita `discount_cents`/`tip_cents` opcionais (rateados por maior resto entre os itens); gorjeta fica 100% fora da base de comissão, paga ao(s) profissional(is) dos itens de serviço (ADR 0006). A Comanda (6.3) ganhou os dois campos na etapa de pagamento, com validação client-side espelhando o invariante do banco (desconto ≤ subtotal; gorjeta exige ao menos um item de serviço/pacote).
 - **Não existe vínculo persistido entre agendamento e pedido** (`appointments.id` não aparece em `orders`) — "abrir comanda a partir do agendamento" (6.3) é só pré-preenchimento de UI; a marcação do agendamento como `completed` após o fechamento é uma segunda chamada independente e best-effort, não uma transação única.
 - **`professional` não tem nenhuma permissão de escrita em `checkout` nem leitura em `orders`** no backend atual — a Comanda (6.3) mostra esse papel como indisponível para operar comandas, mesmo o módulo estando na lista de navegação dele. Se o produto quiser mesmo "checkout na cadeira pelo profissional" (§2.2), isso exige abrir esses allowlists no backend primeiro.
 - **Não existe convite de membro por e-mail** (Fase 6.4) — `membership_set` (`PUT /memberships/:userId`) exige um `user_id` que já seja uma sessão real do Supabase Auth; o backend não expõe busca de usuário por e-mail nem um fluxo de convite. A Equipe (6.4) só permite alterar papel/atividade de uma membership que já existe (listada por `user_id` truncado, sem e-mail/nome — o backend nunca expôs isso). "Convidar membro" (§6, Subfase 6.5) continua em aberto até existir uma decisão de produto/backend para esse fluxo — não inventado no frontend.
 - **Cliente não tem campo de preferências/observações/alergias** no schema (`clients` só tem `name`/`phone`/`email`/`active`) — o "perfil como registro vivo" do §2.3 foi implementado como cadastro + histórico de agendamentos (via `GET /appointments?client_id=`), sem o dado experiencial que o schema não sustenta.
 - **Comissão por profissional×serviço (`professional_service_commissions`, Fase 5.1) não tem UI própria** — a Fase 6.4 cobre a cascata até o nível 2 (grupo → serviço, editável em Catálogo); o override de nível 1 (profissional específico) só existe hoje via API direta, não foi adicionado a Equipe nem a Catálogo por não estar no mapa de módulos do §4.1 e para não inflar o escopo desta subfase.
 - **Convite de membro por e-mail segue sem solução (Fase 6.5)** — `create_organization` (`POST /organizations`) só cria organização com o próprio ator como owner; `membership_set` exige um `user_id` que já seja uma sessão Auth existente. Não existe endpoint de convite/lookup por e-mail no backend. A Organização (6.5) documenta isso explicitamente na UI em vez de simular um fluxo de convite que o backend não sustenta; resolver isso é decisão de produto/backend (ex.: Supabase Auth Admin `inviteUserByEmail` mais uma tabela de convites pendentes), fora do escopo de "materializar no frontend".
-- **`cash_entries` só recebe `kind='sale'`** (via `checkout_close`) — não existe RPC para lançamento manual de `income`/`expense`/`refund`, então a Caixa (6.5) é só leitura e os filtros de tipo `income`/`expense`/`refund` no frontend sempre estarão vazios até essa RPC existir (registrado como gap real, não como bug).
+- ~~`cash_entries` só recebe `kind='sale'`~~ — **resolvida na Fase 9**: `income`/`expense` agora chegam via `cash_entry_manual` (modal na Caixa) e `refund` via `order_refund` (aba "Comandas fechadas" na Comanda, motivo obrigatório).
+- **Estorno de comanda depende de `cash_sessions` para corrigir erro operacional** (Fase 9, ADR 0006) — `order_refund` cobre só desistência/inadimplência real do cliente (`customer_cancellation`/`customer_default`); reabrir uma comanda fechada por erro de digitação da recepção é um fluxo diferente (void) que ainda não existe no sistema, pois depende de uma sessão de caixa (fase própria, numeração não alocada).
 
 ## Fontes
 

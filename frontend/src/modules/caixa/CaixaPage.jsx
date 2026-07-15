@@ -3,12 +3,16 @@ import { ApiError } from '../../shared/apiClient.js';
 import { useApiClient } from '../../shared/useApiClient.js';
 import { useOrganization } from '../../shared/useOrganization.js';
 import { formatCents } from '../../shared/money.js';
+import { ManualEntryModal } from './ManualEntryModal.jsx';
 
 // Mirrors backend/src/modules/cashEntries/cashEntries.route.js READ_ROLES
 // (owner/admin/manager) — reception has 'caixa' in nav.js (recepção também
 // baixa no caixa) mas nunca esteve no allowlist de leitura de cash_entries,
 // então o módulo mostra indisponibilidade em vez de tentar a chamada.
 const READ_ROLES = ['owner', 'admin', 'manager'];
+// Mirrors cash_entry_manual's internal actor_has_role check (WRITE_ROLES em
+// cashEntries.route.js) — mesmo conjunto de READ_ROLES nesta rota.
+const WRITE_ROLES = ['owner', 'admin', 'manager'];
 
 const KIND_LABELS = { sale: 'Venda', income: 'Entrada', expense: 'Saída', refund: 'Estorno' };
 const KIND_OPTIONS = [
@@ -28,14 +32,15 @@ function kindLabel(kind) {
   return KIND_LABELS[kind] ?? kind;
 }
 
-// Não existe RPC de lançamento manual (income/expense/refund avulsos) —
-// cash_entries só recebe linhas 'sale' via checkout_close (ver
-// docs/PWA_PLANEJAMENTO.md §5.4/§8). Este módulo é somente leitura por
-// decisão de schema, não por limitação do frontend.
+// Fase 9 (docs/adr/0006-gorjeta-fora-da-comissao-e-motivo-do-estorno.md):
+// cash_entry_manual permite lançamento avulso de income/expense; estorno
+// ('refund') continua exclusivo de order_refund a partir de uma comanda
+// fechada (módulo Comanda), nunca lançado manualmente aqui.
 export function CaixaPage() {
   const { role } = useOrganization();
   const apiClient = useApiClient();
   const canRead = READ_ROLES.includes(role);
+  const canWrite = WRITE_ROLES.includes(role);
 
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +48,7 @@ export function CaixaPage() {
   const [kindFilter, setKindFilter] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [showManualEntry, setShowManualEntry] = useState(false);
 
   const load = useCallback(async () => {
     if (!canRead) {
@@ -121,6 +127,11 @@ export function CaixaPage() {
           Até
           <input type="date" aria-label="Data final" value={toDate} onChange={(event) => setToDate(event.target.value)} />
         </label>
+        {canWrite && (
+          <button type="button" onClick={() => setShowManualEntry(true)}>
+            + Novo lançamento
+          </button>
+        )}
       </div>
 
       <p className="comanda-total">Total no período: {formatCents(totalCents)}</p>
@@ -140,6 +151,17 @@ export function CaixaPage() {
           </li>
         ))}
       </ul>
+
+      {showManualEntry && (
+        <ManualEntryModal
+          apiClient={apiClient}
+          onClose={() => setShowManualEntry(false)}
+          onCreated={() => {
+            setShowManualEntry(false);
+            load();
+          }}
+        />
+      )}
     </div>
   );
 }

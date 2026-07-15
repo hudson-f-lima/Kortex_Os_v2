@@ -14,11 +14,11 @@ PLANEJAMENTO_FINANCEIRO §4-5, PLANEJAMENTO_COMISSOES §8, PLANEJAMENTO_ROADMAP_
 ## 2. Estado Verificado
 
 Estado atual:
-- **Migrations**: 4 (baseline, permissões, grupos/pacotes, comissões).
-- **RPCs**: `checkout_close`, `inventory_adjust`, `create_organization`, `membership_set`.
+- **Migrations**: 6 (baseline, permissões, grupos/pacotes, comissões, fundação financeira, motivo do estorno).
+- **RPCs**: `checkout_close`, `inventory_adjust`, `create_organization`, `membership_set`, `cash_entry_manual`, `order_refund`.
 - **Módulos Backend**: 16.
 - **Módulos PWA**: 8.
-- **Testes**: 123 pgTAP + ~195 backend + 69 frontend.
+- **Testes**: 151 pgTAP + 208 backend + 75 frontend.
 - **CI**: Fase 7 rodou e passou.
 - **Render**: `REAL` (Fase 7 fechou; backend `kortex-api` validado online com `/health` OK).
 
@@ -62,10 +62,10 @@ Esta é a equação-alvo de reconciliação que será definida **UMA única vez*
 **Riscos**: Manter a pendência de devops silenciada.
 **Gate de saída**: main = única verdade; CI verde; evidência real do /health 200 em produção OU decisão registrada de re-escopo documentado. INDEX sem colisão de numeração.
 
-### Fase 9 — Fundação Financeira (Camada 1) [EM ANDAMENTO]
+### Fase 9 — Fundação Financeira (Camada 1) [CONCLUÍDA]
 **Escopo**: Desconto real em `checkout_close` (fim do `discount_cents=0`); regra de distribuição do desconto entre itens (pré/pós expansão de pacote); gorjeta; RPC de lançamento manual de caixa (`income`/`expense`/`refund`) com idempotência; estorno de venda (`order_refund`). Nasce aqui a equação-alvo do §3, prevendo já o `deposit_credit`.
 
-**Estado real (auditado em 2026-07-15)**: a migration `20260715103200_fase9_foundation.sql` já implementa desconto/gorjeta rateados por maior resto em `checkout_close`, `cash_entry_manual` e `order_refund`. Comissão passou a ser calculada sobre `total_cents - discount_cents` (equivalente ao modo "Revenue" do Zenoti — ver Fase 12) sem flag de organização ainda. **Sem testes pgTAP, sem rota no backend Express, sem PWA** — a fase não fechou o próprio gate de saída definido abaixo.
+**Estado real (fechado em 2026-07-15)**: a migration `20260715103200_fase9_foundation.sql` implementa desconto/gorjeta rateados por maior resto em `checkout_close`, `cash_entry_manual` e `order_refund`. Comissão é calculada sobre `total_cents - discount_cents` (equivalente ao modo "Revenue" do Zenoti — ver Fase 12) sem flag de organização ainda. Uma segunda migration (`20260715120000_fase9_order_refund_reason.sql`) fechou a decisão (3) abaixo, adicionando `orders.refund_reason` e exigindo `p_reason` em `order_refund`. Suíte pgTAP 100% `PASS` (151 testes no projeto), wiring backend completo (208 testes) e PWA operando os três fluxos (75 testes) — ver `PROJECT_STATE.md` para o relato completo, incluindo o achado de vários bugs pré-existentes na suíte pgTAP (nunca executada antes por bloqueio de porta do Docker no Windows).
 
 **Achado — `order_refund` não reverte comissão (linhas 128–159 da migration): isto está correto por padrão, não é uma lacuna a fechar automaticamente.** Pesquisa de legislação trabalhista (ver ADR 0005) mostrou que estornar comissão já congelada de profissional CLT é ilegal exceto por inadimplência do comprador (Lei 3.207/1957 art. 7º); para profissional autônomo-parceiro (Lei 13.352/2016) a regra depende do contrato de parceria. O schema não distingue hoje a classificação do profissional nem o motivo do estorno — nenhuma automação de reversão de comissão deve ser implementada até essas duas informações existirem (ver ADR 0005).
 
@@ -74,16 +74,16 @@ Esta é a equação-alvo de reconciliação que será definida **UMA única vez*
 - **Trinks**: mesmo princípio em granularidade mensal — "Fechamento Mensal" trava os valores a pagar por profissional; existe um botão explícito "reabrir mês" para ajustes retroativos, depois fecha de novo.
 - Isso substitui a hipótese de um `order_correct` isolado: **falta uma peça de fundação que hoje não existe em nenhum lugar do schema — sessão de caixa (abertura/fechamento por período/turno)**. `cash_entries` hoje é só uma lista *append-only* sem fronteira de sessão (confirmado por grep no baseline — nenhuma coluna de sessão/período); não há como replicar "só edita se o caixa ainda está aberto" sem essa tabela nova. Isso é maior que uma RPC — é um novo objeto de domínio (ver risco novo no §7 abaixo).
 
-**Entregáveis**: RPC `checkout_close` alterada (concluído); RPCs de lançamento e estorno de caixa (concluído, sem wiring); motivo obrigatório (`customer_cancellation`/`customer_default`) no payload de `order_refund` (ADR 0006); wiring backend Express; suporte no PWA para Comanda e Caixa (descontos, gorjeta, lançamento manual, estorno com motivo). `cash_sessions` e a reabertura de comanda por correção operacional **saem do escopo desta fase** (ver decisão 4 abaixo).
+**Entregáveis**: RPC `checkout_close` alterada (concluído); RPCs de lançamento e estorno de caixa (concluído); motivo obrigatório (`customer_cancellation`/`customer_default`) no payload de `order_refund` (concluído, ADR 0006); wiring backend Express (concluído); suporte no PWA para Comanda e Caixa (descontos, gorjeta, lançamento manual, estorno com motivo — concluído). `cash_sessions` e a reabertura de comanda por correção operacional **saem do escopo desta fase** (ver decisão 4 abaixo).
 **Decisões em aberto — resolvidas em 2026-07-15 (usuário, após pesquisa registrada em ADR 0006)**:
 - ~~(1) Gorjeta entra na base da comissão ou vai 100% para o profissional?~~ — **resolvido: 100% ao profissional, fora da base.** Nenhuma mudança de código necessária (comportamento já implícito na migration). Ver ADR 0006.
 - (2) Classificação do profissional (CLT vs. autônomo-parceiro) — **resolvido: adiado.** Não modelar nesta fase; `order_refund` continua sem reverter comissão de ninguém (comportamento já adotado no ADR 0005), sem automação até uma fase futura decidir o schema de classificação.
-- ~~(3) Motivo do estorno (inadimplência/desistência do cliente vs. correção operacional)~~ — **resolvido: dois fluxos distintos (void vs. refund), nunca a mesma RPC.** Correção operacional nunca usa `order_refund` (depende de `cash_sessions`, fora de escopo — ver decisão 4). `order_refund` passa a exigir motivo obrigatório (`customer_cancellation`/`customer_default`). Ver ADR 0006.
+- ~~(3) Motivo do estorno (inadimplência/desistência do cliente vs. correção operacional)~~ — **resolvido: dois fluxos distintos (void vs. refund), nunca a mesma RPC.** Correção operacional nunca usa `order_refund` (depende de `cash_sessions`, fora de escopo — ver decisão 4). `order_refund` passa a exigir motivo obrigatório (`customer_cancellation`/`customer_default`), materializado em `20260715120000_fase9_order_refund_reason.sql` e na PWA (`RefundModal.jsx`, sem valor default). Ver ADR 0006.
 - ~~(4) `cash_sessions` entra na Fase 9 ou vira decisão de escopo própria?~~ — **resolvido: vira fase própria, separada.** Removido do escopo/entregáveis/gate de saída da Fase 9. **Numeração ainda não alocada** — pendente de nova entrada neste documento antes de qualquer código.
 - (5) Reabertura de sessão de caixa exige papel/permissão própria e log auditável? — **adiado junto com a decisão 4**; será resolvido quando `cash_sessions` for alocada como fase própria, não nesta fase.
 
 **Riscos**: Regressão no cálculo de `checkout_close`.
-**Gate de saída**: pgTAP da equação nova com testes negativos e de desconto maior que o subtotal, e de `order_refund` rejeitando motivo ausente/inválido; testes de integração do backend; frontend operando descontos, gorjetas e estornos (com motivo) no Caixa.
+**Gate de saída [FECHADO em 2026-07-15]**: pgTAP da equação nova com testes negativos e de desconto maior que o subtotal, e de `order_refund` rejeitando motivo ausente/inválido (151/151 `PASS`); testes de integração do backend (208/208 `PASS`); frontend operando descontos, gorjetas e estornos (com motivo) na Comanda e lançamento manual no Caixa (75/75 `PASS`), verificado end-to-end via API real contra Supabase + backend locais.
 
 ### Fase 10 — Capacidades N:N profissional×serviço + Hardening do Agendamento
 **Escopo**: Tabela N:N (`professional_service_capabilities`) com `duration_override_minutes` (alimentando a janela GiST da agenda), `buffer_before_min`/`buffer_after_min` (achado de `PLANEJAMENTO_AGENDA_TRANSACIONAL.md §6`) e `price_override_cents`; PWA listando e filtrando agenda e catálogo por capacidades. **Escopo estendido (auditoria de agenda, 2026-07-15)**: três correções de hardening no módulo `appointments` — (a) `ends_at` calculado no servidor a partir da duração resolvida (hoje aceito livre do cliente — risco de segurança real, não feature); (b) guard de transição de status (hoje um `completed` pode ser movido de volta para `scheduled` — nenhuma FSM existe); (c) coluna `appointments.version` para lock otimista (hoje updates concorrentes não-sobrepostos em horário não são detectados).

@@ -430,6 +430,33 @@ button {
   font-size: 1.05rem;
 }
 
+.comanda-discount-tip {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.6rem;
+}
+
+.comanda-discount-tip label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.comanda-discount-tip input {
+  width: 7rem;
+  padding: 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.comanda-hint {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
 .comanda-payment-row {
   display: flex;
   align-items: center;

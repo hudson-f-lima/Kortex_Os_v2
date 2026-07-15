@@ -6,12 +6,16 @@ import { useOrganization } from '../../shared/useOrganization.js';
 import { ClientPicker } from '../../shared/ClientPicker.jsx';
 import { formatCents, reaisToCents } from '../../shared/money.js';
 import { messageForCheckoutError } from './comandaErrors.js';
+import { OrderHistory } from './OrderHistory.jsx';
 
 // Mirrors backend/src/modules/checkout/checkout.route.js CHECKOUT_ROLES and
 // orders.route.js READ_ROLES — professional is deliberately excluded from
 // both (checkout_close's actor_has_role never included it), so this module
 // is read-only-unavailable for that role, not something invented here.
 const OPERATE_ROLES = ['owner', 'admin', 'manager', 'reception'];
+// Mirrors order_refund's internal actor_has_role check (REFUND_ROLES em
+// orders.route.js) — reception opera a comanda mas não pode estornar.
+const REFUND_ROLES = ['owner', 'admin', 'manager'];
 const PAYMENT_METHODS = [
   { value: 'cash', label: 'Dinheiro' },
   { value: 'pix', label: 'Pix' },
@@ -36,7 +40,9 @@ export function ComandaPage() {
   const [searchParams] = useSearchParams();
   const appointmentId = searchParams.get('appointment_id');
   const canOperate = OPERATE_ROLES.includes(role);
+  const canRefund = REFUND_ROLES.includes(role);
 
+  const [view, setView] = useState('nova'); // 'nova' | 'historico'
   const [listsLoading, setListsLoading] = useState(true);
   const [listsError, setListsError] = useState(null);
   const [professionals, setProfessionals] = useState([]);
@@ -50,6 +56,8 @@ export function ComandaPage() {
   const [step, setStep] = useState('building'); // 'building' | 'payment' | 'closed'
   const [idempotencyKey, setIdempotencyKey] = useState(null);
   const [payments, setPayments] = useState([]);
+  const [discountReais, setDiscountReais] = useState('');
+  const [tipReais, setTipReais] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [checkoutError, setCheckoutError] = useState(null);
   const [closedOrder, setClosedOrder] = useState(null);
@@ -133,6 +141,17 @@ export function ComandaPage() {
     () => cart.reduce((sum, line) => sum + (line.kind === 'package' ? line.unitPriceCents : line.unitPriceCents * line.quantity), 0),
     [cart],
   );
+
+  // Espelha o invariante do backend (checkout_close, docs/adr/0006): gorjeta
+  // só é aceita se houver ao menos um item que vira order_items.kind='service'
+  // — serviço avulso ou pacote (que expande em linhas de serviço na RPC).
+  const hasServiceLine = cart.some((line) => line.kind === 'service' || line.kind === 'package');
+
+  const discountCents = discountReais.trim() === '' ? 0 : reaisToCents(discountReais);
+  const tipCents = tipReais.trim() === '' ? 0 : reaisToCents(tipReais);
+  const discountValid = Number.isInteger(discountCents) && discountCents >= 0 && discountCents <= subtotalCents;
+  const tipValid = Number.isInteger(tipCents) && tipCents >= 0 && (tipCents === 0 || hasServiceLine);
+  const finalTotalCents = subtotalCents - (discountValid ? discountCents : 0) + (tipValid ? tipCents : 0);
 
   const paymentsWithCents = useMemo(
     () => payments.map((payment) => ({ ...payment, amountCents: reaisToCents(payment.amountReais) })),
@@ -231,6 +250,8 @@ export function ComandaPage() {
   function goToPayment() {
     setIdempotencyKey(crypto.randomUUID());
     setPayments([{ key: newLineKey(), method: 'cash', amountReais: (subtotalCents / 100).toFixed(2) }]);
+    setDiscountReais('');
+    setTipReais('');
     setCheckoutError(null);
     setStep('payment');
   }
@@ -254,14 +275,16 @@ export function ComandaPage() {
 
   function fillRemaining(key) {
     const current = paymentsWithCents.find((payment) => payment.key === key)?.amountCents ?? 0;
-    const remaining = subtotalCents - (paymentsTotalCents - current);
+    const remaining = finalTotalCents - (paymentsTotalCents - current);
     updatePayment(key, { amountReais: (Math.max(remaining, 0) / 100).toFixed(2) });
   }
 
   const paymentsReconcile =
     paymentsWithCents.length > 0 &&
     paymentsWithCents.every((payment) => Number.isInteger(payment.amountCents) && payment.amountCents > 0) &&
-    paymentsWithCents.reduce((sum, payment) => sum + payment.amountCents, 0) === subtotalCents;
+    paymentsWithCents.reduce((sum, payment) => sum + payment.amountCents, 0) === finalTotalCents;
+
+  const canClose = paymentsReconcile && discountValid && tipValid;
 
   async function handleClose() {
     setSubmitting(true);
@@ -284,6 +307,8 @@ export function ComandaPage() {
           return { kind: 'product', id: line.catalogId, quantity: line.quantity };
         }),
         payments: paymentsWithCents.map((payment) => ({ method: payment.method, amount_cents: payment.amountCents })),
+        discount_cents: discountValid ? discountCents : 0,
+        tip_cents: tipValid ? tipCents : 0,
       };
       const result = await apiClient.post('/checkout', body, { headers: { 'Idempotency-Key': idempotencyKey } });
       setClosedOrder(result);
@@ -304,6 +329,8 @@ export function ComandaPage() {
     setClientId('');
     setCart([]);
     setPayments([]);
+    setDiscountReais('');
+    setTipReais('');
     setIdempotencyKey(null);
     setCheckoutError(null);
     setClosedOrder(null);
@@ -315,6 +342,27 @@ export function ComandaPage() {
     return (
       <div className="comanda-page">
         <p>Seu papel não pode abrir ou fechar comandas nesta organização. Fale com a recepção ou gestão.</p>
+      </div>
+    );
+  }
+
+  const viewToggle = (
+    <div className="agenda-view-toggle">
+      <button type="button" className={view === 'nova' ? 'active' : ''} onClick={() => setView('nova')}>
+        Nova comanda
+      </button>
+      <button type="button" className={view === 'historico' ? 'active' : ''} onClick={() => setView('historico')}>
+        Comandas fechadas
+      </button>
+    </div>
+  );
+
+  if (view === 'historico') {
+    return (
+      <div className="comanda-page">
+        <h1>Comanda</h1>
+        {viewToggle}
+        <OrderHistory apiClient={apiClient} canRefund={canRefund} />
       </div>
     );
   }
@@ -340,6 +388,8 @@ export function ComandaPage() {
     return (
       <div className="comanda-page comanda-closed">
         <h1>Comanda fechada</h1>
+        {discountCents > 0 && <p>Desconto: −{formatCents(discountCents)}</p>}
+        {tipCents > 0 && <p>Gorjeta: +{formatCents(tipCents)}</p>}
         <p>Total: {formatCents(closedOrder.total_cents)}</p>
         <p className="comanda-closed-id">Pedido #{closedOrder.order_id.slice(0, 8)}</p>
         <button type="button" onClick={startNewComanda}>
@@ -353,7 +403,40 @@ export function ComandaPage() {
     return (
       <div className="comanda-page">
         <h1>Fechar comanda</h1>
-        <p className="comanda-total">Total a pagar: {formatCents(subtotalCents)}</p>
+        <p className="comanda-total">Subtotal: {formatCents(subtotalCents)}</p>
+
+        <div className="comanda-discount-tip">
+          <label>
+            Desconto (R$)
+            <input
+              type="text"
+              inputMode="decimal"
+              aria-label="Desconto"
+              value={discountReais}
+              placeholder="0,00"
+              onChange={(event) => setDiscountReais(event.target.value)}
+            />
+          </label>
+          <label>
+            Gorjeta (R$)
+            <input
+              type="text"
+              inputMode="decimal"
+              aria-label="Gorjeta"
+              value={tipReais}
+              placeholder="0,00"
+              disabled={!hasServiceLine}
+              onChange={(event) => setTipReais(event.target.value)}
+            />
+          </label>
+        </div>
+        {!discountValid && discountReais !== '' && (
+          <p className="form-error">O desconto deve ser um valor entre 0 e o subtotal da comanda.</p>
+        )}
+        {!hasServiceLine && <p className="comanda-hint">Gorjeta só pode ser aplicada quando a comanda tem algum serviço.</p>}
+        {hasServiceLine && !tipValid && tipReais !== '' && <p className="form-error">A gorjeta não pode ser negativa.</p>}
+
+        <p className="comanda-total">Total a pagar: {formatCents(finalTotalCents)}</p>
 
         {payments.map((payment) => (
           <div className="comanda-payment-row" key={payment.key}>
@@ -395,7 +478,7 @@ export function ComandaPage() {
           <button type="button" className="link-button" onClick={backToBuilding} disabled={submitting}>
             Voltar para itens
           </button>
-          <button type="button" disabled={!paymentsReconcile || submitting} onClick={handleClose}>
+          <button type="button" disabled={!canClose || submitting} onClick={handleClose}>
             {submitting ? 'Fechando…' : 'Confirmar fechamento'}
           </button>
         </div>
@@ -406,6 +489,7 @@ export function ComandaPage() {
   return (
     <div className="comanda-page">
       <h1>Comanda</h1>
+      {viewToggle}
 
       <ClientPicker
         clients={clients}
