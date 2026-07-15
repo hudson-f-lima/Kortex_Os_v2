@@ -37,6 +37,7 @@ Debates longos não devem se perder em chats. O *porquê* de escolhas técnicas 
 - [ADR 0003: Comissões Escalonadas](adr/0003-comissoes-escalonadas.md)
 - [ADR 0004: Política de Absorção de Descontos](adr/0004-politica-absorcao-descontos.md)
 - [ADR 0005: Reversão de Comissão em Estornos](adr/0005-reversao-de-comissao-em-estornos.md)
+- [ADR 0006: Gorjeta Fora da Base de Comissão e Distinção Void/Refund no Motivo do Estorno](adr/0006-gorjeta-fora-da-comissao-e-motivo-do-estorno.md)
 
 ---
 

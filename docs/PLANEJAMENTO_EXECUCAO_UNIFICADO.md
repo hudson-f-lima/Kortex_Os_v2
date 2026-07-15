@@ -1,7 +1,7 @@
 # PLANEJAMENTO_EXECUCAO_UNIFICADO
 
 Status: CANÔNICO — única fonte de numeração de fases a partir da Fase 8
-Fase atual: 9 | Última atualização: 2026-07-15 | Supersede sequenciamentos de:
+Fase atual: 9 (escopo reduzido em 2026-07-15 — `cash_sessions` saiu para fase própria, ainda sem número) | Última atualização: 2026-07-15 | Supersede sequenciamentos de:
 PLANEJAMENTO_FINANCEIRO §4-5, PLANEJAMENTO_COMISSOES §8, PLANEJAMENTO_ROADMAP_POS_MVP §7, PLANEJAMENTO_CALENDARIO_OPERACIONAL §11, PLANEJAMENTO_AGENDA_TRANSACIONAL §13
 
 ## 1. Objetivo e Regra de Canonicidade
@@ -74,10 +74,16 @@ Esta é a equação-alvo de reconciliação que será definida **UMA única vez*
 - **Trinks**: mesmo princípio em granularidade mensal — "Fechamento Mensal" trava os valores a pagar por profissional; existe um botão explícito "reabrir mês" para ajustes retroativos, depois fecha de novo.
 - Isso substitui a hipótese de um `order_correct` isolado: **falta uma peça de fundação que hoje não existe em nenhum lugar do schema — sessão de caixa (abertura/fechamento por período/turno)**. `cash_entries` hoje é só uma lista *append-only* sem fronteira de sessão (confirmado por grep no baseline — nenhuma coluna de sessão/período); não há como replicar "só edita se o caixa ainda está aberto" sem essa tabela nova. Isso é maior que uma RPC — é um novo objeto de domínio (ver risco novo no §7 abaixo).
 
-**Entregáveis**: RPC `checkout_close` alterada (concluído); RPCs de lançamento e estorno de caixa (concluído, sem wiring); tabela `cash_sessions` (abertura/fechamento de caixa por período, com usuário/data de abertura e fechamento) — pré-requisito da correção de comanda; RPC de reabertura de comanda condicionada à sessão de caixa estar aberta (substituindo a hipótese de `order_correct` isolado); wiring backend Express; suporte no PWA para Comanda e Caixa.
-**Decisões em aberto**: (1) Gorjeta entra na base da comissão ou vai 100% para o profissional? *(decidido implicitamente pela migration: fora da base — falta confirmação explícita)*. (2) Classificação do profissional (CLT vs. autônomo-parceiro) — schema novo necessário antes de qualquer reversão automática de comissão (ADR 0005). (3) Motivo do estorno (inadimplência/desistência do cliente vs. correção operacional) — captura necessária para decidir tratamento de comissão e de caixa. (4) `cash_sessions` entra na Fase 9 (mesma fundação de caixa) ou vira decisão de escopo própria, já que é maior do que o previsto originalmente para esta fase? (5) Reabertura de sessão de caixa exige papel/permissão própria (gerente/dono, como o padrão local sugere) e log auditável de quem/quando reabriu?
-**Riscos**: Regressão no cálculo de `checkout_close`; automatizar reversão de comissão sem a classificação do profissional é risco jurídico (CLT), não só técnico; escopo de `cash_sessions` pode estourar o tamanho já planejado da Fase 9.
-**Gate de saída**: pgTAP da equação nova com testes negativos e de desconto maior que o subtotal; testes de integração do backend; frontend operando descontos, gorjetas e estornos no Caixa; decisão registrada (não código) sobre `cash_sessions`/reabertura de comanda antes de fechar a fase.
+**Entregáveis**: RPC `checkout_close` alterada (concluído); RPCs de lançamento e estorno de caixa (concluído, sem wiring); motivo obrigatório (`customer_cancellation`/`customer_default`) no payload de `order_refund` (ADR 0006); wiring backend Express; suporte no PWA para Comanda e Caixa (descontos, gorjeta, lançamento manual, estorno com motivo). `cash_sessions` e a reabertura de comanda por correção operacional **saem do escopo desta fase** (ver decisão 4 abaixo).
+**Decisões em aberto — resolvidas em 2026-07-15 (usuário, após pesquisa registrada em ADR 0006)**:
+- ~~(1) Gorjeta entra na base da comissão ou vai 100% para o profissional?~~ — **resolvido: 100% ao profissional, fora da base.** Nenhuma mudança de código necessária (comportamento já implícito na migration). Ver ADR 0006.
+- (2) Classificação do profissional (CLT vs. autônomo-parceiro) — **resolvido: adiado.** Não modelar nesta fase; `order_refund` continua sem reverter comissão de ninguém (comportamento já adotado no ADR 0005), sem automação até uma fase futura decidir o schema de classificação.
+- ~~(3) Motivo do estorno (inadimplência/desistência do cliente vs. correção operacional)~~ — **resolvido: dois fluxos distintos (void vs. refund), nunca a mesma RPC.** Correção operacional nunca usa `order_refund` (depende de `cash_sessions`, fora de escopo — ver decisão 4). `order_refund` passa a exigir motivo obrigatório (`customer_cancellation`/`customer_default`). Ver ADR 0006.
+- ~~(4) `cash_sessions` entra na Fase 9 ou vira decisão de escopo própria?~~ — **resolvido: vira fase própria, separada.** Removido do escopo/entregáveis/gate de saída da Fase 9. **Numeração ainda não alocada** — pendente de nova entrada neste documento antes de qualquer código.
+- (5) Reabertura de sessão de caixa exige papel/permissão própria e log auditável? — **adiado junto com a decisão 4**; será resolvido quando `cash_sessions` for alocada como fase própria, não nesta fase.
+
+**Riscos**: Regressão no cálculo de `checkout_close`.
+**Gate de saída**: pgTAP da equação nova com testes negativos e de desconto maior que o subtotal, e de `order_refund` rejeitando motivo ausente/inválido; testes de integração do backend; frontend operando descontos, gorjetas e estornos (com motivo) no Caixa.
 
 ### Fase 10 — Capacidades N:N profissional×serviço + Hardening do Agendamento
 **Escopo**: Tabela N:N (`professional_service_capabilities`) com `duration_override_minutes` (alimentando a janela GiST da agenda), `buffer_before_min`/`buffer_after_min` (achado de `PLANEJAMENTO_AGENDA_TRANSACIONAL.md §6`) e `price_override_cents`; PWA listando e filtrando agenda e catálogo por capacidades. **Escopo estendido (auditoria de agenda, 2026-07-15)**: três correções de hardening no módulo `appointments` — (a) `ends_at` calculado no servidor a partir da duração resolvida (hoje aceito livre do cliente — risco de segurança real, não feature); (b) guard de transição de status (hoje um `completed` pode ser movido de volta para `scheduled` — nenhuma FSM existe); (c) coluna `appointments.version` para lock otimista (hoje updates concorrentes não-sobrepostos em horário não são detectados).
@@ -156,7 +162,7 @@ Itens bloqueados exigem a criação de um **novo ADR** + alocação de Fase nest
   - O uso do Web Share e WhatsApp (`wa.me`) revela o número da recepcionista/clínica e o telefone do usuário; requer política limpa de opt-in.
   - Links de convites e emails gerados também tratam e geram registros auditáveis.
 - **Timezone**: Sem as configurações de Fuso Horário fixadas em Org (America/Sao_Paulo vs UTC), a fronteira do "Final de Mês" do comissionamento (Fase 12) falhará em horários noturnos nos dias 31. **Decisão única**: a coluna `organizations.timezone` é compartilhada entre a Fase 12 (fronteira de mês) e a Fase 14 (jornada/expediente) — não decidir duas vezes em dois documentos.
-- **Sessão de caixa (confirmado por concorrentes diretos)**: `cash_entries` não tem fronteira de sessão/período — sem isso, não é possível replicar o padrão local (AppBarber/Trinks/Avec/Nex) de travar edição de comanda por caixa fechado. Afeta diretamente a Fase 9 (ver decisões em aberto) e potencialmente o dimensionamento do escopo dessa fase.
+- **Sessão de caixa (confirmado por concorrentes diretos)**: `cash_entries` não tem fronteira de sessão/período — sem isso, não é possível replicar o padrão local (AppBarber/Trinks/Avec/Nex) de travar edição de comanda por caixa fechado. **Decisão registrada em 2026-07-15**: `cash_sessions` sai do escopo da Fase 9 e vira fase própria (numeração ainda não alocada); até lá, correção de comanda por erro operacional não tem caminho no sistema.
 - **Agenda — ausência total de fundação de disponibilidade (auditoria 2026-07-15)**: hoje a agenda só impede colisão de horário (exclusion constraint); não existe jornada, exceção, timezone, lock otimista, guard de status ou auditoria de mutação. `ends_at` é calculado no frontend e o backend aceita qualquer valor — risco de integridade real, não só lacuna de feature (ver Fase 10 estendida). Ver `PLANEJAMENTO_CALENDARIO_OPERACIONAL.md` e `PLANEJAMENTO_AGENDA_TRANSACIONAL.md`.
 
 ## 8. Fontes de Planejamento e ADRs
@@ -173,6 +179,7 @@ Itens bloqueados exigem a criação de um **novo ADR** + alocação de Fase nest
 - `docs/adr/0003-comissoes-escalonadas.md`
 - `docs/adr/0004-politica-absorcao-descontos.md`
 - `docs/adr/0005-reversao-de-comissao-em-estornos.md`
+- `docs/adr/0006-gorjeta-fora-da-comissao-e-motivo-do-estorno.md`
 
 **Benchmarks Externos (Padrões da Indústria)**
 - **Comissões e Absorção de Descontos:** Zenoti (Employee Commissions; [Configure Service Commissions based on a Percentage of Revenue](https://help.zenoti.com/en/articles/700184-configure-service-commissions-based-on-a-percentage-of-revenue); [Configure Product Commissions based on a Percentage of Sales Price](https://help.zenoti.com/en/articles/700228-configure-product-commissions-based-on-a-percentage-of-sales-price)), Vagaro (Payroll & Commission Setting), Phorest.
