@@ -15,7 +15,6 @@ const VALID_CREATE = {
   professional_id: UUID,
   service_id: UUID,
   starts_at: '2026-08-01T10:00:00Z',
-  ends_at: '2026-08-01T10:30:00Z',
 };
 
 test('validateAppointmentId accepts a well-formed uuid', () => {
@@ -26,7 +25,7 @@ test('validateAppointmentId rejects a non-uuid string', () => {
   throwsCode(() => validateAppointmentId('nope'), 'invalid_id');
 });
 
-test('validateAppointmentPayload requires client_id, professional_id, service_id, starts_at and ends_at on create', () => {
+test('validateAppointmentPayload requires client_id, professional_id, service_id and starts_at on create', () => {
   throwsCode(() => validateAppointmentPayload({}, { requireAll: true }), 'invalid_client_id');
   throwsCode(() => validateAppointmentPayload({ client_id: UUID }, { requireAll: true }), 'invalid_professional_id');
   throwsCode(
@@ -47,6 +46,7 @@ test('validateAppointmentPayload accepts a valid create payload', () => {
   const patch = validateAppointmentPayload(VALID_CREATE, { requireAll: true });
   assert.equal(patch.client_id, UUID);
   assert.equal(patch.starts_at, new Date(VALID_CREATE.starts_at).toISOString());
+  assert.equal(patch.ends_at, undefined, 'ends_at is never accepted from the client — it is server-computed');
   assert.equal(patch.status, undefined, 'status is optional and defaults in the database');
 });
 
@@ -57,22 +57,13 @@ test('validateAppointmentPayload rejects a malformed starts_at', () => {
   );
 });
 
-test('validateAppointmentPayload rejects ends_at not after starts_at', () => {
+// Fase 10 hardening: ends_at is always resolved server-side from the
+// service/capability duration. A client sending it gets a loud 400
+// (unknown_fields) instead of the value being silently discarded.
+test('validateAppointmentPayload rejects a client-supplied ends_at', () => {
   throwsCode(
-    () =>
-      validateAppointmentPayload(
-        { ...VALID_CREATE, starts_at: '2026-08-01T10:00:00Z', ends_at: '2026-08-01T09:30:00Z' },
-        { requireAll: true },
-      ),
-    'invalid_time_range',
-  );
-  throwsCode(
-    () =>
-      validateAppointmentPayload(
-        { ...VALID_CREATE, starts_at: '2026-08-01T10:00:00Z', ends_at: '2026-08-01T10:00:00Z' },
-        { requireAll: true },
-      ),
-    'invalid_time_range',
+    () => validateAppointmentPayload({ ...VALID_CREATE, ends_at: '2026-08-01T10:30:00Z' }, { requireAll: true }),
+    'unknown_fields',
   );
 });
 

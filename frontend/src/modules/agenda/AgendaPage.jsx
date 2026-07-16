@@ -3,6 +3,7 @@ import { ApiError } from '../../shared/apiClient.js';
 import { useApiClient } from '../../shared/useApiClient.js';
 import { useAuth } from '../../shared/useAuth.js';
 import { useOrganization } from '../../shared/useOrganization.js';
+import { useCachedQuery } from '../../shared/useCachedQuery.js';
 import { AppointmentModal } from './AppointmentModal.jsx';
 import { statusLabel } from './appointmentStatus.js';
 import {
@@ -54,41 +55,22 @@ export function AgendaPage() {
   const [view, setView] = useState('day');
   const [anchorDate, setAnchorDate] = useState(() => new Date());
   const [professionalFilter, setProfessionalFilter] = useState('all');
-
-  const [professionals, setProfessionals] = useState([]);
-  const [services, setServices] = useState([]);
-  const [clients, setClients] = useState([]);
-  const [listsLoading, setListsLoading] = useState(true);
-  const [listsError, setListsError] = useState(null);
-
-  const [appointments, setAppointments] = useState([]);
-  const [appointmentsLoading, setAppointmentsLoading] = useState(true);
-  const [appointmentsError, setAppointmentsError] = useState(null);
-
   const [modal, setModal] = useState(null);
 
-  const loadLists = useCallback(async () => {
-    setListsLoading(true);
-    setListsError(null);
-    try {
-      const [professionalsRes, servicesRes, clientsRes] = await Promise.all([
-        apiClient.get('/professionals?active=true'),
-        apiClient.get('/services?active=true'),
-        apiClient.get('/clients?active=true'),
-      ]);
-      setProfessionals(professionalsRes.professionals);
-      setServices(servicesRes.services);
-      setClients(clientsRes.clients);
-    } catch (err) {
-      setListsError(messageForListError(err));
-    } finally {
-      setListsLoading(false);
-    }
-  }, [apiClient]);
+  const filterActive = useCallback((item) => item.active, []);
 
-  useEffect(() => {
-    loadLists();
-  }, [loadLists]);
+  const { data: professionals, loading: professionalsLoading, error: professionalsError, refetch: refetchProfessionals } = useCachedQuery('professionals', filterActive);
+  const { data: services, loading: servicesLoading, error: servicesError, refetch: refetchServices } = useCachedQuery('services', filterActive);
+  const { data: clients, loading: clientsLoading, error: clientsError, refetch: refetchClients } = useCachedQuery('clients', filterActive);
+
+  const loadLists = useCallback(() => {
+    refetchProfessionals();
+    refetchServices();
+    refetchClients();
+  }, [refetchProfessionals, refetchServices, refetchClients]);
+
+  const listsLoading = professionalsLoading || servicesLoading || clientsLoading;
+  const listsError = professionalsError || servicesError || clientsError;
 
   const ownProfessional = useMemo(
     () => professionals.find((professional) => professional.user_id === user?.id) ?? null,
@@ -101,30 +83,22 @@ export function AgendaPage() {
       ? professionalFilter
       : undefined;
 
-  const loadAppointments = useCallback(async () => {
-    if (isProfessional && !ownProfessional) {
-      setAppointments([]);
-      setAppointmentsLoading(false);
-      return;
-    }
-    setAppointmentsLoading(true);
-    setAppointmentsError(null);
-    try {
-      const { from, to } = view === 'day' ? dayRange(anchorDate) : weekRange(anchorDate);
-      const params = new URLSearchParams({ from, to });
-      if (effectiveProfessionalId) params.set('professional_id', effectiveProfessionalId);
-      const { appointments: data } = await apiClient.get(`/appointments?${params.toString()}`);
-      setAppointments(data);
-    } catch (err) {
-      setAppointmentsError(messageForListError(err));
-    } finally {
-      setAppointmentsLoading(false);
-    }
-  }, [apiClient, view, anchorDate, effectiveProfessionalId, isProfessional, ownProfessional]);
+  const filterAppointments = useCallback((appt) => {
+    if (isProfessional && !ownProfessional) return false;
 
-  useEffect(() => {
-    loadAppointments();
-  }, [loadAppointments]);
+    const apptDate = new Date(appt.starts_at);
+    const { from, to } = view === 'day' ? dayRange(anchorDate) : weekRange(anchorDate);
+    const fromTime = new Date(from).getTime();
+    const toTime = new Date(to).getTime();
+    const apptTime = apptDate.getTime();
+
+    const timeMatch = apptTime >= fromTime && apptTime < toTime;
+    const profMatch = !effectiveProfessionalId || appt.professional_id === effectiveProfessionalId;
+
+    return timeMatch && profMatch;
+  }, [view, anchorDate, effectiveProfessionalId, isProfessional, ownProfessional]);
+
+  const { data: appointments, loading: appointmentsLoading, error: appointmentsError, refetch: loadAppointments } = useCachedQuery('appointments', filterAppointments);
 
   function clientName(id) {
     return clients.find((client) => client.id === id)?.name ?? '—';
@@ -139,12 +113,20 @@ export function AgendaPage() {
   }
 
   function handleClientCreated(client) {
-    setClients((current) => [...current, client].sort((a, b) => a.name.localeCompare(b.name)));
+    import('../../shared/idb.js').then(({ putRecord }) => {
+      putRecord('clients', client).catch(console.error);
+    });
   }
 
-  function handleSaved() {
+  function handleSaved(appointment) {
     setModal(null);
-    loadAppointments();
+    if (appointment) {
+      import('../../shared/idb.js').then(({ putRecord }) => {
+        putRecord('appointments', appointment).then(() => loadAppointments()).catch(console.error);
+      });
+    } else {
+      loadAppointments();
+    }
   }
 
   function openCreateAt(professionalId, startsAt) {
@@ -237,7 +219,7 @@ export function AgendaPage() {
 
       {!listsLoading && listsError && (
         <div className="full-page-error">
-          <p>{listsError}</p>
+          <p>{listsError?.message ?? String(listsError)}</p>
           <button type="button" onClick={loadLists}>
             Tentar novamente
           </button>
@@ -258,7 +240,7 @@ export function AgendaPage() {
 
           {!appointmentsLoading && appointmentsError && (
             <div className="full-page-error">
-              <p>{appointmentsError}</p>
+              <p>{appointmentsError?.message ?? String(appointmentsError)}</p>
               <button type="button" onClick={loadAppointments}>
                 Tentar novamente
               </button>

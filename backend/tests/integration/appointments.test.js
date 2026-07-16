@@ -57,10 +57,14 @@ test('owner can create, list, update and delete an appointment', async () => {
       professional_id: professionalId,
       service_id: serviceId,
       starts_at: '2026-08-10T10:00:00Z',
-      ends_at: '2026-08-10T10:30:00Z',
     });
   assert.equal(created.status, 201);
   assert.equal(created.body.appointment.status, 'scheduled');
+  assert.equal(
+    created.body.appointment.ends_at,
+    '2026-08-10T10:30:00+00:00',
+    'ends_at is computed server-side from the service duration (30min)',
+  );
   const appointmentId = created.body.appointment.id;
 
   const listed = await request(app)
@@ -106,7 +110,6 @@ test('reception can create/update/delete appointments, but professional role can
       professional_id: professionalId,
       service_id: serviceId,
       starts_at: '2026-08-11T10:00:00Z',
-      ends_at: '2026-08-11T10:30:00Z',
     });
   assert.equal(created.status, 201, 'reception is allowed to create appointments');
 
@@ -134,17 +137,19 @@ test('reception can create/update/delete appointments, but professional role can
       professional_id: seeded.professionalId,
       service_id: seeded.serviceId,
       starts_at: '2026-08-12T10:00:00Z',
-      ends_at: '2026-08-12T10:30:00Z',
     });
   assert.equal(writeAsProfessional.status, 403);
   assert.equal(writeAsProfessional.body.code, 'insufficient_role');
 });
 
-test('validation errors surface as 400, including cross-org references', async () => {
+test('validation errors surface as 400, including cross-org references and a client-supplied ends_at', async () => {
   const { organizationId, accessToken, ownerUserId } = await setUpOrgWithRole('owner');
   const { clientId, professionalId, serviceId } = await seedCatalog(organizationId, ownerUserId);
 
-  const badTimeRange = await request(app)
+  // Fase 10 hardening: ends_at is never accepted from the client, even if it
+  // would otherwise be a plausible value — this is a loud 400, not a silent
+  // override, so an API consumer relying on the old contract notices.
+  const clientSuppliedEndsAt = await request(app)
     .post('/api/v1/appointments')
     .set('Authorization', `Bearer ${accessToken}`)
     .set('X-Organization-Id', organizationId)
@@ -153,10 +158,10 @@ test('validation errors surface as 400, including cross-org references', async (
       professional_id: professionalId,
       service_id: serviceId,
       starts_at: '2026-08-10T10:30:00Z',
-      ends_at: '2026-08-10T10:00:00Z',
+      ends_at: '2026-08-10T11:00:00Z',
     });
-  assert.equal(badTimeRange.status, 400);
-  assert.equal(badTimeRange.body.code, 'invalid_time_range');
+  assert.equal(clientSuppliedEndsAt.status, 400);
+  assert.equal(clientSuppliedEndsAt.body.code, 'unknown_fields');
 
   const otherOrg = await setUpOrgWithRole('owner');
   const otherSeed = await seedCatalog(otherOrg.organizationId, otherOrg.ownerUserId);
@@ -169,7 +174,6 @@ test('validation errors surface as 400, including cross-org references', async (
       professional_id: otherSeed.professionalId,
       service_id: serviceId,
       starts_at: '2026-08-10T11:00:00Z',
-      ends_at: '2026-08-10T11:30:00Z',
     });
   assert.equal(crossOrgReference.status, 400);
   assert.equal(crossOrgReference.body.code, 'invalid_professional_id');
@@ -188,9 +192,9 @@ test('overlapping appointments for the same professional are rejected with 409',
       professional_id: professionalId,
       service_id: serviceId,
       starts_at: '2026-08-13T10:00:00Z',
-      ends_at: '2026-08-13T10:30:00Z',
     });
   assert.equal(first.status, 201);
+  assert.equal(first.body.appointment.ends_at, '2026-08-13T10:30:00+00:00');
 
   const overlapping = await request(app)
     .post('/api/v1/appointments')
@@ -201,7 +205,6 @@ test('overlapping appointments for the same professional are rejected with 409',
       professional_id: professionalId,
       service_id: serviceId,
       starts_at: '2026-08-13T10:15:00Z',
-      ends_at: '2026-08-13T10:45:00Z',
     });
   assert.equal(overlapping.status, 409);
   assert.equal(overlapping.body.code, 'professional_double_booked');
@@ -215,9 +218,50 @@ test('overlapping appointments for the same professional are rejected with 409',
       professional_id: professionalId,
       service_id: serviceId,
       starts_at: '2026-08-13T10:30:00Z',
-      ends_at: '2026-08-13T11:00:00Z',
     });
   assert.equal(backToBack.status, 201, 'a non-overlapping, back-to-back appointment is accepted');
+});
+
+test('a professional×service capability override changes the resolved ends_at', async () => {
+  const { organizationId, accessToken, ownerUserId } = await setUpOrgWithRole('owner');
+  const { clientId, professionalId, serviceId } = await seedCatalog(organizationId, ownerUserId);
+
+  const { error: capabilityError } = await supabaseAdmin.from('professional_service_capabilities').insert({
+    organization_id: organizationId,
+    professional_id: professionalId,
+    service_id: serviceId,
+    duration_override_minutes: 60,
+  });
+  assert.equal(capabilityError, null, capabilityError?.message);
+
+  const created = await request(app)
+    .post('/api/v1/appointments')
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId)
+    .send({
+      client_id: clientId,
+      professional_id: professionalId,
+      service_id: serviceId,
+      starts_at: '2026-08-15T10:00:00Z',
+    });
+  assert.equal(created.status, 201);
+  assert.equal(
+    created.body.appointment.ends_at,
+    '2026-08-15T11:00:00+00:00',
+    'the 60min capability override wins over the service default of 30min',
+  );
+
+  const moved = await request(app)
+    .patch(`/api/v1/appointments/${created.body.appointment.id}`)
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId)
+    .send({ starts_at: '2026-08-15T14:00:00Z' });
+  assert.equal(moved.status, 200);
+  assert.equal(
+    moved.body.appointment.ends_at,
+    '2026-08-15T15:00:00+00:00',
+    'moving starts_at recomputes ends_at using the same resolved duration',
+  );
 });
 
 test('an appointment from another organization is invisible and cannot be mutated (cross-tenant)', async () => {
@@ -234,7 +278,6 @@ test('an appointment from another organization is invisible and cannot be mutate
       professional_id: seedA.professionalId,
       service_id: seedA.serviceId,
       starts_at: '2026-08-14T10:00:00Z',
-      ends_at: '2026-08-14T10:30:00Z',
     });
   const appointmentId = created.body.appointment.id;
 
@@ -264,7 +307,6 @@ test('list supports filtering by professional_id, status and date range', async 
       professional_id: professionalId,
       service_id: serviceId,
       starts_at: '2026-08-20T10:00:00Z',
-      ends_at: '2026-08-20T10:30:00Z',
     });
   assert.equal(inRange.status, 201);
 
@@ -277,7 +319,6 @@ test('list supports filtering by professional_id, status and date range', async 
       professional_id: professionalId,
       service_id: serviceId,
       starts_at: '2026-09-01T10:00:00Z',
-      ends_at: '2026-09-01T10:30:00Z',
     });
   assert.equal(outOfRange.status, 201);
 
@@ -307,4 +348,36 @@ test('list supports filtering by professional_id, status and date range', async 
     .set('X-Organization-Id', organizationId);
   assert.equal(invalidStatus.status, 400);
   assert.equal(invalidStatus.body.code, 'invalid_status');
+});
+
+test('a completed appointment cannot transition to any other status (Fase 10 FSM guard)', async () => {
+  const { organizationId, accessToken, ownerUserId } = await setUpOrgWithRole('owner');
+  const { clientId, professionalId, serviceId } = await seedCatalog(organizationId, ownerUserId);
+
+  const created = await request(app)
+    .post('/api/v1/appointments')
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId)
+    .send({
+      client_id: clientId,
+      professional_id: professionalId,
+      service_id: serviceId,
+      starts_at: '2026-08-22T10:00:00Z',
+    });
+  const appointmentId = created.body.appointment.id;
+
+  const completed = await request(app)
+    .patch(`/api/v1/appointments/${appointmentId}`)
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId)
+    .send({ status: 'completed' });
+  assert.equal(completed.status, 200);
+
+  const reverted = await request(app)
+    .patch(`/api/v1/appointments/${appointmentId}`)
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId)
+    .send({ status: 'scheduled' });
+  assert.equal(reverted.status, 400);
+  assert.equal(reverted.body.code, 'constraint_violation');
 });

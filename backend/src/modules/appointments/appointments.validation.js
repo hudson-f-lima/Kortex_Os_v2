@@ -1,7 +1,11 @@
 import { HttpError } from '../../shared/httpError.js';
 import { assertKnownFields, assertNonEmptyPatch, validateId, validateUuidField } from '../../shared/validation.js';
 
-const ALLOWED_FIELDS = new Set(['client_id', 'professional_id', 'service_id', 'starts_at', 'ends_at', 'status']);
+// ends_at is intentionally absent: it is always computed server-side from the
+// resolved service/capability duration (Fase 10 hardening). A client that
+// still sends it gets a loud 400 (unknown_fields) rather than having the
+// value silently discarded — see docs/PLANEJAMENTO_AGENDA_TRANSACIONAL.md §15.
+const ALLOWED_FIELDS = new Set(['client_id', 'professional_id', 'service_id', 'starts_at', 'status']);
 
 export const APPOINTMENT_STATUSES = ['scheduled', 'confirmed', 'in_service', 'completed', 'cancelled', 'no_show'];
 
@@ -41,19 +45,8 @@ export function validateAppointmentPayload(body, { requireAll = true } = {}) {
   if (requireAll || body.starts_at !== undefined) {
     patch.starts_at = validateDateTime(body.starts_at, 'starts_at');
   }
-  if (requireAll || body.ends_at !== undefined) {
-    patch.ends_at = validateDateTime(body.ends_at, 'ends_at');
-  }
   if (body.status !== undefined) {
     patch.status = validateStatus(body.status);
-  }
-
-  if (
-    patch.starts_at !== undefined &&
-    patch.ends_at !== undefined &&
-    new Date(patch.ends_at) <= new Date(patch.starts_at)
-  ) {
-    throw HttpError.badRequest('invalid_time_range', 'ends_at must be after starts_at');
   }
 
   if (!requireAll) {

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { createApiClient } from './apiClient.js';
 import { useAuth } from './useAuth.js';
 import { OrganizationContext } from './useOrganization.js';
+import { clearAllStores } from './idb.js';
+import { createSyncEngine } from './syncEngine.js';
 
 const STORAGE_KEY = 'kortex.selectedOrganizationId';
 
@@ -47,6 +49,34 @@ export function OrganizationProvider({ children }) {
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
+
+  useEffect(() => {
+    if (!user) {
+      clearAllStores().catch(console.error);
+      return;
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!accessToken || !organizationId) return;
+
+    const apiClient = createApiClient({
+      getAccessToken: () => accessToken,
+      getOrganizationId: () => organizationId,
+    });
+
+    const engine = createSyncEngine({
+      apiClient,
+      organizationId,
+      getAccessToken: () => accessToken,
+    });
+
+    engine.start();
+
+    return () => {
+      engine.stop();
+    };
+  }, [accessToken, organizationId]);
 
   function selectOrganization(id) {
     setOrganizationId(id);

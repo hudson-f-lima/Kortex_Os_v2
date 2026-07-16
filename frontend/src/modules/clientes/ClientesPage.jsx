@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ApiError } from '../../shared/apiClient.js';
 import { useApiClient } from '../../shared/useApiClient.js';
 import { useOrganization } from '../../shared/useOrganization.js';
+import { useCachedQuery } from '../../shared/useCachedQuery.js';
 import { ClientModal } from './ClientModal.jsx';
 import { ClientHistory } from './ClientHistory.jsx';
 
@@ -29,9 +30,6 @@ export function ClientesPage() {
   const canWrite = WRITE_ROLES.includes(role);
   const canDelete = DELETE_ROLES.includes(role);
 
-  const [clients, setClients] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [showInactive, setShowInactive] = useState(false);
   const [search, setSearch] = useState('');
   const [modal, setModal] = useState(null);
@@ -39,31 +37,21 @@ export function ClientesPage() {
   const [removeError, setRemoveError] = useState(null);
   const [confirmingRemoveId, setConfirmingRemoveId] = useState(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const query = showInactive ? '' : '?active=true';
-      const { clients: data } = await apiClient.get(`/clients${query}`);
-      setClients(data);
-    } catch (err) {
-      setError(messageForListError(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [apiClient, showInactive]);
+  const filterFn = useCallback((client) => {
+    return showInactive || client.active;
+  }, [showInactive]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const { data: cachedClients, loading, error, refetch: load } = useCachedQuery('clients', filterFn);
 
-  const filtered = clients.filter((client) => client.name.toLowerCase().includes(search.trim().toLowerCase()));
+  const filtered = cachedClients
+    .filter((client) => client.name.toLowerCase().includes(search.trim().toLowerCase()))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   function handleSaved(client) {
-    setClients((current) => {
-      const exists = current.some((item) => item.id === client.id);
-      const next = exists ? current.map((item) => (item.id === client.id ? client : item)) : [...current, client];
-      return next.sort((a, b) => a.name.localeCompare(b.name));
+    import('../../shared/idb.js').then(({ putRecord }) => {
+      putRecord('clients', client)
+        .then(() => load())
+        .catch(console.error);
     });
     setModal(null);
   }
@@ -72,7 +60,9 @@ export function ClientesPage() {
     setRemoveError(null);
     try {
       await apiClient.delete(`/clients/${client.id}`);
-      setClients((current) => current.filter((item) => item.id !== client.id));
+      const { deleteRecord } = await import('../../shared/idb.js');
+      await deleteRecord('clients', client.id);
+      load();
       setConfirmingRemoveId(null);
     } catch (err) {
       setRemoveError(messageForRemoveError(err));
@@ -84,7 +74,7 @@ export function ClientesPage() {
   if (error) {
     return (
       <div className="full-page-error">
-        <p>{error}</p>
+        <p>{error?.message ?? String(error)}</p>
         <button type="button" onClick={load}>
           Tentar novamente
         </button>

@@ -16,12 +16,14 @@ import { professionalCommissionsRouter } from './modules/professionalCommissions
 import { packagesRouter } from './modules/packages/packages.route.js';
 import { productsRouter } from './modules/products/products.route.js';
 import { catalogRouter } from './modules/catalog/catalog.route.js';
+import { professionalServiceCapabilitiesRouter } from './modules/professionalServiceCapabilities/professionalServiceCapabilities.route.js';
 import { appointmentsRouter } from './modules/appointments/appointments.route.js';
 import { checkoutRouter } from './modules/checkout/checkout.route.js';
 import { inventoryRouter } from './modules/inventory/inventory.route.js';
 import { ordersRouter } from './modules/orders/orders.route.js';
 import { cashEntriesRouter } from './modules/cashEntries/cashEntries.route.js';
 import { membershipsRouter } from './modules/memberships/memberships.route.js';
+import { syncRouter } from './modules/sync/sync.route.js';
 
 export function createApp(env, supabaseAdmin) {
   const app = express();
@@ -58,12 +60,14 @@ export function createApp(env, supabaseAdmin) {
   apiRouter.use(packagesRouter({ supabaseAdmin, organizationContext }));
   apiRouter.use(productsRouter({ supabaseAdmin, organizationContext }));
   apiRouter.use(catalogRouter({ supabaseAdmin, organizationContext }));
+  apiRouter.use(professionalServiceCapabilitiesRouter({ supabaseAdmin, organizationContext }));
   apiRouter.use(appointmentsRouter({ supabaseAdmin, organizationContext }));
   apiRouter.use(checkoutRouter({ supabaseAdmin, organizationContext }));
   apiRouter.use(inventoryRouter({ supabaseAdmin, organizationContext }));
   apiRouter.use(ordersRouter({ supabaseAdmin, organizationContext }));
   apiRouter.use(cashEntriesRouter({ supabaseAdmin, organizationContext }));
   apiRouter.use(membershipsRouter({ supabaseAdmin, organizationContext }));
+  apiRouter.use(syncRouter({ supabaseAdmin, organizationContext }));
   app.use('/api/v1', apiRouter);
 
   app.use((req, res, next) => {

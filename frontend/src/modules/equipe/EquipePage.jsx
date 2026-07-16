@@ -4,6 +4,7 @@ import { useApiClient } from '../../shared/useApiClient.js';
 import { useOrganization } from '../../shared/useOrganization.js';
 import { ProfessionalModal } from './ProfessionalModal.jsx';
 import { MembershipRow } from './MembershipRow.jsx';
+import { CapabilitiesTab } from './CapabilitiesTab.jsx';
 
 // Mirrors backend/src/modules/professionals/professionals.route.js
 // WRITE_ROLES/DELETE_ROLES. memberships.route.js SET_ROLES is owner-only.
@@ -31,6 +32,7 @@ export function EquipePage() {
   const canSetRole = role === 'owner';
 
   const [professionals, setProfessionals] = useState([]);
+  const [services, setServices] = useState([]);
   const [memberships, setMemberships] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -44,12 +46,14 @@ export function EquipePage() {
     setError(null);
     try {
       const query = showInactive ? '' : '?active=true';
-      const [professionalsRes, membershipsRes] = await Promise.all([
+      const [professionalsRes, membershipsRes, servicesRes] = await Promise.all([
         apiClient.get(`/professionals${query}`),
         apiClient.get('/memberships'),
+        apiClient.get('/services'),
       ]);
       setProfessionals(professionalsRes.professionals);
       setMemberships(membershipsRes.memberships);
+      setServices(servicesRes.services);
     } catch (err) {
       setError(messageForListError(err));
     } finally {
@@ -172,6 +176,14 @@ export function EquipePage() {
             />
           ))}
         </ul>
+      </section>
+
+      <section>
+        <h2>Capacidades por Profissional</h2>
+        <p className="section-hint">
+          Configure duração, preço e buffers customizados para cada profissional por serviço.
+        </p>
+        <CapabilitiesTab professionals={professionals} services={services} currentRole={role} />
       </section>
 
       {modal && (
