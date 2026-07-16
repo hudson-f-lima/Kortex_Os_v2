@@ -1,41 +1,44 @@
 ---
 name: kortex-supabase-guard
-description: Projetar, implementar e auditar o Supabase/Postgres greenfield do KortexOS, incluindo Auth, organizations, memberships, RLS, FKs tenant-safe, grants, RPCs, concorrência, idempotência, estoque e checkout. Usar em qualquer mudança de banco do MVP técnico; tratar SQL externos apenas como exemplos e criar novas migrations pela Supabase CLI.
+description: Projeta, implementa e audita o Supabase/Postgres do KortexOS.
 ---
 
 # Guardar o Supabase greenfield
 
-## Preparar
+## 1. Quando ativar
+- Em qualquer alteração de banco de dados, criação de tabelas, modificação de políticas RLS, escrita de RPCs ou novas migrations.
 
-1. Ler o estado e a especificação técnica do workspace.
-2. Consultar changelog e documentação Supabase atual antes de implementar.
-3. Descobrir comandos via `supabase --help` e criar arquivos com `supabase migration new`.
-4. Trabalhar primeiro em Supabase local ou projeto descartável.
+## 2. Quando não ativar
+- Durante desenvolvimento de UI frontend puro ou lógica de rotas Express que não afetem a estrutura ou políticas do banco de dados.
 
-## Modelar
+## 3. Objetivo
+- Projetar e auditar um banco de dados relacional multi-tenant seguro e performático usando o ecossistema Supabase/Postgres.
 
-- Usar Supabase Auth para identidade.
-- Modelar `organizations` e `memberships` no baseline.
-- Adicionar `organization_id` a toda entidade de negócio.
-- Usar FKs compostas `(organization_id, id)` para referências tenant-safe.
-- Armazenar dinheiro em centavos inteiros.
-- Manter movimentos de estoque e caixa rastreáveis.
-- Projetar checkout como comando transacional e idempotente.
+## 4. Entradas necessárias
+- Especificações do schema, regras de acesso e migrations locais existentes.
 
-Ler [references/greenfield-schema.md](references/greenfield-schema.md) antes de alterar schema ou RPC.
+## 5. Fluxo mínimo
+1. Carregar as regras de schema de [references/greenfield-schema.md](references/greenfield-schema.md).
+2. Criar novas migrations via Supabase CLI (`supabase migration new`).
+3. Aplicar localmente (`supabase db reset`) e verificar advisors (`supabase db advisors`).
+4. Desenvolver testes unitários de banco de dados (pgTAP) cobrindo caminhos felizes e ataques (RLS bypass).
 
-## Proteger
+## 6. Restrições críticas
+- Toda tabela de negócio deve possuir a coluna `organization_id` e RLS ativado.
+- Proibir chaves compostas que permitam vazamento cross-tenant (usar FK compostas `(organization_id, id)`).
+- Não expor dados ou conceder grants à roles anônimas ou autenticadas padrão no backend API-only; usar `service_role` exclusivamente no servidor.
+- Fixar `search_path` e validar membership de forma rígida em funções `SECURITY DEFINER`.
 
-- Habilitar RLS em toda tabela de schema exposto.
-- Criar policies explícitas `TO authenticated`; combinar `USING` e `WITH CHECK` para update.
-- Basear autorização em membership controlada, nunca em `user_metadata`.
-- Manter helpers privilegiados em schema privado.
-- Preferir `SECURITY INVOKER`; quando `SECURITY DEFINER` for necessário, fixar `search_path`, verificar `auth.uid()`/membership e revogar `PUBLIC`/`anon` imediatamente.
-- Tratar grants e RLS como camadas independentes.
-- Nunca expor `service_role`; no desenho API-only, conceder tabelas/RPCs de negócio somente ao backend privilegiado e exigir ator/membership dentro de comandos críticos.
+## 7. Arquivos que podem ser carregados
+- [references/greenfield-schema.md](file:///c:/Users/hudso/OneDrive/Documentos/Kortex%20Os%20v2/.agents/skills/kortex-supabase-guard/references/greenfield-schema.md)
 
-## Verificar
+## 8. Condição de parada
+- Migrations aplicadas localmente com sucesso, pgTAP passando (100% PASS), e advisors sem avisos de segurança ou performance.
 
-Executar reset local, testes positivos/negativos, concorrência e advisors. Cobrir usuário sem membership, outro tenant, role insuficiente, referência cross-tenant, replay divergente, estoque insuficiente, corrida de agenda/estoque e rollback do checkout.
-
-Não promover SQL a produção sem migration limpa, revisão e evidência reproduzível.
+## 9. Formato de saída
+- SQL da migration gerada e relatório pgTAP de testes executados:
+```text
+MIGRATION: <nome_da_migration>
+TESTS: <resumo pgTAP de acertos/erros>
+RLS_AUDIT: <tabelas alteradas e RLS habilitado: SIM/NÃO>
+```

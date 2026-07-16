@@ -1,54 +1,49 @@
 ---
 name: kortex-mvpt-orchestrator
-description: Orquestrar um sistema de múltiplos agentes para planejar, revisar e fatiar o MVPT do KortexOS, um ERP vertical de beleza e bem-estar com Supabase, Node.js/Express, PWA, Render e GitHub. Usar para transformar objetivos amplos em incrementos autorizados, coordenar especialistas, consolidar evidências e impedir expansão para V1.5, multi-tenant não comprovado ou migrations não autorizadas.
+description: Orquestra agentes especialistas para planejar, fatiar e revisar o KortexOS MVP.
 ---
 
 # Orquestrar o MVPT KortexOS
 
-## Iniciar pelo estado real
+## 1. Quando ativar
+- Solicitações de planejamento de macro-tarefas, fatiamento de funcionalidades do MVP ou coordenação de múltiplos agentes especialistas.
 
-1. Ler `AGENTS.md`, `docs/INDEX.md` e `docs/PROJECT_STATE.md` do repositório-alvo.
-2. Tratar `PROJECT_STATE.md` como autoridade operacional e exemplos externos como referências não vinculantes.
-3. Classificar cada afirmação como `REAL`, `PARCIAL`, `MOCKADO`, `HARDCODED`, `CRÍTICO`, `BLOQUEADO`, `DESCONHECIDO`, `OBSOLETO` ou `CONTRADITÓRIO`.
-4. Manter o recorte MVP técnico: identidade, organizações/memberships, pessoas, catálogo, agenda, estoque, checkout, caixa e PWA modular.
+## 2. Quando não ativar
+- Tarefas focadas em um único domínio específico (ex: escrever queries SQL, criar rotas Express, ajustar UI).
 
-## Coordenar especialistas
+## 3. Objetivo
+- Fatiar metas em incrementos curtos e seguros, coordenando especialistas e garantindo integridade arquitetural sem expandir escopo.
 
-Delegar apenas subtarefas independentes e passar a cada agente arquivos, escopo, autoridade de escrita e formato de saída. Usar:
+## 4. Entradas necessárias
+- [AGENTS.md](file:///c:/Users/hudso/OneDrive/Documentos/Kortex%20Os%20v2/AGENTS.md) (regras e invariantes)
+- [PROJECT_STATE.md](file:///c:/Users/hudso/OneDrive/Documentos/Kortex%20Os%20v2/docs/PROJECT_STATE.md) (estado operacional real)
+- Definição do incremento solicitado pelo usuário.
 
-- `$kortex-truth-mapper` para confrontar documentos, código e evidências.
-- `$kortex-supabase-guard` para schema, RPCs, grants, RLS e fronteiras de tenant.
-- `$kortex-express-architect` para APIs, serviços e fonte de verdade no servidor.
-- `$kortex-pwa-architect` para shell, módulos, cache e offline seguro.
-- `$kortex-delivery-guardian` para JSON, segredos, GitHub e Render.
-- `$kortex-qa-redteam` para gates, cenários adversariais e veto de release.
+## 5. Fluxo mínimo
+1. Carregar e verificar `PROJECT_STATE.md` para basear decisões na realidade física do código.
+2. Definir responsabilidades e delegar tarefas com escopo exclusivo para especialistas.
+3. Coordenar em ondas: Descoberta, Desenho, Validação (QA/Red Team), e Integração final.
+4. Consolidar os planos de implementação, logs de tarefas e relatórios de walkthrough.
 
-Executar em ondas: verdade e riscos; arquitetura por camada; QA e Red Team; integração final. Não permitir que dois agentes editem o mesmo arquivo simultaneamente.
+## 6. Restrições críticas
+- Proibir edição simultânea do mesmo arquivo por múltiplos agentes.
+- Garantir que o tenant seja derivado de membership autenticada, rejeitando parâmetros isolados.
+- Impedir exposição de chaves privilegiadas (`service_role`) e cálculos financeiros no frontend.
+- Validar migrations novas localmente via Supabase CLI antes do deploy.
 
-## Produzir o plano
+## 7. Arquivos que podem ser carregados
+- [docs/INDEX.md](file:///c:/Users/hudso/OneDrive/Documentos/Kortex%20Os%20v2/docs/INDEX.md)
+- [references/mas-contracts.md](file:///c:/Users/hudso/OneDrive/Documentos/Kortex%20Os%20v2/.agents/skills/kortex-mvpt-orchestrator/references/mas-contracts.md)
 
-Entregar escopo, fora de escopo, árvore de repositório, contratos entre camadas, backlog fatiado, dependências, riscos, gates e decisão `GO`, `GO COM RESTRIÇÕES` ou `NO-GO`. Distinguir rigorosamente plano, draft e implementação.
+## 8. Condição de parada
+- Incremento fatiado, planejado, validado por QA/Red Team e aprovado pelo usuário.
 
-Ler [references/mas-contracts.md](references/mas-contracts.md) para contratos de handoff e gates.
-
-## Aplicar bloqueios
-
-- Não copiar schema, numeração ou RPC de exemplos sem decisão técnica explícita.
-- Criar migrations novas pela Supabase CLI e validar em ambiente local/descartável.
-- Não declarar auth, RBAC ou multi-tenant seguros sem testes negativos.
-- Não aceitar organization/tenant de body, query ou header sem validar membership autenticada.
-- Não expor `service_role` ao frontend.
-- Não permitir que frontend, fixture ou IA calculem verdade crítica.
-
-## Encerrar
-
-Reportar:
-
+## 9. Formato de saída
 ```text
 FILES_CHANGED:
-- <arquivo: natureza da mudança>
+- <caminho: natureza da mudança>
 BLOCKERS_REMAINING:
-- <bloqueio ou nenhum>
+- <pendências ou "nenhum">
 VEREDITO:
 - <classificação, decisão e próximo passo único>
 ```
