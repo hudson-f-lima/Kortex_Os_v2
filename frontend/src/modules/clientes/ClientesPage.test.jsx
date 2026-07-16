@@ -3,6 +3,8 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { ClientesPage } from './ClientesPage.jsx';
 import { ApiError } from '../../shared/apiClient.js';
 
+import { useState, useEffect } from 'react';
+
 const useOrganizationMock = vi.fn();
 const apiClientMock = {
   get: vi.fn(),
@@ -11,11 +13,56 @@ const apiClientMock = {
   delete: vi.fn(),
 };
 
+let currentClients = [];
+let queryListeners = new Set();
+
+function updateClients(newClients) {
+  currentClients = newClients;
+  queryListeners.forEach((listener) => listener());
+}
+
 vi.mock('../../shared/useOrganization.js', () => ({
   useOrganization: () => useOrganizationMock(),
 }));
 vi.mock('../../shared/useApiClient.js', () => ({
   useApiClient: () => apiClientMock,
+}));
+let mockError = null;
+
+vi.mock('../../shared/useCachedQuery.js', () => ({
+  useCachedQuery: (storeName, filterFn) => {
+    const [data, setData] = useState(currentClients);
+
+    useEffect(() => {
+      const listener = () => {
+        setData(filterFn ? currentClients.filter(filterFn) : currentClients);
+      };
+      queryListeners.add(listener);
+      return () => {
+        queryListeners.delete(listener);
+      };
+    }, [filterFn]);
+
+    const refetch = () => {
+      setData(filterFn ? currentClients.filter(filterFn) : currentClients);
+    };
+
+    return { data, loading: false, error: mockError, refetch };
+  },
+}));
+
+vi.mock('../../shared/idb.js', () => ({
+  putRecord: vi.fn((store, record) => {
+    const exists = currentClients.some(c => c.id === record.id);
+    const next = exists ? currentClients.map(c => c.id === record.id ? record : c) : [...currentClients, record];
+    updateClients(next);
+    return Promise.resolve();
+  }),
+  deleteRecord: vi.fn((store, id) => {
+    updateClients(currentClients.filter(c => c.id !== id));
+    return Promise.resolve();
+  }),
+  getAllRecords: vi.fn(() => Promise.resolve([])),
 }));
 
 const CLIENTS = [
@@ -24,6 +71,7 @@ const CLIENTS = [
 ];
 
 function mockClients(clients = CLIENTS) {
+  updateClients(clients);
   apiClientMock.get.mockImplementation((path) => {
     if (path.startsWith('/clients')) return Promise.resolve({ clients });
     if (path.startsWith('/appointments')) return Promise.resolve({ appointments: [] });
@@ -35,6 +83,7 @@ describe('ClientesPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useOrganizationMock.mockReturnValue({ role: 'owner' });
+    mockError = null;
   });
 
   it('renders the client list once loaded', async () => {
@@ -53,10 +102,10 @@ describe('ClientesPage', () => {
   });
 
   it('shows a recoverable error state with retry when the list fails to load', async () => {
-    apiClientMock.get.mockRejectedValue(new Error('network down'));
+    mockError = new Error('network down');
     render(<ClientesPage />);
 
-    await waitFor(() => expect(screen.getByText('Sem conexão. Verifique sua internet e tente novamente.')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('network down')).toBeInTheDocument());
     expect(screen.getByText('Tentar novamente')).toBeInTheDocument();
   });
 

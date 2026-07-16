@@ -23,6 +23,7 @@ import { inventoryRouter } from './modules/inventory/inventory.route.js';
 import { ordersRouter } from './modules/orders/orders.route.js';
 import { cashEntriesRouter } from './modules/cashEntries/cashEntries.route.js';
 import { membershipsRouter } from './modules/memberships/memberships.route.js';
+import { syncRouter } from './modules/sync/sync.route.js';
 
 export function createApp(env, supabaseAdmin) {
   const app = express();
@@ -66,6 +67,7 @@ export function createApp(env, supabaseAdmin) {
   apiRouter.use(ordersRouter({ supabaseAdmin, organizationContext }));
   apiRouter.use(cashEntriesRouter({ supabaseAdmin, organizationContext }));
   apiRouter.use(membershipsRouter({ supabaseAdmin, organizationContext }));
+  apiRouter.use(syncRouter({ supabaseAdmin, organizationContext }));
   app.use('/api/v1', apiRouter);
 
   app.use((req, res, next) => {
