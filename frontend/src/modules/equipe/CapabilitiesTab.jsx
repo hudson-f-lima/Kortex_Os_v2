@@ -3,63 +3,67 @@ import { ApiError } from '../../shared/apiClient.js';
 import { useApiClient } from '../../shared/useApiClient.js';
 import { CapabilityModal } from './CapabilityModal.jsx';
 
-function messageForError(err) {
+// Mirrors backend/src/modules/professionalServiceCapabilities/professionalServiceCapabilities.route.js
+// WRITE_ROLES/DELETE_ROLES. Read is open to any active member (professional
+// included), unlike financial data such as cash_entries.
+const WRITE_ROLES = ['owner', 'admin', 'manager'];
+const DELETE_ROLES = ['owner', 'admin'];
+
+function messageForListError(err) {
   if (err instanceof ApiError) return err.message;
   return 'Sem conexão. Verifique sua internet e tente novamente.';
 }
 
-export function CapabilitiesTab({ professionals, services, currentRole }) {
-  const api = useApiClient();
-  const [capabilities, setCapabilities] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [selectedCapability, setSelectedCapability] = useState(null);
+function messageForRemoveError(err) {
+  if (err instanceof ApiError) return err.message;
+  return 'Erro inesperado ao remover capacidade.';
+}
 
-  const canEdit = ['owner', 'admin', 'manager'].includes(currentRole);
-  const canDelete = ['owner', 'admin'].includes(currentRole);
+export function CapabilitiesTab({ professionals, services, currentRole }) {
+  const apiClient = useApiClient();
+  const canWrite = WRITE_ROLES.includes(currentRole);
+  const canDelete = DELETE_ROLES.includes(currentRole);
+
+  const [capabilities, setCapabilities] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [modal, setModal] = useState(null);
+  const [removeError, setRemoveError] = useState(null);
+  const [confirmingRemoveId, setConfirmingRemoveId] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get('/professional-service-capabilities');
-      setCapabilities(res.capabilities || []);
+      const { professional_service_capabilities: data } = await apiClient.get('/professional-service-capabilities');
+      setCapabilities(data);
     } catch (err) {
-      setError(messageForError(err));
+      setError(messageForListError(err));
     } finally {
       setLoading(false);
     }
-  }, [api]);
+  }, [apiClient]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  async function handleSave(capabilityData) {
-    try {
-      if (selectedCapability) {
-        await api.patch(`/professional-service-capabilities/${selectedCapability.id}`, capabilityData);
-      } else {
-        await api.post('/professional-service-capabilities', capabilityData);
-      }
-      setShowModal(false);
-      setSelectedCapability(null);
-      load();
-    } catch (err) {
-      alert(messageForError(err));
-    }
+  function handleSaved(capability) {
+    setCapabilities((current) => {
+      const exists = current.some((item) => item.id === capability.id);
+      return exists ? current.map((item) => (item.id === capability.id ? capability : item)) : [...current, capability];
+    });
+    setModal(null);
   }
 
-  async function handleDelete(capability) {
-    const confirmed = confirm('Tem certeza que deseja remover esta capacidade?');
-    if (!confirmed) return;
-
+  async function handleRemove(capability) {
+    setRemoveError(null);
     try {
-      await api.delete(`/professional-service-capabilities/${capability.id}`);
-      load();
+      await apiClient.delete(`/professional-service-capabilities/${capability.id}`);
+      setCapabilities((current) => current.filter((item) => item.id !== capability.id));
+      setConfirmingRemoveId(null);
     } catch (err) {
-      alert(messageForError(err));
+      setRemoveError(messageForRemoveError(err));
     }
   }
 
@@ -81,17 +85,17 @@ export function CapabilitiesTab({ professionals, services, currentRole }) {
 
   return (
     <div>
-      {canEdit && (
+      {canWrite && (
         <div className="list-toolbar">
-          <button type="button" onClick={() => setShowModal(true)}>
+          <button type="button" onClick={() => setModal({ capability: null })}>
             + Adicionar capacidade
           </button>
         </div>
       )}
 
-      {capabilities.length === 0 && (
-        <p className="list-empty">Nenhuma capacidade configurada ainda.</p>
-      )}
+      {removeError && <p className="form-error">{removeError}</p>}
+
+      {capabilities.length === 0 && <p className="list-empty">Nenhuma capacidade configurada ainda.</p>}
 
       {capabilities.length > 0 && (
         <table className="data-table">
@@ -101,9 +105,9 @@ export function CapabilitiesTab({ professionals, services, currentRole }) {
               <th>Serviço</th>
               <th>Duração</th>
               <th>Preço</th>
-              <th>Buffer Antes</th>
-              <th>Buffer Depois</th>
-              {canDelete && <th>Ação</th>}
+              <th>Buffer antes</th>
+              <th>Buffer depois</th>
+              {(canWrite || canDelete) && <th>Ações</th>}
             </tr>
           </thead>
           <tbody>
@@ -115,11 +119,29 @@ export function CapabilitiesTab({ professionals, services, currentRole }) {
                 <td>{cap.price_override_cents ? `R$ ${(cap.price_override_cents / 100).toFixed(2)}` : '—'}</td>
                 <td>{cap.buffer_before_min}min</td>
                 <td>{cap.buffer_after_min}min</td>
-                {canDelete && (
+                {(canWrite || canDelete) && (
                   <td>
-                    <button type="button" className="link-button" onClick={() => handleDelete(cap)}>
-                      Remover
-                    </button>
+                    {canWrite && (
+                      <button type="button" className="link-button" onClick={() => setModal({ capability: cap })}>
+                        Editar
+                      </button>
+                    )}
+                    {canDelete && confirmingRemoveId !== cap.id && (
+                      <button type="button" className="link-button" onClick={() => setConfirmingRemoveId(cap.id)}>
+                        Remover
+                      </button>
+                    )}
+                    {canDelete && confirmingRemoveId === cap.id && (
+                      <>
+                        <span>Confirma?</span>
+                        <button type="button" className="danger-button" onClick={() => handleRemove(cap)}>
+                          Sim
+                        </button>
+                        <button type="button" className="link-button" onClick={() => setConfirmingRemoveId(null)}>
+                          Não
+                        </button>
+                      </>
+                    )}
                   </td>
                 )}
               </tr>
@@ -128,19 +150,14 @@ export function CapabilitiesTab({ professionals, services, currentRole }) {
         </table>
       )}
 
-      {showModal && (
+      {modal && (
         <CapabilityModal
-          capability={selectedCapability}
+          capability={modal.capability}
           professionals={professionals}
           services={services}
-          apiClient={api}
-          onClose={() => {
-            setShowModal(false);
-            setSelectedCapability(null);
-          }}
-          onSaved={async (capabilityData) => {
-            await handleSave(capabilityData);
-          }}
+          apiClient={apiClient}
+          onClose={() => setModal(null)}
+          onSaved={handleSaved}
         />
       )}
     </div>

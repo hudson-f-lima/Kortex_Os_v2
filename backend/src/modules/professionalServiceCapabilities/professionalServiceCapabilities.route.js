@@ -1,11 +1,27 @@
 import { Router } from 'express';
-import { HttpError } from '../../shared/httpError.js';
 import { requireRole } from '../../middleware/requireRole.js';
-import { validateCapability } from './professionalServiceCapabilities.validation.js';
+import { HttpError } from '../../shared/httpError.js';
+import { UUID_RE } from '../../shared/validation.js';
 import { createProfessionalServiceCapabilitiesService } from './professionalServiceCapabilities.service.js';
+import {
+  validateCapabilityId,
+  validateCreateCapabilityPayload,
+  validateUpdateCapabilityPayload,
+} from './professionalServiceCapabilities.validation.js';
 
+// Mirrors RLS on public.professional_service_capabilities (defense in depth):
+// select allows any active member; insert/update require owner/admin/manager;
+// delete requires owner/admin.
 const WRITE_ROLES = ['owner', 'admin', 'manager'];
 const DELETE_ROLES = ['owner', 'admin'];
+
+function parseOptionalUuidQuery(value, fieldName) {
+  if (value === undefined) return undefined;
+  if (typeof value !== 'string' || !UUID_RE.test(value)) {
+    throw HttpError.badRequest(`invalid_${fieldName}`, `${fieldName} query param must be a uuid`);
+  }
+  return value;
+}
 
 export function professionalServiceCapabilitiesRouter({ supabaseAdmin, organizationContext }) {
   const router = Router();
@@ -13,84 +29,54 @@ export function professionalServiceCapabilitiesRouter({ supabaseAdmin, organizat
 
   router.use(organizationContext);
 
-  // GET /api/v1/professional-service-capabilities
   router.get('/professional-service-capabilities', async (req, res, next) => {
     try {
-      const { professional_id, service_id } = req.query;
       const capabilities = await service.list({
         organizationId: req.auth.organizationId,
-        professional_id,
-        service_id,
+        professionalId: parseOptionalUuidQuery(req.query.professional_id, 'professional_id'),
+        serviceId: parseOptionalUuidQuery(req.query.service_id, 'service_id'),
       });
-      res.json({ capabilities });
+      res.status(200).json({ professional_service_capabilities: capabilities });
     } catch (err) {
       next(err);
     }
   });
 
-  // GET /api/v1/professional-service-capabilities/:id
   router.get('/professional-service-capabilities/:id', async (req, res, next) => {
     try {
-      const capability = await service.get({
-        organizationId: req.auth.organizationId,
-        capabilityId: req.params.id,
-      });
-      if (!capability) {
-        return next(HttpError.notFound('capability_not_found', 'Capability not found'));
-      }
-      res.json({ capability });
+      const id = validateCapabilityId(req.params.id);
+      const capability = await service.get({ organizationId: req.auth.organizationId, id });
+      res.status(200).json({ professional_service_capability: capability });
     } catch (err) {
       next(err);
     }
   });
 
-  // POST /api/v1/professional-service-capabilities
   router.post('/professional-service-capabilities', requireRole(...WRITE_ROLES), async (req, res, next) => {
     try {
-      const validation = validateCapability(req.body);
-      if (!validation.valid) {
-        return next(HttpError.badRequest('invalid_payload', 'Invalid capability payload', validation.errors));
-      }
-
-      const capability = await service.create({
-        organizationId: req.auth.organizationId,
-        payload: req.body,
-      });
-      res.status(201).json({ capability });
+      const patch = validateCreateCapabilityPayload(req.body);
+      const capability = await service.create({ organizationId: req.auth.organizationId, patch });
+      res.status(201).json({ professional_service_capability: capability });
     } catch (err) {
       next(err);
     }
   });
 
-  // PATCH /api/v1/professional-service-capabilities/:id
   router.patch('/professional-service-capabilities/:id', requireRole(...WRITE_ROLES), async (req, res, next) => {
     try {
-      const validation = validateCapability(req.body);
-      if (!validation.valid) {
-        return next(HttpError.badRequest('invalid_payload', 'Invalid capability payload', validation.errors));
-      }
-
-      const capability = await service.update({
-        organizationId: req.auth.organizationId,
-        capabilityId: req.params.id,
-        payload: req.body,
-      });
-      if (!capability) {
-        return next(HttpError.notFound('capability_not_found', 'Capability not found'));
-      }
-      res.json({ capability });
+      const id = validateCapabilityId(req.params.id);
+      const patch = validateUpdateCapabilityPayload(req.body);
+      const capability = await service.update({ organizationId: req.auth.organizationId, id, patch });
+      res.status(200).json({ professional_service_capability: capability });
     } catch (err) {
       next(err);
     }
   });
 
-  // DELETE /api/v1/professional-service-capabilities/:id
   router.delete('/professional-service-capabilities/:id', requireRole(...DELETE_ROLES), async (req, res, next) => {
     try {
-      await service.delete({
-        organizationId: req.auth.organizationId,
-        capabilityId: req.params.id,
-      });
+      const id = validateCapabilityId(req.params.id);
+      await service.remove({ organizationId: req.auth.organizationId, id });
       res.status(204).send();
     } catch (err) {
       next(err);

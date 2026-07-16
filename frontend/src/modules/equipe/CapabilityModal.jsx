@@ -2,206 +2,157 @@ import { useState } from 'react';
 import { ApiError } from '../../shared/apiClient.js';
 
 function messageForError(err) {
-  if (err instanceof ApiError) return err.message;
-  return 'Erro ao salvar capacidade.';
+  if (err instanceof ApiError) {
+    if (err.code === 'already_exists') return 'Este profissional já tem uma capacidade cadastrada para este serviço.';
+    if (err.status === 403) return 'Seu papel não tem permissão para esta ação.';
+    return err.message;
+  }
+  return 'Erro inesperado. Tente novamente.';
 }
 
+function toIntOrNull(value) {
+  if (value === '' || value === null || value === undefined) return null;
+  return Number(value);
+}
+
+// Cria/edita uma capacidade profissional×serviço (Fase 10). professional_id/
+// service_id são a identidade da capacidade — o backend só os aceita no
+// create; o PATCH rejeita esses campos (mesma regra de professional_service_commissions:
+// mudar a identidade é apagar uma capacidade e criar outra, não um patch).
 export function CapabilityModal({ capability, professionals, services, apiClient, onClose, onSaved }) {
-  const [formData, setFormData] = useState({
-    professional_id: capability?.professional_id || '',
-    service_id: capability?.service_id || '',
-    duration_override_minutes: capability?.duration_override_minutes ?? '',
-    buffer_before_min: capability?.buffer_before_min || 0,
-    buffer_after_min: capability?.buffer_after_min || 0,
-    price_override_cents: capability?.price_override_cents ?? '',
-  });
-  const [errors, setErrors] = useState({});
-  const [saving, setSaving] = useState(false);
+  const [professionalId, setProfessionalId] = useState(capability?.professional_id ?? '');
+  const [serviceId, setServiceId] = useState(capability?.service_id ?? '');
+  const [durationOverride, setDurationOverride] = useState(capability?.duration_override_minutes ?? '');
+  const [bufferBefore, setBufferBefore] = useState(capability?.buffer_before_min ?? 0);
+  const [bufferAfter, setBufferAfter] = useState(capability?.buffer_after_min ?? 0);
+  const [priceOverride, setPriceOverride] = useState(capability?.price_override_cents ?? '');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
 
   function validate() {
-    const newErrors = {};
-
-    if (!formData.professional_id) {
-      newErrors.professional_id = 'Profissional é obrigatório';
+    if (!capability && !professionalId) return 'Selecione um profissional.';
+    if (!capability && !serviceId) return 'Selecione um serviço.';
+    if (durationOverride !== '') {
+      const dur = Number(durationOverride);
+      if (!Number.isInteger(dur) || dur < 5 || dur > 1440) return 'Duração deve ser um número inteiro entre 5 e 1440 minutos.';
     }
-    if (!formData.service_id) {
-      newErrors.service_id = 'Serviço é obrigatório';
+    for (const [label, value] of [
+      ['Buffer antes', bufferBefore],
+      ['Buffer depois', bufferAfter],
+    ]) {
+      const num = Number(value);
+      if (!Number.isInteger(num) || num < 0 || num > 480) return `${label} deve ser um número inteiro entre 0 e 480 minutos.`;
     }
-
-    if (formData.duration_override_minutes !== '') {
-      const dur = Number(formData.duration_override_minutes);
-      if (!Number.isInteger(dur) || dur < 5 || dur > 1440) {
-        newErrors.duration_override_minutes = 'Duração deve ser entre 5 e 1440 minutos';
-      }
+    if (priceOverride !== '') {
+      const price = Number(priceOverride);
+      if (!Number.isInteger(price) || price < 0) return 'Preço deve ser um número inteiro não negativo, em centavos.';
     }
-
-    ['buffer_before_min', 'buffer_after_min'].forEach((field) => {
-      const val = Number(formData[field]);
-      if (isNaN(val) || val < 0 || val > 480) {
-        newErrors[field] = 'Buffer deve ser entre 0 e 480 minutos';
-      }
-    });
-
-    if (formData.price_override_cents !== '') {
-      const price = Number(formData.price_override_cents);
-      if (!Number.isInteger(price) || price < 0) {
-        newErrors.price_override_cents = 'Preço deve ser um valor inteiro em centavos';
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return null;
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    if (!validate()) return;
+  async function handleSubmit(event) {
+    event.preventDefault();
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
 
-    setSaving(true);
+    setSubmitting(true);
+    setError(null);
     try {
-      const payload = {
-        professional_id: formData.professional_id,
-        service_id: formData.service_id,
-        duration_override_minutes: formData.duration_override_minutes ? Number(formData.duration_override_minutes) : null,
-        buffer_before_min: Number(formData.buffer_before_min) || 0,
-        buffer_after_min: Number(formData.buffer_after_min) || 0,
-        price_override_cents: formData.price_override_cents ? Number(formData.price_override_cents) : null,
+      const patch = {
+        duration_override_minutes: toIntOrNull(durationOverride),
+        buffer_before_min: Number(bufferBefore),
+        buffer_after_min: Number(bufferAfter),
+        price_override_cents: toIntOrNull(priceOverride),
       };
-      await onSaved(payload);
+      const { professional_service_capability: saved } = capability
+        ? await apiClient.patch(`/professional-service-capabilities/${capability.id}`, patch)
+        : await apiClient.post('/professional-service-capabilities', { professional_id: professionalId, service_id: serviceId, ...patch });
+      onSaved(saved);
     } catch (err) {
-      setErrors({ form: messageForError(err) });
+      setError(messageForError(err));
     } finally {
-      setSaving(false);
+      setSubmitting(false);
     }
   }
 
   return (
-    <div style={modalOverlayStyle}>
-      <div style={modalStyle}>
-        <h2>{capability ? 'Editar Capacidade' : 'Nova Capacidade'}</h2>
+    <div className="modal-overlay" role="dialog" aria-modal="true">
+      <div className="modal-card">
+        <h2>{capability ? 'Editar capacidade' : 'Nova capacidade'}</h2>
+        <form className="auth-form" onSubmit={handleSubmit} noValidate>
+          <label>
+            Profissional
+            <select
+              value={professionalId}
+              onChange={(event) => setProfessionalId(event.target.value)}
+              disabled={!!capability}
+              required
+            >
+              <option value="">Selecione um profissional</option>
+              {professionals?.map((professional) => (
+                <option key={professional.id} value={professional.id}>
+                  {professional.name}
+                </option>
+              ))}
+            </select>
+          </label>
 
-        {errors.form && <p style={{ color: 'var(--color-danger)' }}>{errors.form}</p>}
+          <label>
+            Serviço
+            <select value={serviceId} onChange={(event) => setServiceId(event.target.value)} disabled={!!capability} required>
+              <option value="">Selecione um serviço</option>
+              {services?.map((service) => (
+                <option key={service.id} value={service.id}>
+                  {service.name}
+                </option>
+              ))}
+            </select>
+          </label>
 
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="professional">
-              Profissional *
-              <select
-                id="professional"
-                value={formData.professional_id}
-                onChange={(e) => setFormData({ ...formData, professional_id: e.target.value })}
-                disabled={!!capability}
-                required
-              >
-                <option value="">Selecione um profissional</option>
-                {professionals?.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-              {errors.professional_id && <span style={{ color: 'var(--color-danger)' }}>{errors.professional_id}</span>}
-            </label>
-          </div>
+          <label>
+            Duração customizada (minutos)
+            <input
+              type="number"
+              min="5"
+              max="1440"
+              value={durationOverride}
+              onChange={(event) => setDurationOverride(event.target.value)}
+              placeholder="Padrão do serviço"
+            />
+          </label>
 
-          <div className="form-group">
-            <label htmlFor="service">
-              Serviço *
-              <select
-                id="service"
-                value={formData.service_id}
-                onChange={(e) => setFormData({ ...formData, service_id: e.target.value })}
-                disabled={!!capability}
-                required
-              >
-                <option value="">Selecione um serviço</option>
-                {services?.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-              {errors.service_id && <span style={{ color: 'var(--color-danger)' }}>{errors.service_id}</span>}
-            </label>
-          </div>
+          <label>
+            Preço customizado (centavos)
+            <input
+              type="number"
+              min="0"
+              value={priceOverride}
+              onChange={(event) => setPriceOverride(event.target.value)}
+              placeholder="Padrão do serviço"
+            />
+          </label>
 
-          <div className="form-group">
-            <label htmlFor="duration">
-              Duração Customizada (minutos)
-              <input
-                id="duration"
-                type="number"
-                min="5"
-                max="1440"
-                value={formData.duration_override_minutes}
-                onChange={(e) => setFormData({ ...formData, duration_override_minutes: e.target.value })}
-                placeholder="Deixe vazio para usar a duração do serviço"
-              />
-              {errors.duration_override_minutes && (
-                <span style={{ color: 'var(--color-danger)' }}>{errors.duration_override_minutes}</span>
-              )}
-            </label>
-          </div>
+          <label>
+            Buffer antes (minutos)
+            <input type="number" min="0" max="480" value={bufferBefore} onChange={(event) => setBufferBefore(event.target.value)} />
+          </label>
 
-          <div className="form-group">
-            <label htmlFor="price">
-              Preço Customizado (em centavos)
-              <input
-                id="price"
-                type="number"
-                min="0"
-                value={formData.price_override_cents}
-                onChange={(e) => setFormData({ ...formData, price_override_cents: e.target.value })}
-                placeholder="Deixe vazio para usar o preço do serviço"
-              />
-              {errors.price_override_cents && (
-                <span style={{ color: 'var(--color-danger)' }}>{errors.price_override_cents}</span>
-              )}
-            </label>
-          </div>
+          <label>
+            Buffer depois (minutos)
+            <input type="number" min="0" max="480" value={bufferAfter} onChange={(event) => setBufferAfter(event.target.value)} />
+          </label>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div className="form-group">
-              <label htmlFor="bufferBefore">
-                Buffer Antes (minutos)
-                <input
-                  id="bufferBefore"
-                  type="number"
-                  min="0"
-                  max="480"
-                  value={formData.buffer_before_min}
-                  onChange={(e) => setFormData({ ...formData, buffer_before_min: Number(e.target.value) })}
-                />
-                {errors.buffer_before_min && (
-                  <span style={{ color: 'var(--color-danger)' }}>{errors.buffer_before_min}</span>
-                )}
-              </label>
-            </div>
+          {error && <p className="form-error">{error}</p>}
 
-            <div className="form-group">
-              <label htmlFor="bufferAfter">
-                Buffer Depois (minutos)
-                <input
-                  id="bufferAfter"
-                  type="number"
-                  min="0"
-                  max="480"
-                  value={formData.buffer_after_min}
-                  onChange={(e) => setFormData({ ...formData, buffer_after_min: Number(e.target.value) })}
-                />
-                {errors.buffer_after_min && (
-                  <span style={{ color: 'var(--color-danger)' }}>{errors.buffer_after_min}</span>
-                )}
-              </label>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-            <button type="button" onClick={onClose} disabled={saving}>
-              Cancelar
+          <div className="modal-actions">
+            <button type="button" className="link-button" onClick={onClose}>
+              Fechar
             </button>
-            <button type="submit" disabled={saving}>
-              {saving ? 'Salvando…' : 'Salvar'}
+            <button type="submit" disabled={submitting}>
+              {submitting ? 'Salvando…' : 'Salvar'}
             </button>
           </div>
         </form>
@@ -209,26 +160,3 @@ export function CapabilityModal({ capability, professionals, services, apiClient
     </div>
   );
 }
-
-const modalOverlayStyle = {
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 1000,
-};
-
-const modalStyle = {
-  backgroundColor: 'white',
-  borderRadius: '0.5rem',
-  padding: '2rem',
-  maxWidth: '500px',
-  width: '90%',
-  maxHeight: '90vh',
-  overflowY: 'auto',
-};

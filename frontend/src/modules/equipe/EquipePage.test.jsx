@@ -21,11 +21,14 @@ vi.mock('../../shared/useApiClient.js', () => ({
 
 const PROFESSIONALS = [{ id: 'prof-1', name: 'Ana', user_id: null, active: true }];
 const MEMBERSHIPS = [{ user_id: 'user-owner-12345678', role: 'owner', active: true, created_at: '2026-01-01' }];
+const SERVICES = [];
 
-function mockLists({ professionals = PROFESSIONALS, memberships = MEMBERSHIPS } = {}) {
+function mockLists({ professionals = PROFESSIONALS, memberships = MEMBERSHIPS, services = SERVICES } = {}) {
   apiClientMock.get.mockImplementation((path) => {
     if (path.startsWith('/professionals')) return Promise.resolve({ professionals });
     if (path.startsWith('/memberships')) return Promise.resolve({ memberships });
+    if (path.startsWith('/services')) return Promise.resolve({ services });
+    if (path.startsWith('/professional-service-capabilities')) return Promise.resolve({ professional_service_capabilities: [] });
     throw new Error(`unexpected path: ${path}`);
   });
 }
