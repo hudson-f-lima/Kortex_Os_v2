@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(10);
+SELECT plan(12);
 
 CREATE FUNCTION pg_temp.mk_user(p_email text) RETURNS uuid
 LANGUAGE sql AS $$
@@ -23,6 +23,15 @@ SELECT ok(
 SELECT ok(
   has_table_privilege('service_role', 'public.sync_events', 'SELECT'),
   'service_role can SELECT from sync_events'
+);
+SELECT ok(
+  (SELECT relrowsecurity FROM pg_class WHERE relnamespace = 'public'::regnamespace AND relname = 'sync_events'),
+  'public.sync_events has RLS enabled'
+);
+SELECT is(
+  (SELECT count(*)::integer FROM pg_policies WHERE schemaname = 'public' AND tablename = 'sync_events'),
+  0,
+  'public.sync_events has zero RLS policies (deny-all by design, only service_role reads via BYPASSRLS)'
 );
 
 -- 3. Insert Client and check sync event

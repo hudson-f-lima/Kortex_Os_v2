@@ -19,7 +19,7 @@
 | CI/CD & Deploy | `REAL` | GitHub Actions (lint, testes, secrets scan), Render API (`kortex-api`). |
 
 ## Métricas da Suíte de Testes (PASS)
-- **pgTAP (Banco):** 230 / 230 testes passando (`supabase test db --local`) — +47 desde a Fase Opção C (RPCs, tri-state, snapshot, idempotência).
+- **pgTAP (Banco):** 236 / 236 testes passando (`supabase test db --local`) — +6 do hardening de RLS (`idempotency_keys`/`sync_events`, 2026-07-17).
 - **Backend (Express):** 231 / 231 testes passando (`npm run test`).
 - **Frontend (PWA):** 91 / 91 testes passando (`npm run test`) — +7 desde a Fase Opção C (`AppointmentModal.test.jsx` novo, `ComandaPage.test.jsx` estendido).
 
@@ -42,6 +42,14 @@
 ### Resolvido em 2026-07-17: `organization_id` ausente na resposta de `appointments`/`clients`
 O fix de isolamento de tenant no IndexedDB (`useCachedQuery`, commit `f3ea95e`) filtra registros por `record.organization_id === organizationId`. Achado inicial apontava ~9 módulos potencialmente afetados por `COLUMNS` sem `organization_id`, mas **investigação confirmou que só `appointments` e `clients` participam do caminho que causa o bug de fato** (escrita instantânea no IndexedDB via `putRecord` após uma mutação, usado só por `AgendaPage.jsx`/`ClientesPage.jsx` — os demais módulos, ex. Equipe/Catálogo, gerenciam a própria lista via `apiClient` + estado local, não passam pelo cache). `professionals`/`services`/`products`/`serviceGroups`/`professionalCommissions`/`professionalServiceCapabilities`/`cashEntries`/`memberships` **não têm esse bug** — ficam desatualizados no cache só até o próximo ciclo normal de sync (SSE/REST catch-up), comportamento esperado, não uma falha. Ambos os módulos afetados corrigidos (`appointments.service.js`, `clients.service.js`, `jsonb_build_object` das RPCs) e verificados no browser real.
 
+### Resolvido em 2026-07-17: produção estava 6 migrations atrasada (Fase 9 até Opção C nunca aplicadas)
+Usuário reportou Agenda sem dados em produção, suspeitando de RLS. Investigação (sem MCP no projeto remoto — permissão negada, provavelmente conta/organização diferente) via SQL direto (`supabase db query --db-url`) revelou que `supabase_migrations.schema_migrations` em produção parava em `20260713060000` — **4 das 10 migrations do repositório**, faltando Fase 9, Fase 10, `sync_events` e a Opção C inteira. Nenhuma automação de CI/CD empurra migrations para produção; ficou represado desde 13/07. Confirmado zero risco de perda de dado (nenhuma das 6 migrations pendentes apaga dado existente) antes de aplicar. Usuário rodou `supabase db push --db-url ...` manualmente (bloqueado para mim pelo classificador de segurança do auto mode, mesmo em `--dry-run`). Após o push, foi necessário `NOTIFY pgrst, 'reload schema'` manual — aplicar via `--db-url` pula o hook automático do Supabase que recarregaria o cache do PostgREST. Verificado com dado real (2 agendamentos da organização do usuário, campos da Opção C corretamente preenchidos pelo backfill).
+
+**Lição para sessões futuras:** sempre confirmar se existe um projeto Supabase de produção/hospedado (`render.yaml`/`.env` → `SUPABASE_URL`) e se as migrations locais realmente foram aplicadas lá antes de considerar uma feature "pronta" — testar só local não garante paridade com produção, e não há pipeline automática cobrindo esse gap hoje.
+
+### Em andamento 2026-07-17: hardening de RLS (`idempotency_keys`, `sync_events`) — aplicado local, pendente produção
+Advisor scan de produção (rodado pelo usuário via MCP oficial do Supabase, não por mim) encontrou `private.idempotency_keys` sem RLS habilitado (não era exposição ativa — sem grant a anon/authenticated, schema `private` não exposto via PostgREST — mas faltava a camada de defesa em profundidade) e `public.sync_events` com RLS habilitado mas sem nenhuma policy (mesmo raciocínio, grant já restrito a `service_role`). Migration `20260717060000_rls_hardening_idempotency_sync_events.sql` habilita RLS em `idempotency_keys` e documenta com `comment on table` que "zero policies" é o estado terminal correto para as duas tabelas (bookkeeping interno, nunca deve ser consultável direto por cliente) — não adiciona nenhuma policy permissiva. 6 testes pgTAP novos (`rls_baseline_test.sql` +4, `sync_events_test.sql` +2) travam essa postura. **Aplicado e testado local; ainda não aplicado em produção** — mesmo fluxo manual da correção anterior (`db push` + `NOTIFY pgrst`).
+
 ---
 
 ## Achados da Auditoria Opção C (Fase 10.5) — resolvidos pela Phase 3
@@ -54,5 +62,6 @@ O fix de isolamento de tenant no IndexedDB (`useCachedQuery`, commit `f3ea95e`) 
 
 ## Próxima Ação Imediata
 
-**Opção C encerrada de ponta a ponta (banco, backend, frontend, verificado no browser real) e o bug de `organization_id` fechado nos dois módulos realmente afetados. Nenhum bloqueador conhecido pendente.**
-*Próximos candidatos, por ordem de valor: Fase 11 (Equipe/convite por e-mail), UI de gestão de elegibilidade (Gap #4, torna o tri-state da Opção C configurável pela PWA), ou Fase 12 (Sessões de Caixa, ADR 0007).*
+**Aplicar `20260717060000_rls_hardening_idempotency_sync_events.sql` em produção** (mesmo fluxo manual: `supabase db push --db-url ...` pelo usuário, seguido de `NOTIFY pgrst, 'reload schema'` — bloqueado para mim pelo classificador de segurança). Testado e validado local (236 pgTAP).
+
+*Depois disso, sem bloqueador conhecido pendente. Próximos candidatos, por ordem de valor: Fase 11 (Equipe/convite por e-mail), UI de gestão de elegibilidade (Gap #4, torna o tri-state da Opção C configurável pela PWA), ou Fase 12 (Sessões de Caixa, ADR 0007).*

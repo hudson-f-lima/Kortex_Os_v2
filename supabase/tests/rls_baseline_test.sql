@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(16);
+SELECT plan(20);
 
 -- Helpers: simulate Supabase Auth JWT context inside this transaction only.
 CREATE FUNCTION pg_temp.mk_user(p_email text) RETURNS uuid
@@ -49,6 +49,28 @@ SELECT ok(
 SELECT ok(
   NOT has_table_privilege('authenticated', 'public.memberships', 'INSERT'),
   'authenticated has no direct INSERT grant on memberships'
+);
+
+-- private.idempotency_keys: internal RPC bookkeeping (checkout_close,
+-- create_appointment, etc.), never meant to be queryable by a client — RLS
+-- enabled with zero policies is the correct terminal state, not a gap
+-- (2026-07-17 production advisor finding, closed by this migration).
+SELECT ok(
+  (SELECT relrowsecurity FROM pg_class WHERE relnamespace = 'private'::regnamespace AND relname = 'idempotency_keys'),
+  'private.idempotency_keys has RLS enabled'
+);
+SELECT ok(
+  NOT has_table_privilege('authenticated', 'private.idempotency_keys', 'SELECT'),
+  'authenticated has no direct SELECT grant on private.idempotency_keys'
+);
+SELECT ok(
+  NOT has_table_privilege('anon', 'private.idempotency_keys', 'SELECT'),
+  'anon has no direct SELECT grant on private.idempotency_keys'
+);
+SELECT is(
+  (SELECT count(*)::integer FROM pg_policies WHERE schemaname = 'private' AND tablename = 'idempotency_keys'),
+  0,
+  'private.idempotency_keys has zero RLS policies (deny-all by design)'
 );
 
 -- === Layer 2: RLS policies (temporarily grant table privileges within this
