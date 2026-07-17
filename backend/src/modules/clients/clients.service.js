@@ -1,7 +1,7 @@
 import { HttpError } from '../../shared/httpError.js';
 import { mapPostgresError } from '../../shared/postgresError.js';
 
-const COLUMNS = 'id, name, phone, email, active, created_at, updated_at';
+const COLUMNS = 'id, organization_id, name, phone, email, active, created_at, updated_at';
 
 export function createClientsService(supabaseAdmin) {
   return {

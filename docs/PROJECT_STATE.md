@@ -1,6 +1,6 @@
 # PROJECT STATE — KortexOS MVP técnico
 
-**Atualizado:** 2026-07-17 | Opção C Phase 3 concluída (banco + backend + wiring do frontend). PWA verificada no browser real: criar/editar/reconfigurar/cancelar agendamento e fechar comanda a partir de agendamento — tudo funcionando.
+**Atualizado:** 2026-07-17 | Opção C Phase 3 concluída (banco + backend + wiring do frontend) e bug de `organization_id` (appointments + clients) corrigido. PWA verificada no browser real: criar/editar/reconfigurar/cancelar agendamento, fechar comanda a partir de agendamento, criar cliente inline e ver refletido em Agenda/Clientes na hora — tudo funcionando.
 
 ## Estado do MVP
 
@@ -35,10 +35,12 @@
 
 ## Gaps e Pendências Conhecidos
 1. **Gestão de Equipe:** Sem convite por e-mail no frontend (Fase 11).
-2. **`organization_id` ausente na resposta de várias RPCs/rotas de escrita (CRITICAL, achado 2026-07-17):** o fix de isolamento de tenant no IndexedDB (`useCachedQuery`, commit `f3ea95e`) filtra registros por `record.organization_id === organizationId`. `create_appointment`/`update_appointment` foram corrigidas (agora retornam `organization_id`), mas o mesmo padrão (`COLUMNS` sem `organization_id`) existe em `clients`, `professionals`, `services`, `products`, `serviceGroups`, `professionalCommissions`, `professionalServiceCapabilities`, `cashEntries`, `memberships` — qualquer criação/edição nesses módulos fica **invisível na UI até o próximo full sync via SSE/REST catch-up** (sem crash, sem erro — só não aparece). Não corrigido nesta sessão fora de `appointments`; requer passar por cada módulo adicionando `organization_id` ao `COLUMNS`/`jsonb_build_object` de retorno.
-3. **Price Override:** Campo `price_override_cents` é dead code (reservado para o futuro — ver ADR 0008 Decisão 1 e ADR 0013).
-4. **Sessões de Caixa:** Correção operacional de checkout fechado por erro (Fase 12, ADR 0007).
-5. **UI de gestão de elegibilidade (Opção C):** não existe tela para configurar `professional_service_group_eligibility` nem `organizations.default_service_eligibility` — só a API/RPC. `CapabilityModal.jsx`/`CapabilitiesTab.jsx` (Equipe) seguem cobrindo só duração/buffer/preço, sem campo para `eligibility` (têm `default 'ENABLED'`, então não quebraram, mas o tri-state fica inacessível pela PWA por ora).
+2. **Price Override:** Campo `price_override_cents` é dead code (reservado para o futuro — ver ADR 0008 Decisão 1 e ADR 0013).
+3. **Sessões de Caixa:** Correção operacional de checkout fechado por erro (Fase 12, ADR 0007).
+4. **UI de gestão de elegibilidade (Opção C):** não existe tela para configurar `professional_service_group_eligibility` nem `organizations.default_service_eligibility` — só a API/RPC. `CapabilityModal.jsx`/`CapabilitiesTab.jsx` (Equipe) seguem cobrindo só duração/buffer/preço, sem campo para `eligibility` (têm `default 'ENABLED'`, então não quebraram, mas o tri-state fica inacessível pela PWA por ora).
+
+### Resolvido em 2026-07-17: `organization_id` ausente na resposta de `appointments`/`clients`
+O fix de isolamento de tenant no IndexedDB (`useCachedQuery`, commit `f3ea95e`) filtra registros por `record.organization_id === organizationId`. Achado inicial apontava ~9 módulos potencialmente afetados por `COLUMNS` sem `organization_id`, mas **investigação confirmou que só `appointments` e `clients` participam do caminho que causa o bug de fato** (escrita instantânea no IndexedDB via `putRecord` após uma mutação, usado só por `AgendaPage.jsx`/`ClientesPage.jsx` — os demais módulos, ex. Equipe/Catálogo, gerenciam a própria lista via `apiClient` + estado local, não passam pelo cache). `professionals`/`services`/`products`/`serviceGroups`/`professionalCommissions`/`professionalServiceCapabilities`/`cashEntries`/`memberships` **não têm esse bug** — ficam desatualizados no cache só até o próximo ciclo normal de sync (SSE/REST catch-up), comportamento esperado, não uma falha. Ambos os módulos afetados corrigidos (`appointments.service.js`, `clients.service.js`, `jsonb_build_object` das RPCs) e verificados no browser real.
 
 ---
 
@@ -52,5 +54,5 @@
 
 ## Próxima Ação Imediata
 
-**Opção C encerrada de ponta a ponta (banco, backend, frontend, verificado no browser real). Próximo passo: decidir entre o Gap #2 (organization_id sistêmico) e a Fase 11 (Equipe/convite).**
-*O Gap #2 é uma falha silenciosa (sem erro, sem crash — o registro só não aparece até o próximo sync), então não bloqueia o dia a dia como o `appointments` quebrado bloqueava, mas gera confusão real de UX ("criei e sumiu") em qualquer módulo afetado. Corrigir é mecânico (adicionar `organization_id` a cada `COLUMNS`/resposta de RPC), mas precisa passar por ~9 módulos com verificação em cada um.*
+**Opção C encerrada de ponta a ponta (banco, backend, frontend, verificado no browser real) e o bug de `organization_id` fechado nos dois módulos realmente afetados. Nenhum bloqueador conhecido pendente.**
+*Próximos candidatos, por ordem de valor: Fase 11 (Equipe/convite por e-mail), UI de gestão de elegibilidade (Gap #4, torna o tri-state da Opção C configurável pela PWA), ou Fase 12 (Sessões de Caixa, ADR 0007).*
