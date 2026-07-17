@@ -150,7 +150,7 @@ export function createSyncEngine({ apiClient, organizationId, getAccessToken }) 
       if (activeReader) {
         try {
           activeReader.cancel();
-        } catch (e) {
+        } catch {
           // reader may already be closed; nothing to do
         }
         activeReader = null;

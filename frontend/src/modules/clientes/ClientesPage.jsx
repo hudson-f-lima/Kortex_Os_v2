@@ -13,6 +13,7 @@ const DELETE_ROLES = ['owner', 'admin', 'manager'];
 
 function messageForListError(err) {
   if (err instanceof ApiError) return err.message;
+  if (err?.message) return err.message;
   return 'Sem conexão. Verifique sua internet e tente novamente.';
 }
 
@@ -74,7 +75,7 @@ export function ClientesPage() {
   if (error) {
     return (
       <div className="full-page-error">
-        <p>{error?.message ?? String(error)}</p>
+        <p>{messageForListError(error)}</p>
         <button type="button" onClick={load}>
           Tentar novamente
         </button>

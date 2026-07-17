@@ -26,6 +26,8 @@ export default [
         URL: "readonly",
         URLSearchParams: "readonly",
         crypto: "readonly",
+        indexedDB: "readonly",
+        TextDecoder: "readonly",
       },
     },
     plugins: {

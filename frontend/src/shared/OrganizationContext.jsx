@@ -71,9 +71,16 @@ export function OrganizationProvider({ children }) {
       getAccessToken: () => accessToken,
     });
 
-    engine.start();
+    let cancelled = false;
+    clearAllStores()
+      .then(() => {
+        if (!cancelled) return engine.start();
+        return undefined;
+      })
+      .catch((err) => console.error('Failed to reset organization cache', err));
 
     return () => {
+      cancelled = true;
       engine.stop();
     };
   }, [accessToken, organizationId]);

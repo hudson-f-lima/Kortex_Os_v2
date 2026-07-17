@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useMemo, useState } from 'react';
 import { ApiError } from '../../shared/apiClient.js';
 import { useApiClient } from '../../shared/useApiClient.js';
 import { useAuth } from '../../shared/useAuth.js';
@@ -26,6 +26,7 @@ const SLOT_HEIGHT = '2.75rem';
 
 function messageForListError(err) {
   if (err instanceof ApiError) return err.message;
+  if (err?.message) return err.message;
   return 'Sem conexão. Verifique sua internet e tente novamente.';
 }
 
@@ -219,7 +220,7 @@ export function AgendaPage() {
 
       {!listsLoading && listsError && (
         <div className="full-page-error">
-          <p>{listsError?.message ?? String(listsError)}</p>
+          <p>{messageForListError(listsError)}</p>
           <button type="button" onClick={loadLists}>
             Tentar novamente
           </button>
@@ -240,7 +241,7 @@ export function AgendaPage() {
 
           {!appointmentsLoading && appointmentsError && (
             <div className="full-page-error">
-              <p>{appointmentsError?.message ?? String(appointmentsError)}</p>
+              <p>{messageForListError(appointmentsError)}</p>
               <button type="button" onClick={loadAppointments}>
                 Tentar novamente
               </button>
