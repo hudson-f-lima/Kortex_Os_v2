@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireRole } from '../../middleware/requireRole.js';
 import { HttpError } from '../../shared/httpError.js';
-import { UUID_RE } from '../../shared/validation.js';
+import { UUID_RE, validateIdempotencyKey } from '../../shared/validation.js';
 import { createAppointmentsService } from './appointments.service.js';
 import {
   APPOINTMENT_STATUSES,
@@ -65,10 +65,12 @@ export function appointmentsRouter({ supabaseAdmin, organizationContext }) {
 
   router.post('/appointments', requireRole(...WRITE_ROLES), async (req, res, next) => {
     try {
+      const idempotencyKey = validateIdempotencyKey(req.headers['idempotency-key']);
       const patch = validateAppointmentPayload(req.body, { requireAll: true });
       const appointment = await service.create({
         organizationId: req.auth.organizationId,
         actorUserId: req.auth.userId,
+        idempotencyKey,
         patch,
       });
       res.status(201).json({ appointment });
@@ -79,9 +81,16 @@ export function appointmentsRouter({ supabaseAdmin, organizationContext }) {
 
   router.patch('/appointments/:id', requireRole(...WRITE_ROLES), async (req, res, next) => {
     try {
+      const idempotencyKey = validateIdempotencyKey(req.headers['idempotency-key']);
       const appointmentId = validateAppointmentId(req.params.id);
       const patch = validateAppointmentPayload(req.body, { requireAll: false });
-      const appointment = await service.update({ organizationId: req.auth.organizationId, appointmentId, patch });
+      const appointment = await service.update({
+        organizationId: req.auth.organizationId,
+        actorUserId: req.auth.userId,
+        appointmentId,
+        idempotencyKey,
+        patch,
+      });
       res.status(200).json({ appointment });
     } catch (err) {
       next(err);

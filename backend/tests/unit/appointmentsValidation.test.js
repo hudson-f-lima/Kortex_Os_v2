@@ -68,20 +68,41 @@ test('validateAppointmentPayload rejects a client-supplied ends_at', () => {
 });
 
 test('validateAppointmentPayload validates status against the enum', () => {
-  const patch = validateAppointmentPayload({ status: 'confirmed' }, { requireAll: false });
+  const patch = validateAppointmentPayload({ status: 'confirmed', version: 1 }, { requireAll: false });
   assert.equal(patch.status, 'confirmed');
-  throwsCode(() => validateAppointmentPayload({ status: 'bogus' }, { requireAll: false }), 'invalid_status');
+  throwsCode(() => validateAppointmentPayload({ status: 'bogus', version: 1 }, { requireAll: false }), 'invalid_status');
 });
 
 test('validateAppointmentPayload rejects unknown fields', () => {
   throwsCode(() => validateAppointmentPayload({ ...VALID_CREATE, price_cents: 100 }, { requireAll: true }), 'unknown_fields');
 });
 
-test('validateAppointmentPayload on update allows a partial patch', () => {
-  const patch = validateAppointmentPayload({ status: 'cancelled' }, { requireAll: false });
-  assert.deepEqual(patch, { status: 'cancelled' });
+// ADR 0012: version is mandatory on every update, not just when the client
+// also changes another field — it is how the optimistic-lock RPC knows what
+// the client last read.
+test('validateAppointmentPayload on update allows a partial patch alongside version', () => {
+  const patch = validateAppointmentPayload({ status: 'cancelled', version: 3 }, { requireAll: false });
+  assert.deepEqual(patch, { status: 'cancelled', version: 3 });
 });
 
-test('validateAppointmentPayload rejects an empty patch on update', () => {
-  throwsCode(() => validateAppointmentPayload({}, { requireAll: false }), 'empty_payload');
+test('validateAppointmentPayload requires version on update, even with no other field', () => {
+  throwsCode(() => validateAppointmentPayload({}, { requireAll: false }), 'missing_version');
+});
+
+test('validateAppointmentPayload rejects a non-integer version', () => {
+  throwsCode(() => validateAppointmentPayload({ version: 'nope' }, { requireAll: false }), 'invalid_version');
+  throwsCode(() => validateAppointmentPayload({ version: 0 }, { requireAll: false }), 'invalid_version');
+});
+
+// ADR 0013: confirm is optional and only meaningful when the update also
+// reconfigures professional_id/service_id, but it is accepted whenever sent.
+test('validateAppointmentPayload accepts an optional confirm flag on update', () => {
+  const patch = validateAppointmentPayload({ version: 1, confirm: true }, { requireAll: false });
+  assert.deepEqual(patch, { version: 1, confirm: true });
+  throwsCode(() => validateAppointmentPayload({ version: 1, confirm: 'yes' }, { requireAll: false }), 'invalid_confirm');
+});
+
+test('validateAppointmentPayload rejects version/confirm on create', () => {
+  throwsCode(() => validateAppointmentPayload({ ...VALID_CREATE, version: 1 }, { requireAll: true }), 'unknown_fields');
+  throwsCode(() => validateAppointmentPayload({ ...VALID_CREATE, confirm: true }, { requireAll: true }), 'unknown_fields');
 });

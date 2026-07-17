@@ -1,11 +1,23 @@
 import { HttpError } from '../../shared/httpError.js';
-import { assertKnownFields, assertNonEmptyPatch, validateId, validateUuidField } from '../../shared/validation.js';
+import { assertKnownFields, validateBoolean, validateId, validateUuidField } from '../../shared/validation.js';
 
 // ends_at is intentionally absent: it is always computed server-side from the
-// resolved service/capability duration (Fase 10 hardening). A client that
-// still sends it gets a loud 400 (unknown_fields) rather than having the
-// value silently discarded — see docs/PLANEJAMENTO_AGENDA_TRANSACIONAL.md §15.
-const ALLOWED_FIELDS = new Set(['client_id', 'professional_id', 'service_id', 'starts_at', 'status']);
+// resolved service/capability duration (Fase 10 hardening, extended by the
+// ADR 0011 snapshot). A client that still sends it gets a loud 400
+// (unknown_fields) rather than having the value silently discarded — see
+// docs/PLANEJAMENTO_AGENDA_TRANSACIONAL.md §15.
+const CREATE_FIELDS = new Set(['client_id', 'professional_id', 'service_id', 'starts_at', 'status']);
+// version and confirm only make sense when editing an existing appointment
+// (ADR 0012 optimistic concurrency, ADR 0013 change-plan confirmation).
+const UPDATE_FIELDS = new Set([
+  'client_id',
+  'professional_id',
+  'service_id',
+  'starts_at',
+  'status',
+  'version',
+  'confirm',
+]);
 
 export const APPOINTMENT_STATUSES = ['scheduled', 'confirmed', 'in_service', 'completed', 'cancelled', 'no_show'];
 
@@ -29,8 +41,17 @@ export function validateStatus(value) {
   return value;
 }
 
+// Mirrors appointments.version (bigint, starts at 1) — ADR 0012 optimistic
+// concurrency requires the client to echo back the version it last read.
+export function validateVersion(value) {
+  if (!Number.isInteger(value) || value < 1) {
+    throw HttpError.badRequest('invalid_version', 'version must be a positive integer');
+  }
+  return value;
+}
+
 export function validateAppointmentPayload(body, { requireAll = true } = {}) {
-  assertKnownFields(body, ALLOWED_FIELDS);
+  assertKnownFields(body, requireAll ? CREATE_FIELDS : UPDATE_FIELDS);
   const patch = {};
 
   if (requireAll || body.client_id !== undefined) {
@@ -50,7 +71,13 @@ export function validateAppointmentPayload(body, { requireAll = true } = {}) {
   }
 
   if (!requireAll) {
-    assertNonEmptyPatch(patch);
+    if (body.version === undefined) {
+      throw HttpError.badRequest('missing_version', 'version is required');
+    }
+    patch.version = validateVersion(body.version);
+    if (body.confirm !== undefined) {
+      patch.confirm = validateBoolean(body.confirm, 'confirm');
+    }
   }
 
   return patch;

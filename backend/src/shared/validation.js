@@ -63,6 +63,17 @@ export function validateCommissionValue(value, type, fieldName = 'commission_val
   return value;
 }
 
+// ADR 0010: tri-state used by professional_service_capabilities.eligibility
+// and professional_service_group_eligibility.eligibility.
+const ELIGIBILITY_STATES = ['INHERIT', 'ENABLED', 'DISABLED'];
+
+export function validateEligibility(value, fieldName = 'eligibility') {
+  if (!ELIGIBILITY_STATES.includes(value)) {
+    throw HttpError.badRequest(`invalid_${fieldName}`, `${fieldName} must be one of: ${ELIGIBILITY_STATES.join(', ')}`);
+  }
+  return value;
+}
+
 export function assertKnownFields(body, allowedFields) {
   if (body === null || typeof body !== 'object' || Array.isArray(body)) {
     throw HttpError.badRequest('invalid_payload', 'payload must be a JSON object');

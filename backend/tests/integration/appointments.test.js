@@ -11,6 +11,7 @@ const supabaseAdmin = createSupabaseAdmin(env);
 const app = createApp(env, supabaseAdmin);
 
 const setUpOrgWithRole = (role) => setUpOrg(supabaseAdmin, role);
+const idemKey = () => `appt-${randomUUID()}`;
 
 async function seedCatalog(organizationId, ownerUserId) {
   const { data: client, error: clientError } = await supabaseAdmin
@@ -41,7 +42,7 @@ async function seedCatalog(organizationId, ownerUserId) {
     .single();
   assert.equal(serviceError, null, serviceError?.message);
 
-  return { clientId: client.id, professionalId: professional.id, serviceId: service.id };
+  return { clientId: client.id, professionalId: professional.id, serviceId: service.id, serviceGroupId };
 }
 
 test('owner can create, list, update and delete an appointment', async () => {
@@ -52,6 +53,7 @@ test('owner can create, list, update and delete an appointment', async () => {
     .post('/api/v1/appointments')
     .set('Authorization', `Bearer ${accessToken}`)
     .set('X-Organization-Id', organizationId)
+    .set('Idempotency-Key', idemKey())
     .send({
       client_id: clientId,
       professional_id: professionalId,
@@ -64,6 +66,12 @@ test('owner can create, list, update and delete an appointment', async () => {
     created.body.appointment.ends_at,
     '2026-08-10T10:30:00+00:00',
     'ends_at is computed server-side from the service duration (30min)',
+  );
+  assert.equal(created.body.appointment.version, 1, 'a freshly created appointment starts at version 1');
+  assert.equal(
+    created.body.appointment.resolved_eligibility_source,
+    'org_default',
+    'no capability/group row exists yet — eligibility falls back to the organization default',
   );
   const appointmentId = created.body.appointment.id;
 
@@ -78,10 +86,12 @@ test('owner can create, list, update and delete an appointment', async () => {
     .patch(`/api/v1/appointments/${appointmentId}`)
     .set('Authorization', `Bearer ${accessToken}`)
     .set('X-Organization-Id', organizationId)
-    .send({ status: 'confirmed' });
+    .set('Idempotency-Key', idemKey())
+    .send({ status: 'confirmed', version: created.body.appointment.version });
   assert.equal(updated.status, 200);
   assert.equal(updated.body.appointment.status, 'confirmed');
   assert.equal(updated.body.appointment.client_id, clientId, 'unrelated fields are preserved');
+  assert.equal(updated.body.appointment.version, 2, 'a successful update increments version');
 
   const deleted = await request(app)
     .delete(`/api/v1/appointments/${appointmentId}`)
@@ -97,6 +107,69 @@ test('owner can create, list, update and delete an appointment', async () => {
   assert.equal(afterDelete.body.code, 'appointment_not_found');
 });
 
+test('create and update require an Idempotency-Key header', async () => {
+  const { organizationId, accessToken, ownerUserId } = await setUpOrgWithRole('owner');
+  const { clientId, professionalId, serviceId } = await seedCatalog(organizationId, ownerUserId);
+
+  const created = await request(app)
+    .post('/api/v1/appointments')
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId)
+    .send({ client_id: clientId, professional_id: professionalId, service_id: serviceId, starts_at: '2026-08-10T10:00:00Z' });
+  assert.equal(created.status, 400);
+  assert.equal(created.body.code, 'missing_idempotency_key');
+
+  const withCreate = await request(app)
+    .post('/api/v1/appointments')
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId)
+    .set('Idempotency-Key', idemKey())
+    .send({ client_id: clientId, professional_id: professionalId, service_id: serviceId, starts_at: '2026-08-10T10:00:00Z' });
+
+  const updated = await request(app)
+    .patch(`/api/v1/appointments/${withCreate.body.appointment.id}`)
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId)
+    .send({ status: 'confirmed', version: 1 });
+  assert.equal(updated.status, 400);
+  assert.equal(updated.body.code, 'missing_idempotency_key');
+});
+
+test('replaying the same Idempotency-Key does not create a duplicate appointment', async () => {
+  const { organizationId, accessToken, ownerUserId } = await setUpOrgWithRole('owner');
+  const { clientId, professionalId, serviceId } = await seedCatalog(organizationId, ownerUserId);
+  const key = idemKey();
+  const payload = {
+    client_id: clientId,
+    professional_id: professionalId,
+    service_id: serviceId,
+    starts_at: '2026-08-10T10:00:00Z',
+  };
+
+  const first = await request(app)
+    .post('/api/v1/appointments')
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId)
+    .set('Idempotency-Key', key)
+    .send(payload);
+  assert.equal(first.status, 201);
+
+  const replay = await request(app)
+    .post('/api/v1/appointments')
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId)
+    .set('Idempotency-Key', key)
+    .send(payload);
+  assert.equal(replay.status, 201);
+  assert.equal(replay.body.appointment.id, first.body.appointment.id, 'the cached response is returned, not a new appointment');
+
+  const listed = await request(app)
+    .get('/api/v1/appointments')
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId);
+  assert.equal(listed.body.appointments.length, 1, 'no duplicate was created');
+});
+
 test('reception can create/update/delete appointments, but professional role cannot write', async () => {
   const reception = await setUpOrgWithRole('reception');
   const { clientId, professionalId, serviceId } = await seedCatalog(reception.organizationId, reception.ownerUserId);
@@ -105,6 +178,7 @@ test('reception can create/update/delete appointments, but professional role can
     .post('/api/v1/appointments')
     .set('Authorization', `Bearer ${reception.accessToken}`)
     .set('X-Organization-Id', reception.organizationId)
+    .set('Idempotency-Key', idemKey())
     .send({
       client_id: clientId,
       professional_id: professionalId,
@@ -117,7 +191,8 @@ test('reception can create/update/delete appointments, but professional role can
     .patch(`/api/v1/appointments/${created.body.appointment.id}`)
     .set('Authorization', `Bearer ${reception.accessToken}`)
     .set('X-Organization-Id', reception.organizationId)
-    .send({ status: 'confirmed' });
+    .set('Idempotency-Key', idemKey())
+    .send({ status: 'confirmed', version: created.body.appointment.version });
   assert.equal(updated.status, 200);
 
   const deleted = await request(app)
@@ -132,6 +207,7 @@ test('reception can create/update/delete appointments, but professional role can
     .post('/api/v1/appointments')
     .set('Authorization', `Bearer ${professionalMember.accessToken}`)
     .set('X-Organization-Id', professionalMember.organizationId)
+    .set('Idempotency-Key', idemKey())
     .send({
       client_id: seeded.clientId,
       professional_id: seeded.professionalId,
@@ -153,6 +229,7 @@ test('validation errors surface as 400, including cross-org references and a cli
     .post('/api/v1/appointments')
     .set('Authorization', `Bearer ${accessToken}`)
     .set('X-Organization-Id', organizationId)
+    .set('Idempotency-Key', idemKey())
     .send({
       client_id: clientId,
       professional_id: professionalId,
@@ -169,6 +246,7 @@ test('validation errors surface as 400, including cross-org references and a cli
     .post('/api/v1/appointments')
     .set('Authorization', `Bearer ${accessToken}`)
     .set('X-Organization-Id', organizationId)
+    .set('Idempotency-Key', idemKey())
     .send({
       client_id: clientId,
       professional_id: otherSeed.professionalId,
@@ -176,7 +254,10 @@ test('validation errors surface as 400, including cross-org references and a cli
       starts_at: '2026-08-10T11:00:00Z',
     });
   assert.equal(crossOrgReference.status, 400);
-  assert.equal(crossOrgReference.body.code, 'invalid_professional_id');
+  // Rota B (ADR 0012): create_appointment reports bad references the same
+  // way checkout_close/inventory_adjust already do — a shared RPC-wide code,
+  // not a field-specific one.
+  assert.equal(crossOrgReference.body.code, 'reference_not_found');
 });
 
 test('overlapping appointments for the same professional are rejected with 409', async () => {
@@ -187,6 +268,7 @@ test('overlapping appointments for the same professional are rejected with 409',
     .post('/api/v1/appointments')
     .set('Authorization', `Bearer ${accessToken}`)
     .set('X-Organization-Id', organizationId)
+    .set('Idempotency-Key', idemKey())
     .send({
       client_id: clientId,
       professional_id: professionalId,
@@ -200,6 +282,7 @@ test('overlapping appointments for the same professional are rejected with 409',
     .post('/api/v1/appointments')
     .set('Authorization', `Bearer ${accessToken}`)
     .set('X-Organization-Id', organizationId)
+    .set('Idempotency-Key', idemKey())
     .send({
       client_id: clientId,
       professional_id: professionalId,
@@ -213,6 +296,7 @@ test('overlapping appointments for the same professional are rejected with 409',
     .post('/api/v1/appointments')
     .set('Authorization', `Bearer ${accessToken}`)
     .set('X-Organization-Id', organizationId)
+    .set('Idempotency-Key', idemKey())
     .send({
       client_id: clientId,
       professional_id: professionalId,
@@ -222,7 +306,7 @@ test('overlapping appointments for the same professional are rejected with 409',
   assert.equal(backToBack.status, 201, 'a non-overlapping, back-to-back appointment is accepted');
 });
 
-test('a professional×service capability override changes the resolved ends_at', async () => {
+test('a professional×service capability override changes the resolved ends_at, preserved when only the time moves', async () => {
   const { organizationId, accessToken, ownerUserId } = await setUpOrgWithRole('owner');
   const { clientId, professionalId, serviceId } = await seedCatalog(organizationId, ownerUserId);
 
@@ -238,6 +322,7 @@ test('a professional×service capability override changes the resolved ends_at',
     .post('/api/v1/appointments')
     .set('Authorization', `Bearer ${accessToken}`)
     .set('X-Organization-Id', organizationId)
+    .set('Idempotency-Key', idemKey())
     .send({
       client_id: clientId,
       professional_id: professionalId,
@@ -250,18 +335,24 @@ test('a professional×service capability override changes the resolved ends_at',
     '2026-08-15T11:00:00+00:00',
     'the 60min capability override wins over the service default of 30min',
   );
+  assert.equal(created.body.appointment.resolved_duration_minutes, 60);
+  assert.equal(created.body.appointment.resolved_eligibility_source, 'capability');
 
+  // MOVE_TIME_ONLY (ADR 0011): moving starts_at must reuse the frozen
+  // resolved_duration_minutes, not re-resolve it from the capability again.
   const moved = await request(app)
     .patch(`/api/v1/appointments/${created.body.appointment.id}`)
     .set('Authorization', `Bearer ${accessToken}`)
     .set('X-Organization-Id', organizationId)
-    .send({ starts_at: '2026-08-15T14:00:00Z' });
+    .set('Idempotency-Key', idemKey())
+    .send({ starts_at: '2026-08-15T14:00:00Z', version: created.body.appointment.version });
   assert.equal(moved.status, 200);
   assert.equal(
     moved.body.appointment.ends_at,
     '2026-08-15T15:00:00+00:00',
-    'moving starts_at recomputes ends_at using the same resolved duration',
+    'moving starts_at recomputes ends_at using the same resolved (frozen) duration',
   );
+  assert.equal(moved.body.appointment.resolved_duration_minutes, 60, 'the snapshot is preserved, not re-resolved');
 });
 
 test('an appointment from another organization is invisible and cannot be mutated (cross-tenant)', async () => {
@@ -273,6 +364,7 @@ test('an appointment from another organization is invisible and cannot be mutate
     .post('/api/v1/appointments')
     .set('Authorization', `Bearer ${orgA.accessToken}`)
     .set('X-Organization-Id', orgA.organizationId)
+    .set('Idempotency-Key', idemKey())
     .send({
       client_id: seedA.clientId,
       professional_id: seedA.professionalId,
@@ -302,6 +394,7 @@ test('list supports filtering by professional_id, status and date range', async 
     .post('/api/v1/appointments')
     .set('Authorization', `Bearer ${accessToken}`)
     .set('X-Organization-Id', organizationId)
+    .set('Idempotency-Key', idemKey())
     .send({
       client_id: clientId,
       professional_id: professionalId,
@@ -314,6 +407,7 @@ test('list supports filtering by professional_id, status and date range', async 
     .post('/api/v1/appointments')
     .set('Authorization', `Bearer ${accessToken}`)
     .set('X-Organization-Id', organizationId)
+    .set('Idempotency-Key', idemKey())
     .send({
       client_id: clientId,
       professional_id: professionalId,
@@ -358,6 +452,7 @@ test('a completed appointment cannot transition to any other status (Fase 10 FSM
     .post('/api/v1/appointments')
     .set('Authorization', `Bearer ${accessToken}`)
     .set('X-Organization-Id', organizationId)
+    .set('Idempotency-Key', idemKey())
     .send({
       client_id: clientId,
       professional_id: professionalId,
@@ -370,14 +465,117 @@ test('a completed appointment cannot transition to any other status (Fase 10 FSM
     .patch(`/api/v1/appointments/${appointmentId}`)
     .set('Authorization', `Bearer ${accessToken}`)
     .set('X-Organization-Id', organizationId)
-    .send({ status: 'completed' });
+    .set('Idempotency-Key', idemKey())
+    .send({ status: 'completed', version: created.body.appointment.version });
   assert.equal(completed.status, 200);
 
   const reverted = await request(app)
     .patch(`/api/v1/appointments/${appointmentId}`)
     .set('Authorization', `Bearer ${accessToken}`)
     .set('X-Organization-Id', organizationId)
-    .send({ status: 'scheduled' });
+    .set('Idempotency-Key', idemKey())
+    .send({ status: 'scheduled', version: completed.body.appointment.version });
   assert.equal(reverted.status, 400);
   assert.equal(reverted.body.code, 'constraint_violation');
+});
+
+test('update rejects a stale version with 409 (ADR 0012 optimistic concurrency)', async () => {
+  const { organizationId, accessToken, ownerUserId } = await setUpOrgWithRole('owner');
+  const { clientId, professionalId, serviceId } = await seedCatalog(organizationId, ownerUserId);
+
+  const created = await request(app)
+    .post('/api/v1/appointments')
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId)
+    .set('Idempotency-Key', idemKey())
+    .send({
+      client_id: clientId,
+      professional_id: professionalId,
+      service_id: serviceId,
+      starts_at: '2026-08-23T10:00:00Z',
+    });
+
+  const stale = await request(app)
+    .patch(`/api/v1/appointments/${created.body.appointment.id}`)
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId)
+    .set('Idempotency-Key', idemKey())
+    .send({ status: 'confirmed', version: 999 });
+  assert.equal(stale.status, 409);
+  assert.equal(stale.body.code, 'version_conflict');
+});
+
+test('reconfiguring professional_id requires confirmation, then applies with confirm=true (ADR 0013 change plan)', async () => {
+  const { organizationId, accessToken, ownerUserId } = await setUpOrgWithRole('owner');
+  const { clientId, professionalId, serviceId } = await seedCatalog(organizationId, ownerUserId);
+  const { data: secondProfessional } = await supabaseAdmin
+    .from('professionals')
+    .insert({ organization_id: organizationId, name: 'Prof Dois' })
+    .select('id')
+    .single();
+
+  const created = await request(app)
+    .post('/api/v1/appointments')
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId)
+    .set('Idempotency-Key', idemKey())
+    .send({
+      client_id: clientId,
+      professional_id: professionalId,
+      service_id: serviceId,
+      starts_at: '2026-08-24T10:00:00Z',
+    });
+
+  const preview = await request(app)
+    .patch(`/api/v1/appointments/${created.body.appointment.id}`)
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId)
+    .set('Idempotency-Key', idemKey())
+    .send({ professional_id: secondProfessional.id, version: created.body.appointment.version });
+  assert.equal(preview.status, 409);
+  assert.equal(preview.body.code, 'confirmation_required');
+  assert.equal(preview.body.details.proposed.professional_id, secondProfessional.id);
+
+  const unchanged = await request(app)
+    .get(`/api/v1/appointments/${created.body.appointment.id}`)
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId);
+  assert.equal(unchanged.body.appointment.professional_id, professionalId, 'preview does not mutate the appointment');
+  assert.equal(unchanged.body.appointment.version, created.body.appointment.version, 'preview does not bump version');
+
+  const confirmed = await request(app)
+    .patch(`/api/v1/appointments/${created.body.appointment.id}`)
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId)
+    .set('Idempotency-Key', idemKey())
+    .send({ professional_id: secondProfessional.id, version: created.body.appointment.version, confirm: true });
+  assert.equal(confirmed.status, 200);
+  assert.equal(confirmed.body.appointment.professional_id, secondProfessional.id);
+});
+
+test('the eligibility gate rejects a professional explicitly disabled for the service (ADR 0010)', async () => {
+  const { organizationId, accessToken, ownerUserId } = await setUpOrgWithRole('owner');
+  const { clientId, professionalId, serviceId } = await seedCatalog(organizationId, ownerUserId);
+
+  const { error: capabilityError } = await supabaseAdmin.from('professional_service_capabilities').insert({
+    organization_id: organizationId,
+    professional_id: professionalId,
+    service_id: serviceId,
+    eligibility: 'DISABLED',
+  });
+  assert.equal(capabilityError, null, capabilityError?.message);
+
+  const blocked = await request(app)
+    .post('/api/v1/appointments')
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId)
+    .set('Idempotency-Key', idemKey())
+    .send({
+      client_id: clientId,
+      professional_id: professionalId,
+      service_id: serviceId,
+      starts_at: '2026-08-25T10:00:00Z',
+    });
+  assert.equal(blocked.status, 400);
+  assert.equal(blocked.body.code, 'professional_not_eligible_for_service');
 });

@@ -18,6 +18,12 @@ export function mapRpcError(error) {
       return HttpError.conflict('operation_rejected', error.message);
     case 'P0002':
       return HttpError.badRequest('reference_not_found', error.message);
+    case 'P0003':
+      return HttpError.badRequest('professional_not_eligible_for_service', error.message);
+    case 'P0004':
+      return HttpError.conflict('version_conflict', error.message);
+    case 'P0005':
+      return HttpError.notFound('appointment_not_found', error.message);
     default:
       return mapPostgresError(error);
   }

@@ -1,5 +1,5 @@
 import { HttpError } from '../../shared/httpError.js';
-import { assertKnownFields, validateBoolean, validateMoneyCents, validateUuidField } from '../../shared/validation.js';
+import { assertKnownFields, validateEligibility, validateMoneyCents, validateUuidField } from '../../shared/validation.js';
 
 const CREATE_FIELDS = new Set([
   'professional_id',
@@ -8,14 +8,14 @@ const CREATE_FIELDS = new Set([
   'buffer_before_min',
   'buffer_after_min',
   'price_override_cents',
-  'active',
+  'eligibility',
 ]);
 const UPDATE_FIELDS = new Set([
   'duration_override_minutes',
   'buffer_before_min',
   'buffer_after_min',
   'price_override_cents',
-  'active',
+  'eligibility',
 ]);
 
 // Mirrors services.duration_minutes check (5-1440) — an override cannot
@@ -57,7 +57,7 @@ export function validateCreateCapabilityPayload(body) {
   const buffer_before_min = validateBufferMinutes(body.buffer_before_min ?? 0, 'buffer_before_min');
   const buffer_after_min = validateBufferMinutes(body.buffer_after_min ?? 0, 'buffer_after_min');
   const price_override_cents = validateOptionalPriceCents(body.price_override_cents, 'price_override_cents');
-  const active = body.active === undefined ? true : validateBoolean(body.active, 'active');
+  const eligibility = body.eligibility === undefined ? 'ENABLED' : validateEligibility(body.eligibility);
   return {
     professional_id,
     service_id,
@@ -65,7 +65,7 @@ export function validateCreateCapabilityPayload(body) {
     buffer_before_min,
     buffer_after_min,
     price_override_cents,
-    active,
+    eligibility,
   };
 }
 
@@ -90,8 +90,8 @@ export function validateUpdateCapabilityPayload(body) {
   if ('price_override_cents' in body) {
     patch.price_override_cents = validateOptionalPriceCents(body.price_override_cents, 'price_override_cents');
   }
-  if (body.active !== undefined) {
-    patch.active = validateBoolean(body.active, 'active');
+  if (body.eligibility !== undefined) {
+    patch.eligibility = validateEligibility(body.eligibility);
   }
   return patch;
 }
