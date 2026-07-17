@@ -7,9 +7,9 @@ import { addMinutes, fromDateTimeLocalValue, toDateTimeLocalValue } from './date
 
 const ERROR_MESSAGES = {
   professional_double_booked: 'Este profissional já tem um agendamento nesse horário.',
-  invalid_client_id: 'Cliente inválido para esta organização.',
-  invalid_professional_id: 'Profissional inválido para esta organização.',
-  invalid_service_id: 'Serviço inválido para esta organização.',
+  reference_not_found: 'Um dos itens selecionados não foi encontrado para esta organização.',
+  professional_not_eligible_for_service: 'Este profissional não está habilitado para este serviço.',
+  version_conflict: 'Este agendamento foi alterado por outro usuário. Feche e abra de novo para ver a versão mais recente.',
   invalid_time_range: 'O horário de término deve ser depois do início.',
 };
 
@@ -21,11 +21,85 @@ function messageForError(err) {
   return 'Erro inesperado. Tente novamente.';
 }
 
+function newIdempotencyKey() {
+  return `appt-${crypto.randomUUID()}`;
+}
+
+function formatDateTime(value) {
+  if (!value) return '—';
+  return new Date(value).toLocaleString('pt-BR');
+}
+
+// Compara current (snapshot do PATCH pouco antes de reconfigurar) com
+// proposed (o que a RPC resolveria se confirmado) — ADR 0013 change plan.
+function ChangeDiff({ diff, professionals, services, onConfirm, onCancel, submitting }) {
+  const nameFor = (list, id) => list.find((item) => item.id === id)?.name ?? '—';
+
+  const rows = [
+    {
+      label: 'Profissional',
+      current: nameFor(professionals, diff.current.professional_id),
+      proposed: nameFor(professionals, diff.proposed.professional_id),
+    },
+    {
+      label: 'Serviço',
+      current: nameFor(services, diff.current.service_id),
+      proposed: nameFor(services, diff.proposed.service_id),
+    },
+    {
+      label: 'Duração',
+      current: `${diff.current.resolved_duration_minutes} min`,
+      proposed: `${diff.proposed.resolved_duration_minutes} min`,
+    },
+    {
+      label: 'Término',
+      current: formatDateTime(diff.current.ends_at),
+      proposed: formatDateTime(diff.proposed.ends_at),
+    },
+  ];
+
+  return (
+    <div className="appointment-diff">
+      <p>Essa mudança recalcula a duração do agendamento. Confirme antes de aplicar:</p>
+      <table className="data-table">
+        <thead>
+          <tr>
+            <th />
+            <th>Atual</th>
+            <th>Novo</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.label}>
+              <td>{row.label}</td>
+              <td>{row.current}</td>
+              <td>{row.proposed}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="modal-actions">
+        <button type="button" className="link-button" onClick={onCancel} disabled={submitting}>
+          Voltar
+        </button>
+        <button type="button" onClick={onConfirm} disabled={submitting}>
+          {submitting ? 'Aplicando…' : 'Confirmar mudança'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // Cria e edita agendamentos (docs/PWA_PLANEJAMENTO.md §5.1/§5.3): cliente
 // buscável ou criado inline, serviço define o término automaticamente
 // (duration_minutes), profissional pré-preenchido quando aberto a partir de
 // um slot da grade. Reaproveitado tanto para "novo" quanto para "mover"
 // (reagendar = editar horário/profissional de um existente).
+//
+// PATCH exige Idempotency-Key + version (ADR 0012) e, ao reconfigurar
+// professional_id/service_id, pode responder 409 confirmation_required com
+// um diff (ADR 0013) — ver ChangeDiff acima.
 export function AppointmentModal({
   mode,
   initialValues,
@@ -49,6 +123,8 @@ export function AppointmentModal({
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  // { patch, diff } enquanto aguarda confirmação explícita de reconfiguração
+  const [pendingChange, setPendingChange] = useState(null);
 
   const selectedService = services.find((service) => service.id === serviceId);
 
@@ -57,6 +133,26 @@ export function AppointmentModal({
     if (!start || !selectedService) return null;
     return addMinutes(start, selectedService.duration_minutes);
   }, [startValue, selectedService]);
+
+  function buildEditPatch(start) {
+    // Só inclui campos que de fato mudaram — reenviar professional_id/
+    // service_id iguais ao valor atual dispararia confirmation_required à
+    // toa (ADR 0013 só se aplica a uma reconfiguração real).
+    const patch = { version: initialValues.version };
+    if (clientId !== initialValues.client_id) patch.client_id = clientId;
+    if (professionalId !== initialValues.professional_id) patch.professional_id = professionalId;
+    if (serviceId !== initialValues.service_id) patch.service_id = serviceId;
+    if (start.toISOString() !== new Date(initialValues.starts_at).toISOString()) patch.starts_at = start.toISOString();
+    if (status !== initialValues.status) patch.status = status;
+    return patch;
+  }
+
+  async function submitPatch(patch) {
+    const result = await apiClient.patch(`/appointments/${initialValues.id}`, patch, {
+      headers: { 'Idempotency-Key': newIdempotencyKey() },
+    });
+    return result.appointment;
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -69,19 +165,45 @@ export function AppointmentModal({
     setSubmitting(true);
     setError(null);
     try {
-      const payload = {
-        client_id: clientId,
-        professional_id: professionalId,
-        service_id: serviceId,
-        starts_at: start.toISOString(),
-        ends_at: computedEnd.toISOString(),
-      };
-      const appointment =
-        mode === 'edit'
-          ? (await apiClient.patch(`/appointments/${initialValues.id}`, { ...payload, status })).appointment
-          : (await apiClient.post('/appointments', payload)).appointment;
+      if (mode === 'edit') {
+        const patch = buildEditPatch(start);
+        try {
+          const appointment = await submitPatch(patch);
+          onSaved(appointment);
+        } catch (err) {
+          if (err instanceof ApiError && err.code === 'confirmation_required') {
+            setPendingChange({ patch, diff: err.details });
+            return;
+          }
+          throw err;
+        }
+      } else {
+        const payload = {
+          client_id: clientId,
+          professional_id: professionalId,
+          service_id: serviceId,
+          starts_at: start.toISOString(),
+        };
+        const { appointment } = await apiClient.post('/appointments', payload, {
+          headers: { 'Idempotency-Key': newIdempotencyKey() },
+        });
+        onSaved(appointment);
+      }
+    } catch (err) {
+      setError(messageForError(err));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleConfirmChange() {
+    setSubmitting(true);
+    setError(null);
+    try {
+      const appointment = await submitPatch({ ...pendingChange.patch, confirm: true });
       onSaved(appointment);
     } catch (err) {
+      setPendingChange(null);
       setError(messageForError(err));
     } finally {
       setSubmitting(false);
@@ -92,12 +214,31 @@ export function AppointmentModal({
     setSubmitting(true);
     setError(null);
     try {
-      const { appointment } = await apiClient.patch(`/appointments/${initialValues.id}`, { status: 'cancelled' });
+      const appointment = await submitPatch({ status: 'cancelled', version: initialValues.version });
       onSaved(appointment);
     } catch (err) {
       setError(messageForError(err));
       setSubmitting(false);
     }
+  }
+
+  if (pendingChange) {
+    return (
+      <div className="modal-overlay" role="dialog" aria-modal="true">
+        <div className="modal-card">
+          <h2>Confirmar alteração</h2>
+          {error && <p className="form-error">{error}</p>}
+          <ChangeDiff
+            diff={pendingChange.diff}
+            professionals={professionals}
+            services={services}
+            submitting={submitting}
+            onConfirm={handleConfirmChange}
+            onCancel={() => setPendingChange(null)}
+          />
+        </div>
+      </div>
+    );
   }
 
   return (

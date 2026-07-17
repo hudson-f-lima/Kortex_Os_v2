@@ -55,6 +55,7 @@ export function ComandaPage() {
 
   const [step, setStep] = useState('building'); // 'building' | 'payment' | 'closed'
   const [idempotencyKey, setIdempotencyKey] = useState(null);
+  const [appointmentVersion, setAppointmentVersion] = useState(null);
   const [payments, setPayments] = useState([]);
   const [discountReais, setDiscountReais] = useState('');
   const [tipReais, setTipReais] = useState('');
@@ -103,6 +104,7 @@ export function ComandaPage() {
       .then(({ appointment }) => {
         if (cancelled) return;
         setClientId(appointment.client_id);
+        setAppointmentVersion(appointment.version);
         const service = catalogItems.find((item) => item.kind === 'service' && item.id === appointment.service_id);
         if (service) {
           setCart((current) => {
@@ -314,9 +316,15 @@ export function ComandaPage() {
       setClosedOrder(result);
       setStep('closed');
       if (appointmentId) {
-        apiClient.patch(`/appointments/${appointmentId}`, { status: 'completed' }).catch(() => {
-          /* melhor esforço — não bloqueia a comanda já fechada */
-        });
+        apiClient
+          .patch(
+            `/appointments/${appointmentId}`,
+            { status: 'completed', version: appointmentVersion },
+            { headers: { 'Idempotency-Key': `appt-complete-${crypto.randomUUID()}` } },
+          )
+          .catch(() => {
+            /* melhor esforço — não bloqueia a comanda já fechada */
+          });
       }
     } catch (err) {
       setCheckoutError(messageForCheckoutError(err));

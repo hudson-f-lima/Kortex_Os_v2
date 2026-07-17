@@ -148,6 +148,7 @@ export function AgendaPage() {
         service_id: appointment.service_id,
         starts_at: new Date(appointment.starts_at),
         status: appointment.status,
+        version: appointment.version,
       },
     });
   }

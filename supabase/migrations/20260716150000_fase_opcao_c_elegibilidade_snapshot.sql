@@ -263,7 +263,7 @@ begin
   );
 
   select jsonb_build_object(
-    'id', a.id, 'client_id', a.client_id, 'professional_id', a.professional_id,
+    'id', a.id, 'organization_id', a.organization_id, 'client_id', a.client_id, 'professional_id', a.professional_id,
     'service_id', a.service_id, 'starts_at', a.starts_at, 'ends_at', a.ends_at,
     'status', a.status, 'version', a.version,
     'resolved_duration_minutes', a.resolved_duration_minutes,
@@ -425,7 +425,7 @@ begin
   where organization_id = p_organization_id and id = p_appointment_id;
 
   select jsonb_build_object(
-    'id', a.id, 'client_id', a.client_id, 'professional_id', a.professional_id,
+    'id', a.id, 'organization_id', a.organization_id, 'client_id', a.client_id, 'professional_id', a.professional_id,
     'service_id', a.service_id, 'starts_at', a.starts_at, 'ends_at', a.ends_at,
     'status', a.status, 'version', a.version,
     'resolved_duration_minutes', a.resolved_duration_minutes,

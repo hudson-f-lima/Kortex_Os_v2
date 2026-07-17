@@ -3,7 +3,7 @@ import { mapPostgresError } from '../../shared/postgresError.js';
 import { mapRpcError } from '../../shared/rpcError.js';
 
 const COLUMNS =
-  'id, client_id, professional_id, service_id, starts_at, ends_at, status, version, resolved_duration_minutes, resolved_eligibility_source, resolved_at, created_at, updated_at';
+  'id, organization_id, client_id, professional_id, service_id, starts_at, ends_at, status, version, resolved_duration_minutes, resolved_eligibility_source, resolved_at, created_at, updated_at';
 
 export function createAppointmentsService(supabaseAdmin) {
   return {

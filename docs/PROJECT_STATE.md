@@ -1,6 +1,6 @@
 # PROJECT STATE — KortexOS MVP técnico
 
-**Atualizado:** 2026-07-17 | Opção C Phase 3 (banco + backend) concluída — **PWA quebrada até a Fase de wiring do frontend** (ver Gaps).
+**Atualizado:** 2026-07-17 | Opção C Phase 3 concluída (banco + backend + wiring do frontend). PWA verificada no browser real: criar/editar/reconfigurar/cancelar agendamento e fechar comanda a partir de agendamento — tudo funcionando.
 
 ## Estado do MVP
 
@@ -13,15 +13,15 @@
 | Checkout atômico | `REAL` | Transação transacional e idempotente via `checkout_close` RPC. |
 | Comissão e Pacotes | `REAL` | Cascata de comissão (Profissional > Serviço > Grupo) e pacotes no checkout. |
 | Backend Express | `REAL` | Rotas, middleware JWT, tratamento de erro 409/conflict em `backend/`. |
-| Elegibilidade Opção C | `REAL` (banco+API) | ADRs 0010-0013; `create_appointment`/`update_appointment` RPCs, tri-state, snapshot, idempotência, version, change plan. |
-| PWA Modular | `QUEBRADO` (appointments) | Agenda/Comanda ainda chamam `POST/PATCH /appointments` no contrato antigo — ver Gaps. |
+| Elegibilidade Opção C | `REAL` (banco+API+PWA) | ADRs 0010-0013; `create_appointment`/`update_appointment` RPCs, tri-state, snapshot, idempotência, version, change plan — Agenda/Comanda já falam o novo contrato. |
+| PWA Modular | `REAL` | Vite + React app shell, 8 módulos, service worker e cache offline. |
 | Projection Cache | `REAL` | Tabela `sync_events`, triggers, endpoints SSE/REST e IndexedDB local. |
 | CI/CD & Deploy | `REAL` | GitHub Actions (lint, testes, secrets scan), Render API (`kortex-api`). |
 
 ## Métricas da Suíte de Testes (PASS)
-- **pgTAP (Banco):** 229 / 229 testes passando (`supabase test db --local`) — +46 desde a Fase Opção C (RPCs, tri-state, snapshot, idempotência).
+- **pgTAP (Banco):** 230 / 230 testes passando (`supabase test db --local`) — +47 desde a Fase Opção C (RPCs, tri-state, snapshot, idempotência).
 - **Backend (Express):** 231 / 231 testes passando (`npm run test`).
-- **Frontend (PWA):** 84 / 84 testes passando (`npm run test`) — **não cobre o novo contrato**, testes mockam `apiClient` e não pegam o 400/409 real (ver Gaps).
+- **Frontend (PWA):** 91 / 91 testes passando (`npm run test`) — +7 desde a Fase Opção C (`AppointmentModal.test.jsx` novo, `ComandaPage.test.jsx` estendido).
 
 ---
 
@@ -35,9 +35,10 @@
 
 ## Gaps e Pendências Conhecidos
 1. **Gestão de Equipe:** Sem convite por e-mail no frontend (Fase 11).
-2. **PWA × novo contrato de `appointments` (CRITICAL, bloqueia deploy):** `AppointmentModal.jsx` chama `POST/PATCH /appointments` sem `Idempotency-Key` (400 `missing_idempotency_key` em toda tentativa) e sem `version` no PATCH (400 `missing_version`). Além disso o modo "editar" sempre reenvia `professional_id`/`service_id` mesmo sem mudança, o que agora sempre aciona `confirmation_required` (409, ADR 0013) — falta a tela de diff/confirmação que não existe ainda. Achado adicional, não relacionado à Opção C: o payload também envia `ends_at` (nunca aceito pelo backend desde a Fase 10 — `unknown_fields`), bug pré-existente que passou despercebido porque os testes de frontend mockam `apiClient`. **Nenhum destes três pontos foi corrigido nesta sessão** — precisa de uma fase própria de wiring do frontend antes de merge/deploy.
+2. **`organization_id` ausente na resposta de várias RPCs/rotas de escrita (CRITICAL, achado 2026-07-17):** o fix de isolamento de tenant no IndexedDB (`useCachedQuery`, commit `f3ea95e`) filtra registros por `record.organization_id === organizationId`. `create_appointment`/`update_appointment` foram corrigidas (agora retornam `organization_id`), mas o mesmo padrão (`COLUMNS` sem `organization_id`) existe em `clients`, `professionals`, `services`, `products`, `serviceGroups`, `professionalCommissions`, `professionalServiceCapabilities`, `cashEntries`, `memberships` — qualquer criação/edição nesses módulos fica **invisível na UI até o próximo full sync via SSE/REST catch-up** (sem crash, sem erro — só não aparece). Não corrigido nesta sessão fora de `appointments`; requer passar por cada módulo adicionando `organization_id` ao `COLUMNS`/`jsonb_build_object` de retorno.
 3. **Price Override:** Campo `price_override_cents` é dead code (reservado para o futuro — ver ADR 0008 Decisão 1 e ADR 0013).
 4. **Sessões de Caixa:** Correção operacional de checkout fechado por erro (Fase 12, ADR 0007).
+5. **UI de gestão de elegibilidade (Opção C):** não existe tela para configurar `professional_service_group_eligibility` nem `organizations.default_service_eligibility` — só a API/RPC. `CapabilityModal.jsx`/`CapabilitiesTab.jsx` (Equipe) seguem cobrindo só duração/buffer/preço, sem campo para `eligibility` (têm `default 'ENABLED'`, então não quebraram, mas o tri-state fica inacessível pela PWA por ora).
 
 ---
 
@@ -51,5 +52,5 @@
 
 ## Próxima Ação Imediata
 
-**Wiring do frontend para o novo contrato de `appointments` — bloqueia deploy (ver Gap #2).**
-*O backend da Opção C (ADRs 0010-0013) está completo e testado (banco + Express), mas a PWA (`AgendaPage.jsx`/`AppointmentModal.jsx`) ainda fala o contrato antigo. Falta: (1) gerar `Idempotency-Key` por tentativa de escrita, igual ao padrão já usado em `ComandaPage`/checkout; (2) rastrear e reenviar `version` a cada PATCH; (3) parar de reenviar `professional_id`/`service_id` quando não mudaram (ou implementar a tela de diff/confirmação do ADR 0013 para quando mudarem de fato — `confirmation_required`); (4) remover `ends_at` do payload (bug pré-existente, não relacionado à Opção C, nunca aceito pelo backend desde a Fase 10). Testes de frontend precisam de cobertura nova para os três fluxos (idempotência, version conflict, confirmação) — os 84 testes atuais mockam `apiClient` e não pegam a quebra.*
+**Opção C encerrada de ponta a ponta (banco, backend, frontend, verificado no browser real). Próximo passo: decidir entre o Gap #2 (organization_id sistêmico) e a Fase 11 (Equipe/convite).**
+*O Gap #2 é uma falha silenciosa (sem erro, sem crash — o registro só não aparece até o próximo sync), então não bloqueia o dia a dia como o `appointments` quebrado bloqueava, mas gera confusão real de UX ("criei e sumiu") em qualquer módulo afetado. Corrigir é mecânico (adicionar `organization_id` a cada `COLUMNS`/resposta de RPC), mas precisa passar por ~9 módulos com verificação em cada um.*

@@ -250,4 +250,39 @@ describe('ComandaPage', () => {
     await waitFor(() => expect(screen.getByText('Fechar comanda')).not.toBeDisabled());
     expect(screen.getByLabelText('Selecionar cliente').value).toBe('client-1');
   });
+
+  // ADR 0012: appointments agora exige Idempotency-Key + version no PATCH —
+  // a marcação best-effort de "concluído" ao fechar a comanda precisa
+  // carregar a version do agendamento pré-carregado, não só o status.
+  it('marks the source appointment as completed with Idempotency-Key and version after closing', async () => {
+    mockLists();
+    apiClientMock.get.mockImplementation((path) => {
+      if (path.startsWith('/professionals')) return Promise.resolve({ professionals: PROFESSIONALS });
+      if (path.startsWith('/catalog')) return Promise.resolve({ items: CATALOG_ITEMS });
+      if (path.startsWith('/clients')) return Promise.resolve({ clients: CLIENTS });
+      if (path === '/appointments/appt-1') {
+        return Promise.resolve({
+          appointment: { id: 'appt-1', client_id: 'client-1', professional_id: 'prof-1', service_id: 'svc-1', status: 'scheduled', version: 3 },
+        });
+      }
+      throw new Error(`unexpected path: ${path}`);
+    });
+    apiClientMock.post.mockResolvedValue({ order_id: 'order-appt1', organization_id: 'org-1', total_cents: 5000, status: 'closed' });
+    apiClientMock.patch.mockResolvedValue({ appointment: { id: 'appt-1', status: 'completed', version: 4 } });
+
+    renderComanda('/comanda?appointment_id=appt-1');
+
+    await waitFor(() => expect(screen.getByText('Fechar comanda')).not.toBeDisabled());
+    fireEvent.click(screen.getByText('Fechar comanda'));
+    fireEvent.click(screen.getByText('Confirmar fechamento'));
+
+    await waitFor(() => expect(screen.getByText('Comanda fechada')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(apiClientMock.patch).toHaveBeenCalledWith(
+        '/appointments/appt-1',
+        { status: 'completed', version: 3 },
+        expect.objectContaining({ headers: expect.objectContaining({ 'Idempotency-Key': expect.any(String) }) }),
+      ),
+    );
+  });
 });
