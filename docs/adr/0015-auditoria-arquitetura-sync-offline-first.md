@@ -1,6 +1,6 @@
 # 0015 — Auditoria da arquitetura local-first / sync incremental do KortexOS
 
-Status: auditoria concluída; itens críticos/#2 do Blue Team corrigidos
+Status: auditoria concluída; item crítico e Blue Team #2/#3 corrigidos
 Data: 2026-07-17
 Escopo: PWA (frontend), API de sync (backend), schema Postgres/Supabase relacionado
 
@@ -24,8 +24,28 @@ reconexão estável) — confirmado manualmente que os testes de crescimento/res
 acontecer no lugar errado. `eslint.config.js` ganhou o global `TextEncoder` (faltava, só
 `TextDecoder` estava listado). 96/96 testes de frontend passando, lint limpo.
 
-Os demais itens do Blue Team (limpeza de IndexedDB no logout, tratamento de
-401, TTL de retenção) continuam como próximos passos, não bloqueadores.
+## Atualização — Blue Team #3 verificado (limpeza de IndexedDB no logout)
+
+A seção SEGURANÇA abaixo listava isso como "não verificado — requer leitura direta do fluxo de
+`AuthContext`/`signOut`". Verificado agora: **já está implementado corretamente**, não era um gap
+de produção, só de teste. `frontend/src/shared/OrganizationContext.jsx:53-58` reage a `user` virar
+`null` (logout) chamando `clearAllStores()`, e a ordem é segura — o `useEffect` do sync engine
+(linhas 60-86) tem `accessToken`/`organizationId` como dependência; quando o logout zera o
+`accessToken`, a função de cleanup desse efeito (`engine.stop()`) roda **antes** do efeito de
+`user` (que limpa o IndexedDB) rodar de novo, pela ordem de commit do React (todos os cleanups da
+renderização anterior rodam antes de qualquer efeito novo). Ou seja: o engine para de escrever no
+IndexedDB antes dele ser esvaziado — sem essa ordem haveria uma janela para um evento em voo
+recriar um registro logo após a limpeza.
+
+Adicionado `frontend/src/shared/OrganizationContext.test.jsx` (não existia nenhum teste para este
+arquivo) cobrindo exatamente isso: confirma que `clearAllStores()` é chamado no logout e que
+`engine.stop()` é chamado antes dele. Confirmado que o teste falha se a chamada a
+`clearAllStores()` for removida do efeito de logout. 93/93 testes de frontend passando, lint
+limpo, build de produção ok.
+
+Os demais itens do Blue Team (tratamento de 401, TTL de retenção) continuam como próximos passos,
+não bloqueadores — o tratamento de 401 já foi corrigido em branch paralela (Blue Team #4),
+pendente de merge a esta.
 
 ## Contexto
 
@@ -69,9 +89,9 @@ manifestam sob rede instável ou sessão expirada, cenários ainda não cobertos
 | Escopo por usuário no IndexedDB | AUSENTE | Nenhum filtro por `user_id`/`created_by` encontrado | Médio (ver Red Team #7) |
 | Pull incremental por cursor (`GET /sync`) | REAL | `backend/src/modules/sync/sync.route.js` + `sync.service.js`, `gt('id', sinceId)` | Baixo |
 | Realtime acelerador (SSE) | REAL | `sync.route.js` — `text/event-stream`, relay de `postgres_changes` em `sync_events` | Baixo |
-| Reconexão SSE com novo catch-up | **CRÍTICO** | `syncEngine.js` — reconecta direto em `runSSE()`, nunca re-chama `performCatchUp()` | **Alto** |
+| Reconexão SSE com novo catch-up | REAL (corrigido) | `syncEngine.js` — reconecta chamando `performCatchUp()` antes de reabrir o stream | Baixo |
 | Detecção de lacuna de sequência (gap) | AUSENTE | Nenhuma verificação de contiguidade de `event.id` | Alto |
-| Backoff de reconexão | PARCIAL | Fixo em 5s, sem exponential backoff, sem jitter, sem teto | Médio |
+| Backoff de reconexão | REAL (corrigido) | `retryDelayFor()` — exponencial com full jitter, teto de 30s | Baixo |
 | Snapshot seletivo de recuperação | AUSENTE | Nada em `syncEngine.js` chama `clearAllStores()` / resync total | Médio |
 | Idempotency-Key em mutações críticas | REAL, mas por call-site | Usado manualmente em Checkout/Appointments/Estoque/Caixa/Refund | Baixo |
 | Tabela `idempotency_keys` (schema + RLS) | REAL | `20260712235319_mvp_baseline.sql` + RLS habilitado em `20260717...rls_hardening...sql` | Baixo |
@@ -257,15 +277,14 @@ Verificado:
   bookkeeping, acessadas só via `security definer`/`service_role`).
 - Isolamento de tenant na leitura do IndexedDB é real (`useCachedQuery` fail-closed sem
   `organization_id`).
+- **Limpeza de IndexedDB no logout — verificado, é REAL.** `OrganizationContext.jsx:53-58` chama
+  `clearAllStores()` reativamente quando `user` vira `null`, com o sync engine parando antes disso
+  (ver "Atualização — Blue Team #3" no topo). Não é mais um gap; a suposição original desta
+  auditoria estava errada, coberta agora por `OrganizationContext.test.jsx`.
 
 Gaps reais encontrados (nenhum é um incidente ativo, mas nenhum tem mitigação hoje):
-1. **Sem limpeza de IndexedDB no logout** — não encontrei nenhuma chamada a `clearAllStores()` no
-   fluxo de `signOut`. Se confirmado, um dispositivo compartilhado mantém a projeção do tenant/
-   usuário anterior acessível após logout até a próxima sincronização sobrescrever os dados —
-   requer verificação direta do fluxo de `AuthContext`/`signOut` antes de tratar como confirmado
-   (não fiz essa leitura específica nesta auditoria — está listado como próxima ação).
-2. **Sem TTL em `clients` (PII)** — nome/telefone/e-mail ficam no IndexedDB indefinidamente.
-3. **Sem tratamento de 401** no `apiClient` — uma sessão expirada não força re-login nem limpa
+1. **Sem TTL em `clients` (PII)** — nome/telefone/e-mail ficam no IndexedDB indefinidamente.
+2. **Sem tratamento de 401** no `apiClient` — uma sessão expirada não força re-login nem limpa
    cache local automaticamente; o usuário só percebe pelo erro genérico na próxima ação.
 
 ---
@@ -387,8 +406,10 @@ Para o Blue Team item 1 (resync-on-reconnect), considerar concluído quando:
 ## PRÓXIMA AÇÃO ÚNICA
 
 ~~Implementar resync-on-reconnect em `frontend/src/shared/syncEngine.js`~~ — **feito**.
-~~Blue Team #2: trocar o backoff fixo de 5s por exponencial com teto e jitter~~ — **feito**
-(ver atualizações no topo deste documento).
+~~Blue Team #2: trocar o backoff fixo de 5s por exponencial com teto e jitter~~ — **feito**.
+~~Blue Team #3: verificar limpeza de IndexedDB no logout~~ — **feito** (já estava implementado
+corretamente; adicionado o teste que faltava). (ver atualizações no topo deste documento)
 
-Próximo item por prioridade (Blue Team #3): verificar e, se necessário, implementar limpeza de
-IndexedDB no logout (`AuthContext` `signOut` → `clearAllStores()`).
+Blue Team #4 (tratamento de sessão expirada/401 no `apiClient`) já está corrigido e testado em
+branch paralela, pendente de merge a esta. Próximo item depois de consolidar todas as branches:
+Blue Team #5, TTL/retenção configurável nas stores do IndexedDB (`appointments`/`clients`).
