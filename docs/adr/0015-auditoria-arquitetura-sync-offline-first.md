@@ -1,6 +1,6 @@
 # 0015 — Auditoria da arquitetura local-first / sync incremental do KortexOS
 
-Status: auditoria concluída; item crítico e Blue Team #2/#3 corrigidos
+Status: auditoria concluída; item crítico e Blue Team #2/#3/#4 corrigidos
 Data: 2026-07-17
 Escopo: PWA (frontend), API de sync (backend), schema Postgres/Supabase relacionado
 
@@ -43,9 +43,24 @@ arquivo) cobrindo exatamente isso: confirma que `clearAllStores()` é chamado no
 `clearAllStores()` for removida do efeito de logout. 93/93 testes de frontend passando, lint
 limpo, build de produção ok.
 
-Os demais itens do Blue Team (tratamento de 401, TTL de retenção) continuam como próximos passos,
-não bloqueadores — o tratamento de 401 já foi corrigido em branch paralela (Blue Team #4),
-pendente de merge a esta.
+## Atualização — Blue Team #4 corrigido (sessão expirada / 401)
+
+`frontend/src/shared/sessionExpired.js` (novo): pub/sub simples (mesmo padrão de
+`syncEngine.js`'s `LISTENERS`) para avisar "a sessão expirou" sem acoplar `apiClient.js` (módulo
+puro, sem acesso ao React) ao `AuthContext`. `apiClient.js` chama `notifySessionExpired()` sempre
+que uma resposta vem com `status === 401` — todo endpoint desta API exige autenticação, então 401
+aqui sempre significa sessão expirada/inválida, nunca outra coisa. `AuthContext.jsx` assina isso e
+força `supabase.auth.signOut()` (só se havia uma sessão ativa, evitando chamada redundante quando
+várias requisições em voo recebem 401 ao mesmo tempo) — o que cascateia para a limpeza de
+IndexedDB já corrigida no Blue Team #3, sem duplicar lógica de limpeza.
+
+Testes novos: `apiClient.test.js` (401 notifica listeners, outros status não) e
+`AuthContext.test.jsx` (novo arquivo — signOut é chamado com sessão ativa, não é chamado sem
+sessão). Confirmado manualmente que ambos os testes falham se o comportamento correspondente for
+removido. 96/96 testes de frontend passando, lint limpo, build de produção ok.
+
+Os itens críticos e #2/#3/#4 do Blue Team estão todos corrigidos. Falta apenas o #5 (TTL/retenção
+configurável nas stores do IndexedDB), sem urgência — não bloqueador.
 
 ## Contexto
 
@@ -100,7 +115,7 @@ manifestam sob rede instável ou sessão expirada, cenários ainda não cobertos
 | Tombstone explícito de exclusão | PARCIAL | Delete é inferido por `action = 'DELETE'`, sem coluna `deleted` dedicada | Baixo (funciona, mas frágil a refactors futuros) |
 | Versionamento otimista (`version` + conflito) | PARCIAL — só `appointments` | `appointments.validation.js`, `rpcError.js` mapeando `P0004` → `version_conflict` | Médio (outras entidades sem proteção) |
 | Fila de comandos offline | AUSENTE | Zero ocorrências de "offline queue"/"QUEUED" no repo — ADR 0009 previa, não implementado | Baixo hoje (nada promete offline write) |
-| Tratamento de sessão expirada (401) no `apiClient` | AUSENTE | Nenhum caso especial para `401`; cai no `ApiError` genérico | Médio |
+| Tratamento de sessão expirada (401) no `apiClient` | REAL (corrigido) | `apiClient.js` chama `notifySessionExpired()`; `AuthContext.jsx` assina e força signOut | Baixo |
 | Testes de sync engine/IndexedDB no frontend | AUSENTE | Nenhum `syncEngine.test.js`/`idb.test.js`/`useCachedQuery.test.js` | Médio |
 | Testes de `/sync` no backend | REAL, mas incompleto | `backend/tests/integration/sync.test.js` cobre cursor/insert/update/SSE handshake; não cobre gap/reconexão/delete via sync | Médio |
 
@@ -281,11 +296,12 @@ Verificado:
   `clearAllStores()` reativamente quando `user` vira `null`, com o sync engine parando antes disso
   (ver "Atualização — Blue Team #3" no topo). Não é mais um gap; a suposição original desta
   auditoria estava errada, coberta agora por `OrganizationContext.test.jsx`.
+- **Tratamento de sessão expirada (401) — corrigido, é REAL.** `apiClient.js` chama
+  `notifySessionExpired()` em qualquer 401; `AuthContext.jsx` assina e força `signOut()`, o que
+  cascateia para a limpeza de IndexedDB acima (ver "Atualização — Blue Team #4" no topo).
 
 Gaps reais encontrados (nenhum é um incidente ativo, mas nenhum tem mitigação hoje):
 1. **Sem TTL em `clients` (PII)** — nome/telefone/e-mail ficam no IndexedDB indefinidamente.
-2. **Sem tratamento de 401** no `apiClient` — uma sessão expirada não força re-login nem limpa
-   cache local automaticamente; o usuário só percebe pelo erro genérico na próxima ação.
 
 ---
 
@@ -408,8 +424,9 @@ Para o Blue Team item 1 (resync-on-reconnect), considerar concluído quando:
 ~~Implementar resync-on-reconnect em `frontend/src/shared/syncEngine.js`~~ — **feito**.
 ~~Blue Team #2: trocar o backoff fixo de 5s por exponencial com teto e jitter~~ — **feito**.
 ~~Blue Team #3: verificar limpeza de IndexedDB no logout~~ — **feito** (já estava implementado
-corretamente; adicionado o teste que faltava). (ver atualizações no topo deste documento)
+corretamente; adicionado o teste que faltava).
+~~Blue Team #4: tratamento de sessão expirada (401)~~ — **feito** (ver atualizações no topo
+deste documento).
 
-Blue Team #4 (tratamento de sessão expirada/401 no `apiClient`) já está corrigido e testado em
-branch paralela, pendente de merge a esta. Próximo item depois de consolidar todas as branches:
-Blue Team #5, TTL/retenção configurável nas stores do IndexedDB (`appointments`/`clients`).
+Próximo item por prioridade — Blue Team #5: TTL/retenção configurável nas stores do IndexedDB
+(`appointments`/`clients`).

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createApiClient, ApiError } from './apiClient.js';
+import { onSessionExpired } from './sessionExpired.js';
 
 describe('apiClient', () => {
   beforeEach(() => {
@@ -59,5 +60,42 @@ describe('apiClient', () => {
     const client = createApiClient({ getAccessToken: () => 'token-123' });
     const result = await client.delete('/clients/1');
     expect(result).toBeNull();
+  });
+
+  // ADR 0015 (Blue Team #4): 401 sempre significa sessão expirada/inválida
+  // aqui — precisa avisar quem assina onSessionExpired (AuthContext), não só
+  // jogar um ApiError genérico que o usuário só percebe na próxima ação.
+  it('notifies session-expired listeners on a 401 response', async () => {
+    global.fetch.mockResolvedValue({
+      status: 401,
+      ok: false,
+      json: async () => ({ code: 'invalid_token', message: 'token expired', request_id: 'req-1' }),
+    });
+
+    const listener = vi.fn();
+    const unsubscribe = onSessionExpired(listener);
+
+    const client = createApiClient({ getAccessToken: () => 'stale-token' });
+    await expect(client.get('/clients')).rejects.toThrow(ApiError);
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    unsubscribe();
+  });
+
+  it('does not notify session-expired listeners for other error statuses', async () => {
+    global.fetch.mockResolvedValue({
+      status: 403,
+      ok: false,
+      json: async () => ({ code: 'insufficient_role', message: 'nope', request_id: 'req-1' }),
+    });
+
+    const listener = vi.fn();
+    const unsubscribe = onSessionExpired(listener);
+
+    const client = createApiClient({ getAccessToken: () => 'token-123' });
+    await expect(client.get('/cash-entries')).rejects.toThrow(ApiError);
+
+    expect(listener).not.toHaveBeenCalled();
+    unsubscribe();
   });
 });
