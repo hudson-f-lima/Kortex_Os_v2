@@ -1,8 +1,19 @@
 # 0015 — Auditoria da arquitetura local-first / sync incremental do KortexOS
 
-Status: auditoria concluída, decisões de implementação pendentes de aprovação
+Status: auditoria concluída; item crítico (resync-on-reconnect) corrigido nesta mesma branch
 Data: 2026-07-17
 Escopo: PWA (frontend), API de sync (backend), schema Postgres/Supabase relacionado
+
+## Atualização — item crítico corrigido
+
+`frontend/src/shared/syncEngine.js`: a reconexão do SSE agora chama `performCatchUp()` (pull
+incremental pelo cursor salvo em `meta.lastSyncId_*`) antes de reabrir o stream, em vez de
+reconectar direto. Coberto por `frontend/src/shared/syncEngine.test.js` (novo — simula uma queda
+de conexão e confirma que o catch-up é refeito antes do stream reabrir; confirmado que o teste
+falha sem o fix). 92/92 testes de frontend passando, lint limpo.
+
+Os demais itens do Blue Team (backoff exponencial, limpeza de IndexedDB no logout, tratamento de
+401, TTL de retenção) continuam como próximos passos, não bloqueadores.
 
 ## Contexto
 
@@ -363,6 +374,8 @@ Para o Blue Team item 1 (resync-on-reconnect), considerar concluído quando:
 
 ## PRÓXIMA AÇÃO ÚNICA
 
-Implementar resync-on-reconnect em `frontend/src/shared/syncEngine.js` (chamar
-`performCatchUp()` dentro do handler de reconexão, antes de `runSSE()`), com teste cobrindo o
-cenário de gap. É o único item classificado como **CRÍTICO** nesta auditoria.
+~~Implementar resync-on-reconnect em `frontend/src/shared/syncEngine.js`~~ — **feito nesta
+branch** (ver "Atualização — item crítico corrigido" no topo deste documento).
+
+Próximo item por prioridade (Blue Team #2): trocar o backoff fixo de 5s por exponencial com
+teto e jitter no reconnect do SSE.
