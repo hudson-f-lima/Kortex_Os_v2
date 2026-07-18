@@ -80,7 +80,7 @@ export function ProductModal({ mode, product, apiClient, onClose, onSaved }) {
             </>
           )}
 
-          {error && <p className="form-error">{error}</p>}
+          {error && <p className="form-error" role="alert">{error}</p>}
 
           <div className="modal-actions">
             <button type="button" className="link-button" onClick={onClose}>

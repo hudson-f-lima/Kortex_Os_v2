@@ -60,7 +60,7 @@ export function CreateOrganizationPage() {
             pattern="^[a-z0-9]+(-[a-z0-9]+)*$"
           />
         </label>
-        {error && <p className="form-error">{error}</p>}
+        {error && <p className="form-error" role="alert">{error}</p>}
         <button type="submit" disabled={submitting}>
           {submitting ? 'Criando…' : 'Criar organização'}
         </button>

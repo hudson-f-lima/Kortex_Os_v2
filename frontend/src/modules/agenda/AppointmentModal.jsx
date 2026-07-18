@@ -220,7 +220,7 @@ export function AppointmentModal({
     return (
       <Modal onClose={submitting ? () => {} : () => setPendingChange(null)}>
         <h2>Confirmar alteração</h2>
-        {error && <p className="form-error">{error}</p>}
+        {error && <p className="form-error" role="alert">{error}</p>}
         <ChangeDiff
           diff={pendingChange.diff}
           professionals={professionals}
@@ -311,7 +311,7 @@ export function AppointmentModal({
             </label>
           )}
 
-          {error && <p className="form-error">{error}</p>}
+          {error && <p className="form-error" role="alert">{error}</p>}
 
           <div className="modal-actions">
             <button type="button" className="link-button" onClick={onClose}>

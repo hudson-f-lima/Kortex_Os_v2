@@ -57,7 +57,7 @@ export function MembershipRow({ membership, canSetRole, apiClient, onSaved }) {
           Salvar
         </button>
       )}
-      {error && <span className="form-error">{error}</span>}
+      {error && <span className="form-error" role="alert">{error}</span>}
     </li>
   );
 }

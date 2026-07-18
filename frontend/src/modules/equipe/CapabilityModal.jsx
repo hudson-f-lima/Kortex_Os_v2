@@ -143,7 +143,7 @@ export function CapabilityModal({ capability, professionals, services, apiClient
             <input type="number" min="0" max="480" value={bufferAfter} onChange={(event) => setBufferAfter(event.target.value)} />
           </label>
 
-          {error && <p className="form-error">{error}</p>}
+          {error && <p className="form-error" role="alert">{error}</p>}
 
           <div className="modal-actions">
             <button type="button" className="link-button" onClick={onClose}>

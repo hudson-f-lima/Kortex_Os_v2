@@ -76,7 +76,7 @@ export function ManualEntryModal({ apiClient, onClose, onCreated }) {
             <input type="text" value={description} onChange={(event) => setDescription(event.target.value)} required />
           </label>
 
-          {error && <p className="form-error">{error}</p>}
+          {error && <p className="form-error" role="alert">{error}</p>}
 
           <div className="modal-actions">
             <button type="button" className="link-button" onClick={onClose} disabled={submitting}>

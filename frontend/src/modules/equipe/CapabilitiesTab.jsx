@@ -83,7 +83,7 @@ export function CapabilitiesTab({ professionals, services, currentRole }) {
         </div>
       )}
 
-      {removeError && <p className="form-error">{removeError}</p>}
+      {removeError && <p className="form-error" role="alert">{removeError}</p>}
 
       {capabilities.length === 0 && <p className="list-empty">Nenhuma capacidade configurada ainda.</p>}
 

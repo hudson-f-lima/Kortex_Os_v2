@@ -140,7 +140,7 @@ export function ServiceModal({ mode, service, groups, apiClient, onClose, onSave
             </label>
           )}
 
-          {error && <p className="form-error">{error}</p>}
+          {error && <p className="form-error" role="alert">{error}</p>}
 
           <div className="modal-actions">
             <button type="button" className="link-button" onClick={onClose}>

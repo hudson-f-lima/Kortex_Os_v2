@@ -138,6 +138,10 @@ button {
 
 .shell-nav a {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
   text-align: center;
   padding: 0.6rem 0.25rem;
   font-size: 0.75rem;
@@ -170,6 +174,11 @@ button {
   border-radius: 6px;
   background: var(--bg);
   color: var(--fg);
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .agenda-view-toggle button.active {
@@ -622,6 +631,7 @@ button.record-list-link {
   }
 
   .shell-nav a {
+    justify-content: flex-start;
     text-align: left;
     padding: 0.75rem 1.25rem;
   }

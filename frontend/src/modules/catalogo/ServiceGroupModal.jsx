@@ -81,7 +81,7 @@ export function ServiceGroupModal({ mode, group, apiClient, onClose, onSaved }) 
             </label>
           )}
 
-          {error && <p className="form-error">{error}</p>}
+          {error && <p className="form-error" role="alert">{error}</p>}
 
           <div className="modal-actions">
             <button type="button" className="link-button" onClick={onClose}>
