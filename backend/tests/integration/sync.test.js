@@ -129,3 +129,56 @@ test('sync stream (SSE) establishes connection and sends correct headers', async
     });
   });
 });
+
+test('sync stream handles concurrent connections for the same organization without crashing', async () => {
+  const { organizationId, accessToken } = await setUpOrgWithRole('owner');
+
+  const server = app.listen(0);
+  const { port } = server.address();
+
+  function connect() {
+    return new Promise((resolve, reject) => {
+      const req = http.get(
+        `http://127.0.0.1:${port}/api/v1/sync/stream`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'X-Organization-Id': organizationId,
+          },
+        },
+        (res) => {
+          let data = '';
+          res.on('data', (chunk) => {
+            data += chunk.toString();
+            if (data.includes('event: connected')) {
+              resolve({ req, res });
+            }
+          });
+        }
+      );
+      req.on('error', reject);
+    });
+  }
+
+  try {
+    // Fire two concurrent SSE requests for the same organization to trigger
+    // the race where supabaseAdmin.channel() reuses an already-subscribed
+    // RealtimeChannel instance across the two requests.
+    const [first, second] = await Promise.all([connect(), connect()]);
+
+    // Both connections should be alive and the server process must not have crashed.
+    assert.equal(first.res.statusCode, 200);
+    assert.equal(second.res.statusCode, 200);
+
+    first.req.destroy();
+    second.req.destroy();
+
+    // A follow-up request for the same organization must still succeed,
+    // proving the server survived the concurrent subscribe attempt.
+    const third = await connect();
+    assert.equal(third.res.statusCode, 200);
+    third.req.destroy();
+  } finally {
+    server.close();
+  }
+});
