@@ -17,6 +17,7 @@ export function localTestEnv(overrides = {}) {
     supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? LOCAL_SERVICE_ROLE_KEY,
     supabaseJwksUrl: `${process.env.SUPABASE_URL ?? LOCAL_API_URL}/auth/v1/.well-known/jwks.json`,
     corsOrigins: ['http://localhost:5173'],
+    siteUrl: process.env.SITE_URL ?? 'http://localhost:5173/Kortex_Os_v2/',
     ...overrides,
   };
 }

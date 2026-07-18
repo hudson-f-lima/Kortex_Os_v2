@@ -82,6 +82,11 @@ button {
   font-size: 0.875rem;
 }
 
+.form-success {
+  color: #1e6b3e;
+  font-size: 0.875rem;
+}
+
 .update-banner {
   position: fixed;
   bottom: 0;

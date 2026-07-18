@@ -3,6 +3,7 @@ import { useApiClient } from '../../shared/useApiClient.js';
 import { useOrganization } from '../../shared/useOrganization.js';
 import { messageForError, OFFLINE_FALLBACK } from '../../shared/apiErrorMessage.js';
 import { ProfessionalModal } from './ProfessionalModal.jsx';
+import { InviteModal } from './InviteModal.jsx';
 import { MembershipRow } from './MembershipRow.jsx';
 import { CapabilitiesTab } from './CapabilitiesTab.jsx';
 
@@ -27,6 +28,8 @@ export function EquipePage() {
   const [modal, setModal] = useState(null);
   const [removeError, setRemoveError] = useState(null);
   const [confirmingRemoveId, setConfirmingRemoveId] = useState(null);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [inviteNotice, setInviteNotice] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -79,6 +82,24 @@ export function EquipePage() {
 
   function handleMembershipSaved(membership) {
     setMemberships((current) => current.map((item) => (item.user_id === membership.user_id ? membership : item)));
+  }
+
+  function handleInvited(invite) {
+    setMemberships((current) => [
+      ...current,
+      { user_id: invite.userId, role: invite.role, active: true, created_at: new Date().toISOString() },
+    ]);
+    if (invite.professional) {
+      setProfessionals((current) => {
+        const exists = current.some((item) => item.id === invite.professional.id);
+        const next = exists
+          ? current.map((item) => (item.id === invite.professional.id ? invite.professional : item))
+          : [...current, invite.professional];
+        return next.sort((a, b) => a.name.localeCompare(b.name));
+      });
+    }
+    setInviteModalOpen(false);
+    setInviteNotice(`Convite enviado para ${invite.email}.`);
   }
 
   if (loading) return <p>Carregando equipe…</p>;
@@ -151,12 +172,20 @@ export function EquipePage() {
       </section>
 
       <section>
-        <h2>Papéis da equipe</h2>
+        <div className="list-toolbar">
+          <h2>Papéis da equipe</h2>
+          {canSetRole && (
+            <button type="button" onClick={() => setInviteModalOpen(true)}>
+              + Convidar membro
+            </button>
+          )}
+        </div>
         <p className="section-hint">
           {canSetRole
             ? 'Altere o papel ou a atividade de um membro pelo identificador de usuário.'
             : 'Somente o owner da organização pode alterar papéis.'}
         </p>
+        {inviteNotice && <p className="form-success" role="status">{inviteNotice}</p>}
         <ul className="record-list">
           {memberships.map((membership) => (
             <MembershipRow
@@ -186,6 +215,15 @@ export function EquipePage() {
           apiClient={apiClient}
           onClose={() => setModal(null)}
           onSaved={handleSaved}
+        />
+      )}
+
+      {inviteModalOpen && (
+        <InviteModal
+          apiClient={apiClient}
+          unlinkedProfessionals={professionals.filter((professional) => !professional.user_id)}
+          onClose={() => setInviteModalOpen(false)}
+          onInvited={handleInvited}
         />
       )}
     </div>

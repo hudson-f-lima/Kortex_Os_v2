@@ -7,6 +7,7 @@ const BASE = {
   SUPABASE_SERVICE_ROLE_KEY: 'service-role-key',
   SUPABASE_JWKS_URL: 'http://127.0.0.1:54321/auth/v1/.well-known/jwks.json',
   CORS_ORIGINS: 'http://localhost:5173,https://hudson-f-lima.github.io',
+  SITE_URL: 'https://hudson-f-lima.github.io/Kortex_Os_v2/',
   PORT: '3000',
 };
 
@@ -27,4 +28,9 @@ test('loadEnv fails closed on a non-numeric PORT', () => {
 
 test('loadEnv fails closed on empty CORS_ORIGINS', () => {
   assert.throws(() => loadEnv({ ...BASE, CORS_ORIGINS: '' }), /CORS_ORIGINS/);
+});
+
+test('loadEnv fails closed when SITE_URL is missing', () => {
+  const { SITE_URL, ...withoutSiteUrl } = BASE;
+  assert.throws(() => loadEnv(withoutSiteUrl), /SITE_URL/);
 });

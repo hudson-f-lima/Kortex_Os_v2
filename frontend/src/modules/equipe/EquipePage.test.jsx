@@ -100,6 +100,32 @@ describe('EquipePage', () => {
     expect(apiClientMock.post).toHaveBeenCalledWith('/professionals', { name: 'Beatriz', user_id: null });
   });
 
+  it('lets the owner send an invite and appends the returned membership', async () => {
+    mockLists();
+    apiClientMock.post.mockResolvedValue({
+      invite: { userId: 'user-new-12345678', email: 'nova@test.local', role: 'reception', professional: null },
+    });
+    render(<EquipePage />);
+
+    await waitFor(() => expect(screen.getByText('+ Convidar membro')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('+ Convidar membro'));
+    fireEvent.change(screen.getByLabelText('E-mail'), { target: { value: 'nova@test.local' } });
+    fireEvent.click(screen.getByText('Enviar convite'));
+
+    await waitFor(() => expect(screen.getByText('Convite enviado para nova@test.local.')).toBeInTheDocument());
+    expect(apiClientMock.post).toHaveBeenCalledWith('/convites', { email: 'nova@test.local', role: 'reception' });
+    expect(screen.getByText('user-new…')).toBeInTheDocument();
+  });
+
+  it('hides the invite button for a manager (convites is owner-only)', async () => {
+    useOrganizationMock.mockReturnValue({ role: 'manager' });
+    mockLists();
+    render(<EquipePage />);
+
+    await waitFor(() => expect(screen.getByText('Ana')).toBeInTheDocument());
+    expect(screen.queryByText('+ Convidar membro')).not.toBeInTheDocument();
+  });
+
   it('maps a 409 conflict on professional removal to a Portuguese message', async () => {
     mockLists();
     apiClientMock.delete.mockRejectedValue(new ApiError(409, 'referenced_by_other_records', 'professional is referenced', 'req-1'));

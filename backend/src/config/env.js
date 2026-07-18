@@ -3,6 +3,7 @@ const REQUIRED_VARS = [
   'SUPABASE_SERVICE_ROLE_KEY',
   'SUPABASE_JWKS_URL',
   'CORS_ORIGINS',
+  'SITE_URL',
 ];
 
 export function loadEnv(source = process.env) {
@@ -31,5 +32,12 @@ export function loadEnv(source = process.env) {
     supabaseServiceRoleKey: source.SUPABASE_SERVICE_ROLE_KEY,
     supabaseJwksUrl: source.SUPABASE_JWKS_URL,
     corsOrigins,
+    // Base pública do PWA (inclui o base path do GitHub Pages, ex.:
+    // https://host/Kortex_Os_v2/) — usada como redirectTo do convite por
+    // e-mail (auth.admin.inviteUserByEmail). Aponta para a raiz do app, não
+    // para uma rota aninhada: GitHub Pages não faz rewrite server-side de
+    // SPA, então qualquer rota aninhada 404 em acesso direto (ADR 0014,
+    // "Blind Spot"); a raiz é sempre servida como index.html.
+    siteUrl: source.SITE_URL,
   };
 }
