@@ -3,6 +3,7 @@ import { ApiError } from '../../shared/apiClient.js';
 import { useApiClient } from '../../shared/useApiClient.js';
 import { useOrganization } from '../../shared/useOrganization.js';
 import { useCachedQuery } from '../../shared/useCachedQuery.js';
+import { messageForError } from '../../shared/apiErrorMessage.js';
 import { ClientModal } from './ClientModal.jsx';
 import { ClientHistory } from './ClientHistory.jsx';
 
@@ -11,18 +12,14 @@ import { ClientHistory } from './ClientHistory.jsx';
 const WRITE_ROLES = ['owner', 'admin', 'manager', 'reception'];
 const DELETE_ROLES = ['owner', 'admin', 'manager'];
 
+// Comportamento distinto do apiErrorMessage.js compartilhado — testado
+// explicitamente em ClientesPage.test.jsx ("network down"): erros JS crus
+// (não ApiError) devem surfacar err.message em vez do fallback genérico.
+// Não generalizar (só este arquivo e AgendaPage.jsx têm esse terceiro branch).
 function messageForListError(err) {
   if (err instanceof ApiError) return err.message;
   if (err?.message) return err.message;
   return 'Sem conexão. Verifique sua internet e tente novamente.';
-}
-
-function messageForRemoveError(err) {
-  if (err instanceof ApiError) {
-    if (err.status === 409) return 'Este cliente tem agendamentos ou pedidos vinculados — desative em vez de excluir.';
-    return err.message;
-  }
-  return 'Erro inesperado ao remover cliente.';
 }
 
 export function ClientesPage() {
@@ -66,7 +63,12 @@ export function ClientesPage() {
       load();
       setConfirmingRemoveId(null);
     } catch (err) {
-      setRemoveError(messageForRemoveError(err));
+      setRemoveError(
+        messageForError(err, {
+          fallback: 'Erro inesperado ao remover cliente.',
+          statuses: { 409: 'Este cliente tem agendamentos ou pedidos vinculados — desative em vez de excluir.' },
+        }),
+      );
     }
   }
 

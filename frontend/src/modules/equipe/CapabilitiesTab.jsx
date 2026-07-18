@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ApiError } from '../../shared/apiClient.js';
 import { useApiClient } from '../../shared/useApiClient.js';
+import { messageForError, OFFLINE_FALLBACK } from '../../shared/apiErrorMessage.js';
 import { CapabilityModal } from './CapabilityModal.jsx';
 
 // Mirrors backend/src/modules/professionalServiceCapabilities/professionalServiceCapabilities.route.js
@@ -8,16 +8,6 @@ import { CapabilityModal } from './CapabilityModal.jsx';
 // included), unlike financial data such as cash_entries.
 const WRITE_ROLES = ['owner', 'admin', 'manager'];
 const DELETE_ROLES = ['owner', 'admin'];
-
-function messageForListError(err) {
-  if (err instanceof ApiError) return err.message;
-  return 'Sem conexão. Verifique sua internet e tente novamente.';
-}
-
-function messageForRemoveError(err) {
-  if (err instanceof ApiError) return err.message;
-  return 'Erro inesperado ao remover capacidade.';
-}
 
 export function CapabilitiesTab({ professionals, services, currentRole }) {
   const apiClient = useApiClient();
@@ -38,7 +28,7 @@ export function CapabilitiesTab({ professionals, services, currentRole }) {
       const { professional_service_capabilities: data } = await apiClient.get('/professional-service-capabilities');
       setCapabilities(data);
     } catch (err) {
-      setError(messageForListError(err));
+      setError(messageForError(err, { fallback: OFFLINE_FALLBACK }));
     } finally {
       setLoading(false);
     }
@@ -63,7 +53,7 @@ export function CapabilitiesTab({ professionals, services, currentRole }) {
       setCapabilities((current) => current.filter((item) => item.id !== capability.id));
       setConfirmingRemoveId(null);
     } catch (err) {
-      setRemoveError(messageForRemoveError(err));
+      setRemoveError(messageForError(err, { fallback: 'Erro inesperado ao remover capacidade.' }));
     }
   }
 

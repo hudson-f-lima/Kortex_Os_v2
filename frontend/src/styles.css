@@ -410,6 +410,13 @@ button {
   gap: 0.5rem;
 }
 
+.comanda-cart-line-assignment {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
 .comanda-package-components {
   display: flex;
   flex-direction: column;

@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ApiError } from '../../shared/apiClient.js';
 import { useApiClient } from '../../shared/useApiClient.js';
 import { useOrganization } from '../../shared/useOrganization.js';
 import { ClientPicker } from '../../shared/ClientPicker.jsx';
-import { formatCents, reaisToCents } from '../../shared/money.js';
-import { messageForCheckoutError } from './comandaErrors.js';
+import { Modal } from '../../shared/Modal.jsx';
+import { formatCents } from '../../shared/money.js';
+import { messageForError, OFFLINE_FALLBACK } from '../../shared/apiErrorMessage.js';
+import { useCart } from './useCart.js';
+import { useCheckout } from './useCheckout.js';
 import { OrderHistory } from './OrderHistory.jsx';
 
 // Mirrors backend/src/modules/checkout/checkout.route.js CHECKOUT_ROLES and
@@ -23,11 +25,6 @@ const PAYMENT_METHODS = [
   { value: 'credit_card', label: 'Cartão de crédito' },
   { value: 'other', label: 'Outro' },
 ];
-
-function messageForListError(err) {
-  if (err instanceof ApiError) return err.message;
-  return 'Sem conexão. Verifique sua internet e tente novamente.';
-}
 
 function newLineKey() {
   return crypto.randomUUID();
@@ -50,18 +47,58 @@ export function ComandaPage() {
   const [clients, setClients] = useState([]);
 
   const [clientId, setClientId] = useState('');
-  const [cart, setCart] = useState([]);
   const [search, setSearch] = useState('');
-
-  const [step, setStep] = useState('building'); // 'building' | 'payment' | 'closed'
-  const [idempotencyKey, setIdempotencyKey] = useState(null);
   const [appointmentVersion, setAppointmentVersion] = useState(null);
-  const [payments, setPayments] = useState([]);
-  const [discountReais, setDiscountReais] = useState('');
-  const [tipReais, setTipReais] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [checkoutError, setCheckoutError] = useState(null);
-  const [closedOrder, setClosedOrder] = useState(null);
+  const [assigningKey, setAssigningKey] = useState(null);
+
+  const {
+    cart,
+    setCart,
+    subtotalCents,
+    hasServiceLine,
+    cartIsReady,
+    addServiceOrProduct,
+    addPackage,
+    updateLineQuantity,
+    removeLine,
+    setLineProfessional,
+    setPackageComponentProfessional,
+    resetCart,
+  } = useCart(apiClient, catalogItems, {
+    // Abre o modal de atribuição de profissional assim que um serviço avulso
+    // ou pacote entra no carrinho — produto não precisa (sem profissional).
+    onLineAdded: (line) => {
+      if (line.kind === 'service' || line.kind === 'package') setAssigningKey(line.key);
+    },
+  });
+
+  const {
+    step,
+    payments,
+    discountReais,
+    setDiscountReais,
+    tipReais,
+    setTipReais,
+    submitting,
+    checkoutError,
+    closedOrder,
+    discountCents,
+    tipCents,
+    discountValid,
+    tipValid,
+    finalTotalCents,
+    paymentsTotalCents,
+    paymentsReconcile,
+    canClose,
+    goToPayment,
+    backToBuilding,
+    addPaymentLine,
+    removePaymentLine,
+    updatePayment,
+    fillRemaining,
+    handleClose,
+    resetCheckout,
+  } = useCheckout({ apiClient, cart, clientId, subtotalCents, hasServiceLine, appointmentId, appointmentVersion });
 
   const loadLists = useCallback(async () => {
     if (!canOperate) {
@@ -80,7 +117,7 @@ export function ComandaPage() {
       setCatalogItems(catalogRes.items);
       setClients(clientsRes.clients);
     } catch (err) {
-      setListsError(messageForListError(err));
+      setListsError(messageForError(err, { fallback: OFFLINE_FALLBACK }));
     } finally {
       setListsLoading(false);
     }
@@ -139,210 +176,20 @@ export function ComandaPage() {
     return catalogItems.filter((item) => item.name.toLowerCase().includes(query));
   }, [search, catalogItems]);
 
-  const subtotalCents = useMemo(
-    () => cart.reduce((sum, line) => sum + (line.kind === 'package' ? line.unitPriceCents : line.unitPriceCents * line.quantity), 0),
-    [cart],
-  );
+  const assigningLine = cart.find((line) => line.key === assigningKey) ?? null;
 
-  // Espelha o invariante do backend (checkout_close, docs/adr/0006): gorjeta
-  // só é aceita se houver ao menos um item que vira order_items.kind='service'
-  // — serviço avulso ou pacote (que expande em linhas de serviço na RPC).
-  const hasServiceLine = cart.some((line) => line.kind === 'service' || line.kind === 'package');
-
-  const discountCents = discountReais.trim() === '' ? 0 : reaisToCents(discountReais);
-  const tipCents = tipReais.trim() === '' ? 0 : reaisToCents(tipReais);
-  const discountValid = Number.isInteger(discountCents) && discountCents >= 0 && discountCents <= subtotalCents;
-  const tipValid = Number.isInteger(tipCents) && tipCents >= 0 && (tipCents === 0 || hasServiceLine);
-  const finalTotalCents = subtotalCents - (discountValid ? discountCents : 0) + (tipValid ? tipCents : 0);
-
-  const paymentsWithCents = useMemo(
-    () => payments.map((payment) => ({ ...payment, amountCents: reaisToCents(payment.amountReais) })),
-    [payments],
-  );
-
-  const paymentsTotalCents = useMemo(
-    () => paymentsWithCents.reduce((sum, payment) => sum + (payment.amountCents ?? 0), 0),
-    [paymentsWithCents],
-  );
-
-  const cartIsReady =
-    cart.length > 0 &&
-    cart.every((line) => {
-      if (line.kind === 'service') return Boolean(line.professionalId);
-      if (line.kind === 'package') return line.components.every((component) => Boolean(component.professionalId));
-      return true;
-    });
+  function professionalName(id) {
+    return professionals.find((professional) => professional.id === id)?.name ?? '—';
+  }
 
   function handleClientCreated(client) {
     setClients((current) => [...current, client].sort((a, b) => a.name.localeCompare(b.name)));
   }
 
-  function addServiceOrProduct(item) {
-    setCart((current) => {
-      const existing = current.find((line) => line.kind === item.kind && line.catalogId === item.id);
-      if (existing) {
-        return current.map((line) => (line === existing ? { ...line, quantity: line.quantity + 1 } : line));
-      }
-      return [
-        ...current,
-        {
-          key: newLineKey(),
-          kind: item.kind,
-          catalogId: item.id,
-          name: item.name,
-          unitPriceCents: item.price_cents,
-          quantity: 1,
-          professionalId: item.kind === 'service' ? '' : undefined,
-          stockOnHand: item.kind === 'product' ? item.stock_on_hand : undefined,
-        },
-      ];
-    });
-  }
-
-  async function addPackage(item) {
-    const { package: pkg } = await apiClient.get(`/packages/${item.id}`);
-    const components = pkg.items.map((packageItem) => {
-      const service = catalogItems.find((catalogItem) => catalogItem.kind === 'service' && catalogItem.id === packageItem.service_id);
-      return { serviceId: packageItem.service_id, serviceName: service?.name ?? 'Serviço', professionalId: '' };
-    });
-    setCart((current) => [
-      ...current,
-      {
-        key: newLineKey(),
-        kind: 'package',
-        catalogId: item.id,
-        name: item.name,
-        unitPriceCents: item.price_cents,
-        components,
-      },
-    ]);
-  }
-
-  function updateLineQuantity(key, delta) {
-    setCart((current) =>
-      current
-        .map((line) => (line.key === key ? { ...line, quantity: line.quantity + delta } : line))
-        .filter((line) => line.kind === 'package' || line.quantity > 0),
-    );
-  }
-
-  function removeLine(key) {
-    setCart((current) => current.filter((line) => line.key !== key));
-  }
-
-  function setLineProfessional(key, professionalId) {
-    setCart((current) => current.map((line) => (line.key === key ? { ...line, professionalId } : line)));
-  }
-
-  function setPackageComponentProfessional(key, serviceId, professionalId) {
-    setCart((current) =>
-      current.map((line) =>
-        line.key === key
-          ? {
-              ...line,
-              components: line.components.map((component) =>
-                component.serviceId === serviceId ? { ...component, professionalId } : component,
-              ),
-            }
-          : line,
-      ),
-    );
-  }
-
-  function goToPayment() {
-    setIdempotencyKey(crypto.randomUUID());
-    setPayments([{ key: newLineKey(), method: 'cash', amountReais: (subtotalCents / 100).toFixed(2) }]);
-    setDiscountReais('');
-    setTipReais('');
-    setCheckoutError(null);
-    setStep('payment');
-  }
-
-  function backToBuilding() {
-    setStep('building');
-    setCheckoutError(null);
-  }
-
-  function addPaymentLine() {
-    setPayments((current) => [...current, { key: newLineKey(), method: 'cash', amountReais: '' }]);
-  }
-
-  function removePaymentLine(key) {
-    setPayments((current) => current.filter((payment) => payment.key !== key));
-  }
-
-  function updatePayment(key, patch) {
-    setPayments((current) => current.map((payment) => (payment.key === key ? { ...payment, ...patch } : payment)));
-  }
-
-  function fillRemaining(key) {
-    const current = paymentsWithCents.find((payment) => payment.key === key)?.amountCents ?? 0;
-    const remaining = finalTotalCents - (paymentsTotalCents - current);
-    updatePayment(key, { amountReais: (Math.max(remaining, 0) / 100).toFixed(2) });
-  }
-
-  const paymentsReconcile =
-    paymentsWithCents.length > 0 &&
-    paymentsWithCents.every((payment) => Number.isInteger(payment.amountCents) && payment.amountCents > 0) &&
-    paymentsWithCents.reduce((sum, payment) => sum + payment.amountCents, 0) === finalTotalCents;
-
-  const canClose = paymentsReconcile && discountValid && tipValid;
-
-  async function handleClose() {
-    setSubmitting(true);
-    setCheckoutError(null);
-    try {
-      const body = {
-        client_id: clientId || null,
-        items: cart.map((line) => {
-          if (line.kind === 'service') {
-            return { kind: 'service', id: line.catalogId, quantity: line.quantity, professional_id: line.professionalId };
-          }
-          if (line.kind === 'package') {
-            return {
-              kind: 'package',
-              id: line.catalogId,
-              quantity: 1,
-              professionals: Object.fromEntries(line.components.map((component) => [component.serviceId, component.professionalId])),
-            };
-          }
-          return { kind: 'product', id: line.catalogId, quantity: line.quantity };
-        }),
-        payments: paymentsWithCents.map((payment) => ({ method: payment.method, amount_cents: payment.amountCents })),
-        discount_cents: discountValid ? discountCents : 0,
-        tip_cents: tipValid ? tipCents : 0,
-      };
-      const result = await apiClient.post('/checkout', body, { headers: { 'Idempotency-Key': idempotencyKey } });
-      setClosedOrder(result);
-      setStep('closed');
-      if (appointmentId) {
-        apiClient
-          .patch(
-            `/appointments/${appointmentId}`,
-            { status: 'completed', version: appointmentVersion },
-            { headers: { 'Idempotency-Key': `appt-complete-${crypto.randomUUID()}` } },
-          )
-          .catch(() => {
-            /* melhor esforço — não bloqueia a comanda já fechada */
-          });
-      }
-    } catch (err) {
-      setCheckoutError(messageForCheckoutError(err));
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
   function startNewComanda() {
     setClientId('');
-    setCart([]);
-    setPayments([]);
-    setDiscountReais('');
-    setTipReais('');
-    setIdempotencyKey(null);
-    setCheckoutError(null);
-    setClosedOrder(null);
-    setStep('building');
+    resetCart();
+    resetCheckout();
     navigate('/comanda', { replace: true });
   }
 
@@ -560,39 +407,24 @@ export function ComandaPage() {
             )}
 
             {line.kind === 'service' && (
-              <select
-                aria-label={`Profissional para ${line.name}`}
-                value={line.professionalId}
-                onChange={(event) => setLineProfessional(line.key, event.target.value)}
-              >
-                <option value="">Selecione um profissional</option>
-                {professionals.map((professional) => (
-                  <option key={professional.id} value={professional.id}>
-                    {professional.name}
-                  </option>
-                ))}
-              </select>
+              <div className="comanda-cart-line-assignment">
+                <span>{line.professionalId ? `Profissional: ${professionalName(line.professionalId)}` : 'Profissional não atribuído'}</span>
+                <button type="button" className="link-button" onClick={() => setAssigningKey(line.key)}>
+                  Atribuir profissional
+                </button>
+              </div>
             )}
 
             {line.kind === 'package' && (
-              <div className="comanda-package-components">
-                {line.components.map((component) => (
-                  <label key={component.serviceId}>
-                    {component.serviceName}
-                    <select
-                      aria-label={`Profissional para ${component.serviceName} (${line.name})`}
-                      value={component.professionalId}
-                      onChange={(event) => setPackageComponentProfessional(line.key, component.serviceId, event.target.value)}
-                    >
-                      <option value="">Selecione um profissional</option>
-                      {professionals.map((professional) => (
-                        <option key={professional.id} value={professional.id}>
-                          {professional.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ))}
+              <div className="comanda-cart-line-assignment">
+                <span>
+                  {line.components.every((component) => Boolean(component.professionalId))
+                    ? 'Profissionais atribuídos'
+                    : 'Profissionais pendentes'}
+                </span>
+                <button type="button" className="link-button" onClick={() => setAssigningKey(line.key)}>
+                  Atribuir profissionais
+                </button>
               </div>
             )}
           </div>
@@ -604,6 +436,58 @@ export function ComandaPage() {
       <button type="button" disabled={!cartIsReady} onClick={goToPayment}>
         Fechar comanda
       </button>
+
+      {assigningLine && (
+        <Modal onClose={() => setAssigningKey(null)}>
+          <h2>Atribuir profissional — {assigningLine.name}</h2>
+
+          {assigningLine.kind === 'service' && (
+            <label>
+              Profissional
+              <select
+                aria-label={`Profissional para ${assigningLine.name}`}
+                value={assigningLine.professionalId}
+                onChange={(event) => setLineProfessional(assigningLine.key, event.target.value)}
+              >
+                <option value="">Selecione um profissional</option>
+                {professionals.map((professional) => (
+                  <option key={professional.id} value={professional.id}>
+                    {professional.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          {assigningLine.kind === 'package' && (
+            <div className="comanda-package-components">
+              {assigningLine.components.map((component) => (
+                <label key={component.serviceId}>
+                  {component.serviceName}
+                  <select
+                    aria-label={`Profissional para ${component.serviceName} (${assigningLine.name})`}
+                    value={component.professionalId}
+                    onChange={(event) => setPackageComponentProfessional(assigningLine.key, component.serviceId, event.target.value)}
+                  >
+                    <option value="">Selecione um profissional</option>
+                    {professionals.map((professional) => (
+                      <option key={professional.id} value={professional.id}>
+                        {professional.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ))}
+            </div>
+          )}
+
+          <div className="modal-actions">
+            <button type="button" onClick={() => setAssigningKey(null)}>
+              Concluir
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

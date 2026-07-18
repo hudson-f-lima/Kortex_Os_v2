@@ -1,14 +1,7 @@
 import { useState } from 'react';
-import { ApiError } from '../../shared/apiClient.js';
+import { Modal } from '../../shared/Modal.jsx';
 import { slugify } from '../../shared/slugify.js';
-
-function messageForError(err) {
-  if (err instanceof ApiError) {
-    if (err.status === 409) return 'Já existe uma organização com este identificador.';
-    return err.message;
-  }
-  return 'Erro inesperado. Tente novamente.';
-}
+import { messageForError } from '../../shared/apiErrorMessage.js';
 
 // create_organization não depende de organizationContext (o ator ainda pode
 // não ter nenhuma membership) — usado tanto no bootstrap de zero
@@ -34,16 +27,15 @@ export function OrganizationModal({ apiClient, onClose, onCreated }) {
       const { organization } = await apiClient.post('/organizations', { name: name.trim(), slug });
       onCreated(organization);
     } catch (err) {
-      setError(messageForError(err));
+      setError(messageForError(err, { statuses: { 409: 'Já existe uma organização com este identificador.' } }));
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true">
-      <div className="modal-card">
-        <h2>Nova organização</h2>
+    <Modal onClose={onClose}>
+      <h2>Nova organização</h2>
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>
             Nome
@@ -79,7 +71,6 @@ export function OrganizationModal({ apiClient, onClose, onCreated }) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

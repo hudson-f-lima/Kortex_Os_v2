@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ApiError } from '../../shared/apiClient.js';
+import { Modal } from '../../shared/Modal.jsx';
 import { statusLabel } from '../agenda/appointmentStatus.js';
 
 function messageForError(err) {
@@ -39,9 +40,8 @@ export function ClientHistory({ client, apiClient, onClose }) {
   }, [apiClient, client.id]);
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true">
-      <div className="modal-card">
-        <h2>{client.name}</h2>
+    <Modal onClose={onClose}>
+      <h2>{client.name}</h2>
         <p className="client-history-contact">
           {client.phone || '—'}
           {client.email ? ` · ${client.email}` : ''}
@@ -68,7 +68,6 @@ export function ClientHistory({ client, apiClient, onClose }) {
             Fechar
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Modal } from '../../shared/Modal.jsx';
 import { messageForInventoryError } from './inventoryErrors.js';
 
 const REASONS = [
@@ -50,9 +51,8 @@ export function AdjustmentModal({ product, apiClient, onClose, onAdjusted }) {
   }
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true">
-      <div className="modal-card">
-        <h2>Ajustar estoque — {product.name}</h2>
+    <Modal onClose={submitting ? () => {} : onClose}>
+      <h2>Ajustar estoque — {product.name}</h2>
         <p className="section-hint">Estoque atual: {product.stock_on_hand}</p>
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>
@@ -86,7 +86,6 @@ export function AdjustmentModal({ product, apiClient, onClose, onAdjusted }) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

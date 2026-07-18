@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Modal } from '../../shared/Modal.jsx';
 import { reaisToCents } from '../../shared/money.js';
 import { messageForCashEntryError } from './cashEntryErrors.js';
 
@@ -46,9 +47,8 @@ export function ManualEntryModal({ apiClient, onClose, onCreated }) {
   }
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true">
-      <div className="modal-card">
-        <h2>Novo lançamento</h2>
+    <Modal onClose={submitting ? () => {} : onClose}>
+      <h2>Novo lançamento</h2>
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>
             Tipo
@@ -87,7 +87,6 @@ export function ManualEntryModal({ apiClient, onClose, onCreated }) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

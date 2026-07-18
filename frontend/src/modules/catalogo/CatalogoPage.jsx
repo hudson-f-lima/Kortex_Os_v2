@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ApiError } from '../../shared/apiClient.js';
 import { useApiClient } from '../../shared/useApiClient.js';
 import { useOrganization } from '../../shared/useOrganization.js';
 import { formatCents } from '../../shared/money.js';
+import { messageForError, OFFLINE_FALLBACK } from '../../shared/apiErrorMessage.js';
 import { formatPercent } from './commission.js';
 import { ServiceGroupModal } from './ServiceGroupModal.jsx';
 import { ServiceModal } from './ServiceModal.jsx';
@@ -32,17 +32,8 @@ const CONFLICT_MESSAGES = {
 
 const REMOVE_PATHS = { group: 'service-groups', service: 'services', product: 'products', package: 'packages' };
 
-function messageForListError(err) {
-  if (err instanceof ApiError) return err.message;
-  return 'Sem conexão. Verifique sua internet e tente novamente.';
-}
-
 function messageForActionError(err, type) {
-  if (err instanceof ApiError) {
-    if (err.status === 409) return CONFLICT_MESSAGES[type] ?? err.message;
-    return err.message;
-  }
-  return 'Erro inesperado. Tente novamente.';
+  return messageForError(err, { statuses: { 409: CONFLICT_MESSAGES[type] } });
 }
 
 function upsertSorted(list, saved) {
@@ -83,7 +74,7 @@ export function CatalogoPage() {
       setProducts(productsRes.products);
       setPackages(packagesRes.packages);
     } catch (err) {
-      setError(messageForListError(err));
+      setError(messageForError(err, { fallback: OFFLINE_FALLBACK }));
     } finally {
       setLoading(false);
     }

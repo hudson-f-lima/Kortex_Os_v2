@@ -1,14 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ApiError } from '../../shared/apiClient.js';
 import { formatCents } from '../../shared/money.js';
+import { messageForError, OFFLINE_FALLBACK } from '../../shared/apiErrorMessage.js';
 import { RefundModal } from './RefundModal.jsx';
 
 const STATUS_LABELS = { closed: 'Fechada', refunded: 'Estornada', draft: 'Rascunho', cancelled: 'Cancelada' };
-
-function messageForListError(err) {
-  if (err instanceof ApiError) return err.message;
-  return 'Sem conexão. Verifique sua internet e tente novamente.';
-}
 
 // GET /orders (docs/PWA_PLANEJAMENTO.md §5.2 nunca teve uma UI própria até a
 // Fase 9 — a Comanda só escrevia via checkout_close). Lista comandas já
@@ -26,7 +21,7 @@ export function OrderHistory({ apiClient, canRefund }) {
       const { orders: data } = await apiClient.get('/orders');
       setOrders(data);
     } catch (err) {
-      setError(messageForListError(err));
+      setError(messageForError(err, { fallback: OFFLINE_FALLBACK }));
     } finally {
       setLoading(false);
     }
