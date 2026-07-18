@@ -92,6 +92,7 @@ export function ClientesPage() {
       <div className="list-toolbar">
         <input
           type="text"
+          aria-label="Buscar por nome"
           placeholder="Buscar por nome"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
@@ -107,7 +108,7 @@ export function ClientesPage() {
         )}
       </div>
 
-      {removeError && <p className="form-error">{removeError}</p>}
+      {removeError && <p className="form-error" role="alert">{removeError}</p>}
 
       {filtered.length === 0 && <p className="list-empty">Nenhum cliente encontrado.</p>}
 

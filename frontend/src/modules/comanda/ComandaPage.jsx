@@ -286,10 +286,10 @@ export function ComandaPage() {
           </label>
         </div>
         {!discountValid && discountReais !== '' && (
-          <p className="form-error">O desconto deve ser um valor entre 0 e o subtotal da comanda.</p>
+          <p className="form-error" role="alert">O desconto deve ser um valor entre 0 e o subtotal da comanda.</p>
         )}
         {!hasServiceLine && <p className="comanda-hint">Gorjeta só pode ser aplicada quando a comanda tem algum serviço.</p>}
-        {hasServiceLine && !tipValid && tipReais !== '' && <p className="form-error">A gorjeta não pode ser negativa.</p>}
+        {hasServiceLine && !tipValid && tipReais !== '' && <p className="form-error" role="alert">A gorjeta não pode ser negativa.</p>}
 
         <p className="comanda-total">Total a pagar: {formatCents(finalTotalCents)}</p>
 
@@ -327,7 +327,7 @@ export function ComandaPage() {
           Pagamentos: {formatCents(paymentsTotalCents)} {!paymentsReconcile && '— não bate com o total'}
         </p>
 
-        {checkoutError && <p className="form-error">{checkoutError}</p>}
+        {checkoutError && <p className="form-error" role="alert">{checkoutError}</p>}
 
         <div className="modal-actions">
           <button type="button" className="link-button" onClick={backToBuilding} disabled={submitting}>
@@ -359,6 +359,7 @@ export function ComandaPage() {
       <div className="comanda-catalog">
         <input
           type="text"
+          aria-label="Buscar serviço, produto ou pacote"
           placeholder="Buscar serviço, produto ou pacote"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
@@ -401,7 +402,7 @@ export function ComandaPage() {
                   +
                 </button>
                 {line.stockOnHand !== undefined && line.quantity > line.stockOnHand && (
-                  <span className="form-error">acima do estoque disponível ({line.stockOnHand})</span>
+                  <span className="form-error" role="alert">acima do estoque disponível ({line.stockOnHand})</span>
                 )}
               </div>
             )}

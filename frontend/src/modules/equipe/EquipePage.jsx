@@ -112,7 +112,7 @@ export function EquipePage() {
           )}
         </div>
 
-        {removeError && <p className="form-error">{removeError}</p>}
+        {removeError && <p className="form-error" role="alert">{removeError}</p>}
 
         {professionals.length === 0 && <p className="list-empty">Nenhum profissional cadastrado ainda.</p>}
 

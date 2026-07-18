@@ -76,7 +76,7 @@ export function ClientPicker({ clients, value, onChange, apiClient, onClientCrea
             Telefone (opcional)
             <input value={newClientPhone} onChange={(event) => setNewClientPhone(event.target.value)} />
           </label>
-          {error && <p className="form-error">{error}</p>}
+          {error && <p className="form-error" role="alert">{error}</p>}
           <button type="button" disabled={!newClientName.trim() || submitting} onClick={handleCreateClient}>
             Salvar cliente
           </button>

@@ -49,7 +49,7 @@ export function ClientHistory({ client, apiClient, onClose }) {
 
         <h3>Histórico de agendamentos</h3>
         {loading && <p>Carregando histórico…</p>}
-        {!loading && error && <p className="form-error">{error}</p>}
+        {!loading && error && <p className="form-error" role="alert">{error}</p>}
         {!loading && !error && appointments.length === 0 && <p className="list-empty">Nenhum agendamento ainda.</p>}
         {!loading && !error && appointments.length > 0 && (
           <ul className="record-list">

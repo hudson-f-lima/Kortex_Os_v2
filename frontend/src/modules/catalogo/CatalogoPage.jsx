@@ -135,7 +135,7 @@ export function CatalogoPage() {
         ))}
       </div>
 
-      {actionError && <p className="form-error">{actionError}</p>}
+      {actionError && <p className="form-error" role="alert">{actionError}</p>}
 
       {tab === 'servicos' && (
         <section>
