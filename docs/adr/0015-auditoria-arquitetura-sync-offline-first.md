@@ -1,6 +1,6 @@
 # 0015 — Auditoria da arquitetura local-first / sync incremental do KortexOS
 
-Status: auditoria concluída; item crítico (resync-on-reconnect) e Blue Team #3 (logout cache) corrigidos
+Status: auditoria concluída; item crítico e Blue Team #2/#3 corrigidos
 Data: 2026-07-17
 Escopo: PWA (frontend), API de sync (backend), schema Postgres/Supabase relacionado
 
@@ -11,6 +11,18 @@ incremental pelo cursor salvo em `meta.lastSyncId_*`) antes de reabrir o stream,
 reconectar direto. Coberto por `frontend/src/shared/syncEngine.test.js` (novo — simula uma queda
 de conexão e confirma que o catch-up é refeito antes do stream reabrir; confirmado que o teste
 falha sem o fix). 92/92 testes de frontend passando, lint limpo.
+
+## Atualização — Blue Team #2 corrigido (backoff exponencial)
+
+`frontend/src/shared/syncEngine.js`: o retry fixo de 5s virou backoff exponencial com "full
+jitter" (`retryDelayFor`, exportada e testada isoladamente) — teto de 1s×2^tentativa, capado em
+30s, com o backoff resetando só depois de um `read()` bem-sucedido no stream (não no simples
+handshake HTTP, que pode suceder e cair no primeiro read logo em seguida — verificado que resetar
+cedo demais anula o crescimento do backoff). Coberto por 4 testes novos em
+`syncEngine.test.js` (crescimento puro da função, crescimento em falhas consecutivas, e reset após
+reconexão estável) — confirmado manualmente que os testes de crescimento/reset falham se o reset
+acontecer no lugar errado. `eslint.config.js` ganhou o global `TextEncoder` (faltava, só
+`TextDecoder` estava listado). 96/96 testes de frontend passando, lint limpo.
 
 ## Atualização — Blue Team #3 verificado (limpeza de IndexedDB no logout)
 
@@ -32,7 +44,8 @@ arquivo) cobrindo exatamente isso: confirma que `clearAllStores()` é chamado no
 limpo, build de produção ok.
 
 Os demais itens do Blue Team (tratamento de 401, TTL de retenção) continuam como próximos passos,
-não bloqueadores.
+não bloqueadores — o tratamento de 401 já foi corrigido em branch paralela (Blue Team #4),
+pendente de merge a esta.
 
 ## Contexto
 
@@ -76,9 +89,9 @@ manifestam sob rede instável ou sessão expirada, cenários ainda não cobertos
 | Escopo por usuário no IndexedDB | AUSENTE | Nenhum filtro por `user_id`/`created_by` encontrado | Médio (ver Red Team #7) |
 | Pull incremental por cursor (`GET /sync`) | REAL | `backend/src/modules/sync/sync.route.js` + `sync.service.js`, `gt('id', sinceId)` | Baixo |
 | Realtime acelerador (SSE) | REAL | `sync.route.js` — `text/event-stream`, relay de `postgres_changes` em `sync_events` | Baixo |
-| Reconexão SSE com novo catch-up | **CRÍTICO** | `syncEngine.js` — reconecta direto em `runSSE()`, nunca re-chama `performCatchUp()` | **Alto** |
+| Reconexão SSE com novo catch-up | REAL (corrigido) | `syncEngine.js` — reconecta chamando `performCatchUp()` antes de reabrir o stream | Baixo |
 | Detecção de lacuna de sequência (gap) | AUSENTE | Nenhuma verificação de contiguidade de `event.id` | Alto |
-| Backoff de reconexão | PARCIAL | Fixo em 5s, sem exponential backoff, sem jitter, sem teto | Médio |
+| Backoff de reconexão | REAL (corrigido) | `retryDelayFor()` — exponencial com full jitter, teto de 30s | Baixo |
 | Snapshot seletivo de recuperação | AUSENTE | Nada em `syncEngine.js` chama `clearAllStores()` / resync total | Médio |
 | Idempotency-Key em mutações críticas | REAL, mas por call-site | Usado manualmente em Checkout/Appointments/Estoque/Caixa/Refund | Baixo |
 | Tabela `idempotency_keys` (schema + RLS) | REAL | `20260712235319_mvp_baseline.sql` + RLS habilitado em `20260717...rls_hardening...sql` | Baixo |
@@ -393,9 +406,10 @@ Para o Blue Team item 1 (resync-on-reconnect), considerar concluído quando:
 ## PRÓXIMA AÇÃO ÚNICA
 
 ~~Implementar resync-on-reconnect em `frontend/src/shared/syncEngine.js`~~ — **feito**.
+~~Blue Team #2: trocar o backoff fixo de 5s por exponencial com teto e jitter~~ — **feito**.
 ~~Blue Team #3: verificar limpeza de IndexedDB no logout~~ — **feito** (já estava implementado
-corretamente; adicionado o teste que faltava, ver atualização no topo deste documento).
+corretamente; adicionado o teste que faltava). (ver atualizações no topo deste documento)
 
-Próximo item por prioridade (Blue Team #2, em andamento em branch paralela): trocar o backoff
-fixo de 5s por exponencial com teto e jitter no reconnect do SSE. Depois, Blue Team #4:
-tratamento de sessão expirada (401) no `apiClient`.
+Blue Team #4 (tratamento de sessão expirada/401 no `apiClient`) já está corrigido e testado em
+branch paralela, pendente de merge a esta. Próximo item depois de consolidar todas as branches:
+Blue Team #5, TTL/retenção configurável nas stores do IndexedDB (`appointments`/`clients`).
