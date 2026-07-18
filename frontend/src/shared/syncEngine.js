@@ -128,7 +128,14 @@ export function createSyncEngine({ apiClient, organizationId, getAccessToken }) 
     } catch (err) {
       console.error('SSE sync connection lost, retrying in 5s...', err);
       if (isRunning) {
-        retryTimeout = setTimeout(runSSE, 5000);
+        // ADR 0015: uma queda de SSE pode perder eventos gerados durante a
+        // desconexão — refazer o catch-up por cursor antes de reabrir o
+        // stream é o que torna a reconexão segura (sem isso, deltas perdidos
+        // na janela offline nunca eram recuperados).
+        retryTimeout = setTimeout(async () => {
+          await performCatchUp();
+          runSSE();
+        }, 5000);
       }
     }
   }
