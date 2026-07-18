@@ -28,6 +28,7 @@ export default [
         crypto: "readonly",
         indexedDB: "readonly",
         TextDecoder: "readonly",
+        TextEncoder: "readonly",
       },
     },
     plugins: {
