@@ -41,6 +41,12 @@ Debates longos não devem se perder em chats. O *porquê* de escolhas técnicas 
 - [ADR 0007: Sessões de Caixa e Distinção Void vs. Refund](adr/0007-cash-sessions-void-vs-refund.md)
 - [ADR 0008: Capacidade Profissional — Default-Allow e Preço de Pacote](adr/0008-capacidade-profissional-default-allow-e-preco-de-pacote.md)
 - [ADR 0009: Local Projection Cache e Incremental Sync](adr/0009-local-projection-cache-incremental-sync.md)
+- [ADR 0010: Elegibilidade Profissional×Serviço — Modelo Tri-State e Gate Fail-Closed Configurável por Organização](adr/0010-elegibilidade-tri-state-fail-closed.md)
+- [ADR 0011: Snapshot Operacional — Congelar Duração e Origem da Elegibilidade no Agendamento](adr/0011-snapshot-operacional-agendamento.md)
+- [ADR 0012: Idempotência de Commands e Ativação da Concorrência Otimista em Appointments](adr/0012-idempotencia-concorrencia-otimista-appointments.md)
+- [ADR 0013: Change Plan com Confirmação Explícita e Separação Booking × Settlement](adr/0013-change-plan-booking-settlement.md)
+- [ADR 0014: Fase 11 — Convite de Equipe por E-mail: Provedor SMTP e Expiração](adr/0014-fase11-convite-equipe-smtp.md)
+- [ADR 0015: Auditoria da Arquitetura Local-First / Sync Incremental do KortexOS](adr/0015-auditoria-arquitetura-sync-offline-first.md)
 
 ---
 
