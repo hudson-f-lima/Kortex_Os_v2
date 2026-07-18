@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ApiError } from '../../shared/apiClient.js';
 import { useApiClient } from '../../shared/useApiClient.js';
 import { useOrganization } from '../../shared/useOrganization.js';
 import { formatCents } from '../../shared/money.js';
+import { messageForError, OFFLINE_FALLBACK } from '../../shared/apiErrorMessage.js';
 import { ManualEntryModal } from './ManualEntryModal.jsx';
 
 // Mirrors backend/src/modules/cashEntries/cashEntries.route.js READ_ROLES
@@ -23,10 +23,6 @@ const KIND_OPTIONS = [
   { value: 'refund', label: 'Estorno' },
 ];
 
-function messageForListError(err) {
-  if (err instanceof ApiError) return err.message;
-  return 'Sem conexão. Verifique sua internet e tente novamente.';
-}
 
 function kindLabel(kind) {
   return KIND_LABELS[kind] ?? kind;
@@ -62,7 +58,7 @@ export function CaixaPage() {
       const { cash_entries: data } = await apiClient.get(`/cash-entries${query}`);
       setEntries(data);
     } catch (err) {
-      setError(messageForListError(err));
+      setError(messageForError(err, { fallback: OFFLINE_FALLBACK }));
     } finally {
       setLoading(false);
     }

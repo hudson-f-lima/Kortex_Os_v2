@@ -1,14 +1,6 @@
 import { useState } from 'react';
-import { ApiError } from '../../shared/apiClient.js';
+import { messageForError, FORBIDDEN_MESSAGE } from '../../shared/apiErrorMessage.js';
 import { MEMBERSHIP_ROLES } from './membershipRoles.js';
-
-function messageForError(err) {
-  if (err instanceof ApiError) {
-    if (err.status === 403) return 'Seu papel não tem permissão para esta ação.';
-    return err.message;
-  }
-  return 'Erro inesperado. Tente novamente.';
-}
 
 // PUT /memberships/:userId (membership_set) só aceita owner como ator
 // (memberships.route.js SET_ROLES) — o backend não expõe e-mail/nome de um
@@ -28,7 +20,7 @@ export function MembershipRow({ membership, canSetRole, apiClient, onSaved }) {
       const { membership: saved } = await apiClient.put(`/memberships/${membership.user_id}`, { role, active });
       onSaved(saved);
     } catch (err) {
-      setError(messageForError(err));
+      setError(messageForError(err, { statuses: { 403: FORBIDDEN_MESSAGE } }));
     } finally {
       setSubmitting(false);
     }

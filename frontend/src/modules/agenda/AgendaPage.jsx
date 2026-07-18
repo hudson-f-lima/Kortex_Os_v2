@@ -24,6 +24,11 @@ import {
 const WRITE_ROLES = ['owner', 'admin', 'manager', 'reception'];
 const SLOT_HEIGHT = '2.75rem';
 
+// Comportamento distinto do apiErrorMessage.js compartilhado — testado
+// explicitamente em AgendaPage.test.jsx ("network down"): erros JS crus
+// (não ApiError) devem surfacar err.message em vez do fallback genérico.
+// Não generalizar para o helper comum (só este arquivo e ClientesPage.jsx
+// têm esse terceiro branch, e aqui é comportamento coberto por teste).
 function messageForListError(err) {
   if (err instanceof ApiError) return err.message;
   if (err?.message) return err.message;

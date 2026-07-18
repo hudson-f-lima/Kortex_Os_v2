@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ApiError } from '../../shared/apiClient.js';
 import { ClientPicker } from '../../shared/ClientPicker.jsx';
+import { Modal } from '../../shared/Modal.jsx';
+import { messageForError, FORBIDDEN_MESSAGE } from '../../shared/apiErrorMessage.js';
 import { ACTIVE_STATUSES, statusLabel } from './appointmentStatus.js';
 import { addMinutes, fromDateTimeLocalValue, toDateTimeLocalValue } from './dateUtils.js';
 
@@ -12,14 +14,6 @@ const ERROR_MESSAGES = {
   version_conflict: 'Este agendamento foi alterado por outro usuário. Feche e abra de novo para ver a versão mais recente.',
   invalid_time_range: 'O horário de término deve ser depois do início.',
 };
-
-function messageForError(err) {
-  if (err instanceof ApiError) {
-    if (err.status === 403) return 'Seu papel não tem permissão para esta ação.';
-    return ERROR_MESSAGES[err.code] ?? err.message;
-  }
-  return 'Erro inesperado. Tente novamente.';
-}
 
 function newIdempotencyKey() {
   return `appt-${crypto.randomUUID()}`;
@@ -190,7 +184,7 @@ export function AppointmentModal({
         onSaved(appointment);
       }
     } catch (err) {
-      setError(messageForError(err));
+      setError(messageForError(err, { statuses: { 403: FORBIDDEN_MESSAGE }, codes: ERROR_MESSAGES }));
     } finally {
       setSubmitting(false);
     }
@@ -204,7 +198,7 @@ export function AppointmentModal({
       onSaved(appointment);
     } catch (err) {
       setPendingChange(null);
-      setError(messageForError(err));
+      setError(messageForError(err, { statuses: { 403: FORBIDDEN_MESSAGE }, codes: ERROR_MESSAGES }));
     } finally {
       setSubmitting(false);
     }
@@ -217,34 +211,31 @@ export function AppointmentModal({
       const appointment = await submitPatch({ status: 'cancelled', version: initialValues.version });
       onSaved(appointment);
     } catch (err) {
-      setError(messageForError(err));
+      setError(messageForError(err, { statuses: { 403: FORBIDDEN_MESSAGE }, codes: ERROR_MESSAGES }));
       setSubmitting(false);
     }
   }
 
   if (pendingChange) {
     return (
-      <div className="modal-overlay" role="dialog" aria-modal="true">
-        <div className="modal-card">
-          <h2>Confirmar alteração</h2>
-          {error && <p className="form-error">{error}</p>}
-          <ChangeDiff
-            diff={pendingChange.diff}
-            professionals={professionals}
-            services={services}
-            submitting={submitting}
-            onConfirm={handleConfirmChange}
-            onCancel={() => setPendingChange(null)}
-          />
-        </div>
-      </div>
+      <Modal onClose={submitting ? () => {} : () => setPendingChange(null)}>
+        <h2>Confirmar alteração</h2>
+        {error && <p className="form-error">{error}</p>}
+        <ChangeDiff
+          diff={pendingChange.diff}
+          professionals={professionals}
+          services={services}
+          submitting={submitting}
+          onConfirm={handleConfirmChange}
+          onCancel={() => setPendingChange(null)}
+        />
+      </Modal>
     );
   }
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true">
-      <div className="modal-card">
-        <h2>{mode === 'edit' ? 'Editar agendamento' : 'Novo agendamento'}</h2>
+    <Modal onClose={onClose}>
+      <h2>{mode === 'edit' ? 'Editar agendamento' : 'Novo agendamento'}</h2>
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <ClientPicker
@@ -356,7 +347,6 @@ export function AppointmentModal({
             </div>
           )}
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

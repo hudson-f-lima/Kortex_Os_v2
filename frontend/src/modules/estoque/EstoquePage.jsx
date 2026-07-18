@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ApiError } from '../../shared/apiClient.js';
 import { useApiClient } from '../../shared/useApiClient.js';
 import { useOrganization } from '../../shared/useOrganization.js';
 import { formatCents } from '../../shared/money.js';
+import { messageForError, OFFLINE_FALLBACK } from '../../shared/apiErrorMessage.js';
 import { AdjustmentModal } from './AdjustmentModal.jsx';
 
 // Mirrors backend/src/modules/inventory/inventory.route.js ADJUST_ROLES/
@@ -11,11 +11,6 @@ import { AdjustmentModal } from './AdjustmentModal.jsx';
 const MANAGE_ROLES = ['owner', 'admin', 'manager'];
 
 const REASON_LABELS = { purchase: 'Compra', adjustment: 'Ajuste', return: 'Devolução', sale: 'Venda' };
-
-function messageForListError(err) {
-  if (err instanceof ApiError) return err.message;
-  return 'Sem conexão. Verifique sua internet e tente novamente.';
-}
 
 function reasonLabel(reason) {
   return REASON_LABELS[reason] ?? reason;
@@ -46,7 +41,7 @@ export function EstoquePage() {
         setMovements(movementData);
       }
     } catch (err) {
-      setError(messageForListError(err));
+      setError(messageForError(err, { fallback: OFFLINE_FALLBACK }));
     } finally {
       setLoading(false);
     }

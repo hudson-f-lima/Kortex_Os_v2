@@ -1,15 +1,8 @@
 import { useState } from 'react';
-import { ApiError } from '../../shared/apiClient.js';
+import { Modal } from '../../shared/Modal.jsx';
 import { reaisToCents } from '../../shared/money.js';
+import { messageForError, FORBIDDEN_MESSAGE } from '../../shared/apiErrorMessage.js';
 import { basisPointsToPercentString, percentStringToBasisPoints } from './commission.js';
-
-function messageForError(err) {
-  if (err instanceof ApiError) {
-    if (err.status === 403) return 'Seu papel não tem permissão para esta ação.';
-    return err.message;
-  }
-  return 'Erro inesperado. Tente novamente.';
-}
 
 // commission_type/commission_value são um par opcional que sobrepõe o
 // padrão do grupo só para este serviço (nível 2 da cascata) — ambos ou
@@ -65,16 +58,15 @@ export function ServiceModal({ mode, service, groups, apiClient, onClose, onSave
         mode === 'edit' ? await apiClient.patch(`/services/${service.id}`, payload) : await apiClient.post('/services', payload);
       onSaved(saved);
     } catch (err) {
-      setError(messageForError(err));
+      setError(messageForError(err, { statuses: { 403: FORBIDDEN_MESSAGE } }));
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true">
-      <div className="modal-card">
-        <h2>{mode === 'edit' ? 'Editar serviço' : 'Novo serviço'}</h2>
+    <Modal onClose={onClose}>
+      <h2>{mode === 'edit' ? 'Editar serviço' : 'Novo serviço'}</h2>
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>
             Nome
@@ -159,7 +151,6 @@ export function ServiceModal({ mode, service, groups, apiClient, onClose, onSave
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

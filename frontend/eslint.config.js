@@ -39,9 +39,9 @@ export default [
       "react/prop-types": "off",
       "react/jsx-uses-vars": "error",
       "react-refresh/only-export-components": "warn",
-      "no-unused-vars": "warn",
-      "no-undef": "warn",
-      "react-hooks/exhaustive-deps": "warn",
+      "no-unused-vars": "error",
+      "no-undef": "error",
+      "react-hooks/exhaustive-deps": "error",
       "react-hooks/set-state-in-effect": "off"
     },
     settings: {

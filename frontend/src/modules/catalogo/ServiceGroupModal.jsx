@@ -1,15 +1,8 @@
 import { useState } from 'react';
-import { ApiError } from '../../shared/apiClient.js';
+import { Modal } from '../../shared/Modal.jsx';
 import { reaisToCents } from '../../shared/money.js';
+import { messageForError, FORBIDDEN_MESSAGE } from '../../shared/apiErrorMessage.js';
 import { basisPointsToPercentString, percentStringToBasisPoints } from './commission.js';
-
-function messageForError(err) {
-  if (err instanceof ApiError) {
-    if (err.status === 403) return 'Seu papel não tem permissão para esta ação.';
-    return err.message;
-  }
-  return 'Erro inesperado. Tente novamente.';
-}
 
 // Todo serviço pertence a um grupo (cascata de comissão profissional>serviço>
 // grupo só termina se houver um padrão de grupo) — este é o fundamento da
@@ -50,16 +43,15 @@ export function ServiceGroupModal({ mode, group, apiClient, onClose, onSaved }) 
           : await apiClient.post('/service-groups', payload);
       onSaved(saved);
     } catch (err) {
-      setError(messageForError(err));
+      setError(messageForError(err, { statuses: { 403: FORBIDDEN_MESSAGE } }));
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true">
-      <div className="modal-card">
-        <h2>{mode === 'edit' ? 'Editar grupo de serviço' : 'Novo grupo de serviço'}</h2>
+    <Modal onClose={onClose}>
+      <h2>{mode === 'edit' ? 'Editar grupo de serviço' : 'Novo grupo de serviço'}</h2>
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>
             Nome
@@ -100,7 +92,6 @@ export function ServiceGroupModal({ mode, group, apiClient, onClose, onSaved }) 
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

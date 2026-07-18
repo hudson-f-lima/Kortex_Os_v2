@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Modal } from '../../shared/Modal.jsx';
 import { formatCents } from '../../shared/money.js';
 import { messageForRefundError } from './comandaErrors.js';
 
@@ -41,9 +42,8 @@ export function RefundModal({ order, apiClient, onClose, onRefunded }) {
   }
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true">
-      <div className="modal-card">
-        <h2>Estornar comanda</h2>
+    <Modal onClose={submitting ? () => {} : onClose}>
+      <h2>Estornar comanda</h2>
         <p className="section-hint">
           Pedido #{order.id.slice(0, 8)} · {formatCents(order.total_cents)}
         </p>
@@ -73,7 +73,6 @@ export function RefundModal({ order, apiClient, onClose, onRefunded }) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

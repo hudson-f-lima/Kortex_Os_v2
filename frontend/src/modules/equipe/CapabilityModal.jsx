@@ -1,14 +1,6 @@
 import { useState } from 'react';
-import { ApiError } from '../../shared/apiClient.js';
-
-function messageForError(err) {
-  if (err instanceof ApiError) {
-    if (err.code === 'already_exists') return 'Este profissional já tem uma capacidade cadastrada para este serviço.';
-    if (err.status === 403) return 'Seu papel não tem permissão para esta ação.';
-    return err.message;
-  }
-  return 'Erro inesperado. Tente novamente.';
-}
+import { Modal } from '../../shared/Modal.jsx';
+import { messageForError, FORBIDDEN_MESSAGE } from '../../shared/apiErrorMessage.js';
 
 function toIntOrNull(value) {
   if (value === '' || value === null || value === undefined) return null;
@@ -72,16 +64,22 @@ export function CapabilityModal({ capability, professionals, services, apiClient
         : await apiClient.post('/professional-service-capabilities', { professional_id: professionalId, service_id: serviceId, ...patch });
       onSaved(saved);
     } catch (err) {
-      setError(messageForError(err));
+      // already_exists sempre vem com status 409 (HttpError.conflict), nunca junto de
+      // 403 (HttpError.forbidden não seta code) — statuses/codes não competem aqui.
+      setError(
+        messageForError(err, {
+          statuses: { 403: FORBIDDEN_MESSAGE },
+          codes: { already_exists: 'Este profissional já tem uma capacidade cadastrada para este serviço.' },
+        }),
+      );
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true">
-      <div className="modal-card">
-        <h2>{capability ? 'Editar capacidade' : 'Nova capacidade'}</h2>
+    <Modal onClose={onClose}>
+      <h2>{capability ? 'Editar capacidade' : 'Nova capacidade'}</h2>
         <form className="auth-form" onSubmit={handleSubmit} noValidate>
           <label>
             Profissional
@@ -156,7 +154,6 @@ export function CapabilityModal({ capability, professionals, services, apiClient
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

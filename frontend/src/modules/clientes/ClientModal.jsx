@@ -1,13 +1,6 @@
 import { useState } from 'react';
-import { ApiError } from '../../shared/apiClient.js';
-
-function messageForError(err) {
-  if (err instanceof ApiError) {
-    if (err.status === 403) return 'Seu papel não tem permissão para esta ação.';
-    return err.message;
-  }
-  return 'Erro inesperado. Tente novamente.';
-}
+import { Modal } from '../../shared/Modal.jsx';
+import { messageForError, FORBIDDEN_MESSAGE } from '../../shared/apiErrorMessage.js';
 
 // Cria/edita clientes (docs/PWA_PLANEJAMENTO.md §4.1/§6): só os campos que o
 // backend expõe (name/phone/email/active) — sem preferências/observações,
@@ -41,16 +34,15 @@ export function ClientModal({ mode, client, apiClient, onClose, onSaved }) {
           : await apiClient.post('/clients', payload);
       onSaved(saved);
     } catch (err) {
-      setError(messageForError(err));
+      setError(messageForError(err, { statuses: { 403: FORBIDDEN_MESSAGE } }));
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true">
-      <div className="modal-card">
-        <h2>{mode === 'edit' ? 'Editar cliente' : 'Novo cliente'}</h2>
+    <Modal onClose={onClose}>
+      <h2>{mode === 'edit' ? 'Editar cliente' : 'Novo cliente'}</h2>
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>
             Nome
@@ -83,7 +75,6 @@ export function ClientModal({ mode, client, apiClient, onClose, onSaved }) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }
