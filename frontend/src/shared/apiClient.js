@@ -1,3 +1,5 @@
+import { notifySessionExpired } from './sessionExpired.js';
+
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // Espelha o contrato de erro do backend (backend/src/middleware/errorHandler.js):
@@ -37,6 +39,13 @@ export function createApiClient({ getAccessToken, getOrganizationId }) {
     const payload = await res.json().catch(() => null);
 
     if (!res.ok) {
+      // ADR 0015 (Blue Team #4): 401 aqui sempre significa sessão expirada/
+      // inválida (todo endpoint exige autenticação) — avisa o AuthContext
+      // para forçar logout + limpeza de cache em vez de deixar o usuário só
+      // ver um erro genérico na próxima ação.
+      if (res.status === 401) {
+        notifySessionExpired();
+      }
       throw new ApiError(
         res.status,
         payload?.code ?? 'unknown_error',
