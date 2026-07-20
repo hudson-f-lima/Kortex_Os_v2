@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { messageForError, FORBIDDEN_MESSAGE } from '../../shared/apiErrorMessage.js';
 import { MEMBERSHIP_ROLES } from './membershipRoles.js';
+import { Button } from '../../ui/primitives/Button.jsx';
+import { Select } from '../../ui/primitives/Select.jsx';
 
 // PUT /memberships/:userId (membership_set) só aceita owner como ator
 // (memberships.route.js SET_ROLES) — o backend não expõe e-mail/nome de um
@@ -31,7 +33,7 @@ export function MembershipRow({ membership, canSetRole, apiClient, onSaved }) {
       <span className="record-list-main">
         <strong>{`${membership.user_id.slice(0, 8)}…`}</strong>
       </span>
-      <select
+      <Select
         aria-label={`Papel de ${membership.user_id}`}
         value={role}
         onChange={(event) => setRole(event.target.value)}
@@ -42,7 +44,7 @@ export function MembershipRow({ membership, canSetRole, apiClient, onSaved }) {
             {value}
           </option>
         ))}
-      </select>
+      </Select>
       <label className="inline-checkbox">
         <input
           type="checkbox"
@@ -53,9 +55,9 @@ export function MembershipRow({ membership, canSetRole, apiClient, onSaved }) {
         Ativo
       </label>
       {canSetRole && dirty && (
-        <button type="button" disabled={submitting} onClick={handleSave}>
+        <Button disabled={submitting} onClick={handleSave}>
           Salvar
-        </button>
+        </Button>
       )}
       {error && <span className="form-error" role="alert">{error}</span>}
     </li>

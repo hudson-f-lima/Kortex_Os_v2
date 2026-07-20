@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ApiError } from '../../shared/apiClient.js';
 import { Modal } from '../../shared/Modal.jsx';
 import { statusLabel } from '../agenda/appointmentStatus.js';
+import { Button } from '../../ui/primitives/Button.jsx';
 
 function messageForError(err) {
   if (err instanceof ApiError) return err.message;
@@ -64,9 +65,9 @@ export function ClientHistory({ client, apiClient, onClose }) {
         )}
 
         <div className="modal-actions">
-          <button type="button" className="link-button" onClick={onClose}>
+          <Button variant="secondary" onClick={onClose}>
             Fechar
-          </button>
+          </Button>
         </div>
     </Modal>
   );

@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Modal } from '../../shared/Modal.jsx';
 import { messageForError, FORBIDDEN_MESSAGE } from '../../shared/apiErrorMessage.js';
+import { Button } from '../../ui/primitives/Button.jsx';
+import { Input } from '../../ui/primitives/Input.jsx';
+import { Select } from '../../ui/primitives/Select.jsx';
 
 // POST /convites só aceita owner como ator (convites.route.js INVITE_ROLES,
 // espelha membership_set) — convidar um 'owner' fica fora deste fluxo
@@ -57,26 +60,21 @@ export function InviteModal({ apiClient, unlinkedProfessionals, onClose, onInvit
     <Modal onClose={onClose}>
       <h2>Convidar membro</h2>
       <form className="auth-form" onSubmit={handleSubmit}>
-        <label>
-          E-mail
-          <input
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            required
-            autoComplete="email"
-          />
-        </label>
-        <label>
-          Papel
-          <select value={role} onChange={(event) => setRole(event.target.value)}>
-            {INVITE_ROLES.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Input
+          label="E-mail"
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          required
+          autoComplete="email"
+        />
+        <Select label="Papel" value={role} onChange={(event) => setRole(event.target.value)}>
+          {INVITE_ROLES.map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </Select>
 
         {role === 'professional' && (
           <fieldset className="inline-fieldset">
@@ -91,10 +89,7 @@ export function InviteModal({ apiClient, unlinkedProfessionals, onClose, onInvit
               Criar novo profissional
             </label>
             {professionalMode === 'new' && (
-              <label>
-                Nome do profissional
-                <input value={professionalName} onChange={(event) => setProfessionalName(event.target.value)} />
-              </label>
+              <Input label="Nome do profissional" value={professionalName} onChange={(event) => setProfessionalName(event.target.value)} />
             )}
             <label className="inline-radio">
               <input
@@ -107,17 +102,14 @@ export function InviteModal({ apiClient, unlinkedProfessionals, onClose, onInvit
               Vincular a um profissional já cadastrado
             </label>
             {professionalMode === 'existing' && (
-              <label>
-                Profissional
-                <select value={professionalId} onChange={(event) => setProfessionalId(event.target.value)}>
-                  <option value="">Selecione…</option>
-                  {unlinkedProfessionals.map((professional) => (
-                    <option key={professional.id} value={professional.id}>
-                      {professional.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <Select label="Profissional" value={professionalId} onChange={(event) => setProfessionalId(event.target.value)}>
+                <option value="">Selecione…</option>
+                {unlinkedProfessionals.map((professional) => (
+                  <option key={professional.id} value={professional.id}>
+                    {professional.name}
+                  </option>
+                ))}
+              </Select>
             )}
           </fieldset>
         )}
@@ -125,12 +117,12 @@ export function InviteModal({ apiClient, unlinkedProfessionals, onClose, onInvit
         {error && <p className="form-error" role="alert">{error}</p>}
 
         <div className="modal-actions">
-          <button type="button" className="link-button" onClick={onClose}>
+          <Button variant="secondary" onClick={onClose}>
             Fechar
-          </button>
-          <button type="submit" disabled={submitting}>
+          </Button>
+          <Button type="submit" disabled={submitting}>
             {submitting ? 'Enviando…' : 'Enviar convite'}
-          </button>
+          </Button>
         </div>
       </form>
     </Modal>

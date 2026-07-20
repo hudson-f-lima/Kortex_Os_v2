@@ -1,0 +1,98 @@
+.k-appt-card {
+  position: absolute;
+  left: var(--space-2);
+  right: var(--space-2);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  cursor: pointer;
+  transition: box-shadow var(--motion-fast), transform var(--motion-fast);
+  text-align: left;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.k-appt-card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+  z-index: 10;
+}
+
+.k-appt-card__status-bar {
+  width: 4px;
+  flex-shrink: 0;
+  background-color: var(--color-border-strong);
+}
+
+.k-appt-card__content {
+  padding: var(--space-2) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+}
+
+.k-appt-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.k-appt-card__time {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.k-appt-card__client {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.k-appt-card__service {
+  font-size: 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Compact view para cards menores que 45 min */
+.k-appt-card--compact .k-appt-card__content {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+}
+
+.k-appt-card--compact .k-appt-card__header {
+  flex-shrink: 0;
+}
+
+.k-appt-card--compact .k-appt-card__status-text {
+  display: none;
+}
+
+/* Status Colors (Barra lateral e fundo sutil) */
+.k-appt-card--confirmed .k-appt-card__status-bar { background-color: var(--color-success); }
+.k-appt-card--confirmed { background-color: var(--emerald-50); border-color: var(--emerald-100); }
+
+.k-appt-card--pending .k-appt-card__status-bar { background-color: var(--color-warning); }
+.k-appt-card--pending { background-color: #FFFBEB; border-color: #FEF3C7; }
+
+.k-appt-card--in-progress .k-appt-card__status-bar { background-color: var(--color-info); }
+.k-appt-card--in-progress { background-color: var(--royal-50); border-color: var(--royal-100); }
+
+.k-appt-card--completed .k-appt-card__status-bar { background-color: var(--color-text-muted); }
+.k-appt-card--completed { background-color: var(--slate-50); color: var(--color-text-secondary); }
+.k-appt-card--completed .k-appt-card__client { color: var(--color-text-secondary); }
+
+.k-appt-card--canceled .k-appt-card__status-bar { background-color: var(--color-danger); }
+.k-appt-card--canceled { opacity: 0.6; }

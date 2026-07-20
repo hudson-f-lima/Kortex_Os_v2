@@ -31,6 +31,7 @@
 - **Fases 7 a 10:** CI/CD, deploys Render/GitHub Pages, fundação financeira e capacidades profissional × serviço.
 - **Fase Extra:** Projection Cache local e sincronização incremental via REST + SSE (ADR 0009).
 - **Fase 11:** Convite de equipe por e-mail e RLS self-view em `professionals` (ADR 0014) — código em produção, migration pendente de confirmação (ver Próxima Ação Imediata).
+- **Fase 13 (MVP Refatorado):** Kortex Design System implementado globalmente (Ondas 1 a 5). PWA padronizada com primitives, Agenda reescrita para Timeline Vertical e AppShell consolidado. Métricas (LCP/INP) e NetworkStatus ativo na TopBar.
 
 ---
 

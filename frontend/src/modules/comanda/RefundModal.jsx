@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Modal } from '../../shared/Modal.jsx';
 import { formatCents } from '../../shared/money.js';
 import { messageForRefundError } from './comandaErrors.js';
+import { Button } from '../../ui/primitives/Button.jsx';
+import { Select } from '../../ui/primitives/Select.jsx';
 
 // Taxonomia mínima do ADR 0006 — motivo obrigatório, nunca um valor
 // default: correção operacional (erro de digitação da recepção) é um void
@@ -48,29 +50,29 @@ export function RefundModal({ order, apiClient, onClose, onRefunded }) {
           Pedido #{order.id.slice(0, 8)} · {formatCents(order.total_cents)}
         </p>
         <form className="auth-form" onSubmit={handleSubmit}>
-          <label>
-            Motivo do estorno
-            <select value={reason} onChange={(event) => setReason(event.target.value)} required>
-              <option value="" disabled>
-                Selecione um motivo
+          <Select 
+            label="Motivo do estorno" 
+            value={reason} 
+            onChange={(event) => setReason(event.target.value)} 
+            required
+          >
+            <option value="" disabled>Selecione um motivo</option>
+            {REASONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
-              {REASONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+            ))}
+          </Select>
 
           {error && <p className="form-error" role="alert">{error}</p>}
 
           <div className="modal-actions">
-            <button type="button" className="link-button" onClick={onClose} disabled={submitting}>
+            <Button variant="secondary" onClick={onClose} disabled={submitting}>
               Fechar
-            </button>
-            <button type="submit" disabled={submitting || !reason}>
+            </Button>
+            <Button type="submit" disabled={submitting || !reason}>
               {submitting ? 'Estornando…' : 'Confirmar estorno'}
-            </button>
+            </Button>
           </div>
         </form>
     </Modal>

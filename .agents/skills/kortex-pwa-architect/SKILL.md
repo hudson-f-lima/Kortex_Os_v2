@@ -28,6 +28,8 @@ description: Planeja e revisa a PWA modular, segura e offline-ready do KortexOS.
 - Nunca incluir a chave priviliegiada `service_role` ou qualquer segredo do backend no bundle público da PWA.
 - Tratar o backend como única fonte de verdade operacional (preço, caixa, estoque e comissões não devem ser calculados na UI).
 - Não persistir informações pessoais sensíveis (PII) ou dados financeiros locais sem criptografia ou expirar adequadamente.
+- Obrigatoriamente utilizar os componentes do Kortex Design System localizados em `frontend/src/ui/primitives/` para formulários e botões, nunca tags HTML nativas (`<button>`, `<input>`).
+- A tela da Agenda é a principal interface e deve utilizar layout em Timeline Vertical.
 
 ## 7. Arquivos que podem ser carregados
 - [references/cache-policy.md](file:///c:/Users/hudso/OneDrive/Documentos/Kortex%20Os%20v2/.agents/skills/kortex-pwa-architect/references/cache-policy.md)

@@ -1,5 +1,5 @@
 import { createBrowserRouter } from 'react-router-dom';
-import { App } from './App.jsx';
+import { AppShell } from './AppShell.jsx';
 import { ProtectedRoute } from './ProtectedRoute.jsx';
 import { RequireOrganization } from './RequireOrganization.jsx';
 import { RoleGatedRoute } from './RoleGatedRoute.jsx';
@@ -26,7 +26,7 @@ export const router = createBrowserRouter([
         children: [
           { path: '/create-organization', element: <CreateOrganizationPage /> },
           {
-            element: <App />,
+            element: <AppShell />,
             children: [
               { index: true, element: <RoleGatedRoute slug="agenda"><AgendaPage /></RoleGatedRoute> },
               { path: '/agenda', element: <RoleGatedRoute slug="agenda"><AgendaPage /></RoleGatedRoute> },

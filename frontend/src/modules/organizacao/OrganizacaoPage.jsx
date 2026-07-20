@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useApiClient } from '../../shared/useApiClient.js';
 import { useOrganization } from '../../shared/useOrganization.js';
 import { OrganizationModal } from './OrganizationModal.jsx';
+import { Button } from '../../ui/primitives/Button.jsx';
+import { Badge } from '../../ui/primitives/Badge.jsx';
 
 // nav.js só mostra este módulo para owner/admin — RoleGatedRoute já cobre o
 // caso de acesso indevido por URL, então esta página não repete a checagem.
@@ -43,9 +45,9 @@ export function OrganizacaoPage() {
       <section>
         <div className="list-toolbar">
           <h2>Suas organizações</h2>
-          <button type="button" onClick={() => setShowCreateModal(true)}>
+          <Button onClick={() => setShowCreateModal(true)}>
             + Nova organização
-          </button>
+          </Button>
         </div>
         <ul className="record-list">
           {organizations.map((org) => (
@@ -57,11 +59,11 @@ export function OrganizacaoPage() {
                 </span>
               </span>
               {org.id === organizationId ? (
-                <span className="tag-muted">organização atual</span>
+                <Badge variant="neutral">organização atual</Badge>
               ) : (
-                <button type="button" className="link-button" onClick={() => selectOrganization(org.id)}>
+                <Button variant="link" onClick={() => selectOrganization(org.id)}>
                   Trocar para esta
-                </button>
+                </Button>
               )}
             </li>
           ))}

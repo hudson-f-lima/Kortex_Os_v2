@@ -1,0 +1,46 @@
+.k-card {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  padding: var(--space-4);
+  transition: all var(--motion-base) cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.k-card--elevated {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  border-color: transparent;
+}
+
+.k-card--interactive {
+  cursor: pointer;
+}
+.k-card--interactive:hover {
+  border-color: var(--color-border-strong);
+  transform: translateY(-2px);
+}
+
+.k-card--selected {
+  border-color: var(--color-action-primary);
+  background-color: var(--emerald-50);
+}
+
+.k-card--muted {
+  background-color: var(--color-surface-muted);
+  border-color: transparent;
+}
+
+.k-card--intelligence {
+  border-color: var(--royal-100);
+  background-color: var(--royal-50);
+}
+
+.k-card--warning {
+  border-color: #fef3c7; /* amber-100 */
+  background-color: #fffbeb; /* amber-50 */
+}
+
+.k-card--danger {
+  border-color: #fee2e2; /* red-100 */
+  background-color: #fef2f2; /* red-50 */
+}

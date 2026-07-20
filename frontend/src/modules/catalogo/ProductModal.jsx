@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Modal } from '../../shared/Modal.jsx';
 import { reaisToCents } from '../../shared/money.js';
 import { messageForError, FORBIDDEN_MESSAGE } from '../../shared/apiErrorMessage.js';
+import { Button } from '../../ui/primitives/Button.jsx';
+import { Input } from '../../ui/primitives/Input.jsx';
 
 // stock_on_hand é somente leitura por design (products.validation.js) — só
 // inventory_adjust/checkout_close alteram saldo, então não há campo de
@@ -53,22 +55,10 @@ export function ProductModal({ mode, product, apiClient, onClose, onSaved }) {
     <Modal onClose={onClose}>
       <h2>{mode === 'edit' ? 'Editar produto' : 'Novo produto'}</h2>
         <form className="auth-form" onSubmit={handleSubmit}>
-          <label>
-            SKU
-            <input value={sku} onChange={(event) => setSku(event.target.value)} required />
-          </label>
-          <label>
-            Nome
-            <input value={name} onChange={(event) => setName(event.target.value)} required />
-          </label>
-          <label>
-            Preço de venda (R$)
-            <input inputMode="decimal" value={priceReais} onChange={(event) => setPriceReais(event.target.value)} required />
-          </label>
-          <label>
-            Custo (R$, opcional)
-            <input inputMode="decimal" value={costReais} onChange={(event) => setCostReais(event.target.value)} />
-          </label>
+          <Input label="SKU" value={sku} onChange={(event) => setSku(event.target.value)} required />
+          <Input label="Nome" value={name} onChange={(event) => setName(event.target.value)} required />
+          <Input label="Preço de venda (R$)" inputMode="decimal" value={priceReais} onChange={(event) => setPriceReais(event.target.value)} required />
+          <Input label="Custo (R$, opcional)" inputMode="decimal" value={costReais} onChange={(event) => setCostReais(event.target.value)} />
 
           {mode === 'edit' && (
             <>
@@ -83,12 +73,12 @@ export function ProductModal({ mode, product, apiClient, onClose, onSaved }) {
           {error && <p className="form-error" role="alert">{error}</p>}
 
           <div className="modal-actions">
-            <button type="button" className="link-button" onClick={onClose}>
+            <Button variant="secondary" onClick={onClose}>
               Fechar
-            </button>
-            <button type="submit" disabled={submitting}>
+            </Button>
+            <Button type="submit" disabled={submitting}>
               {mode === 'edit' ? 'Salvar' : 'Criar produto'}
-            </button>
+            </Button>
           </div>
         </form>
     </Modal>

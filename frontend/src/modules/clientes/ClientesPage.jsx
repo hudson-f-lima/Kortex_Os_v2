@@ -6,6 +6,12 @@ import { useCachedQuery } from '../../shared/useCachedQuery.js';
 import { messageForError } from '../../shared/apiErrorMessage.js';
 import { ClientModal } from './ClientModal.jsx';
 import { ClientHistory } from './ClientHistory.jsx';
+import { Button } from '../../ui/primitives/Button.jsx';
+import { Input } from '../../ui/primitives/Input.jsx';
+import { Badge } from '../../ui/primitives/Badge.jsx';
+
+import { EmptyState } from '../../ui/primitives/EmptyState.jsx';
+import { Users } from 'lucide-react';
 
 // Mirrors backend/src/modules/clients/clients.route.js READ_ROLES/WRITE_ROLES
 // (owner/admin/manager/reception) and DELETE_ROLES (no reception).
@@ -78,9 +84,7 @@ export function ClientesPage() {
     return (
       <div className="full-page-error">
         <p>{messageForListError(error)}</p>
-        <button type="button" onClick={load}>
-          Tentar novamente
-        </button>
+        <Button onClick={load}>Tentar novamente</Button>
       </div>
     );
   }
@@ -90,9 +94,8 @@ export function ClientesPage() {
       <h1>Clientes</h1>
 
       <div className="list-toolbar">
-        <input
+        <Input
           type="text"
-          aria-label="Buscar por nome"
           placeholder="Buscar por nome"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
@@ -102,43 +105,50 @@ export function ClientesPage() {
           Mostrar inativos
         </label>
         {canWrite && (
-          <button type="button" onClick={() => setModal({ mode: 'create' })}>
+          <Button onClick={() => setModal({ mode: 'create' })}>
             + Novo cliente
-          </button>
+          </Button>
         )}
       </div>
 
       {removeError && <p className="form-error" role="alert">{removeError}</p>}
 
-      {filtered.length === 0 && <p className="list-empty">Nenhum cliente encontrado.</p>}
-
-      <ul className="record-list">
+      {filtered.length === 0 ? (
+        <EmptyState 
+          icon={Users}
+          title="Nenhum cliente encontrado"
+          description={search ? 'Não encontramos nenhum cliente com este nome.' : 'Você ainda não possui clientes cadastrados.'}
+          actionLabel={canWrite && !search ? 'Cadastrar Primeiro Cliente' : null}
+          onAction={canWrite && !search ? () => setModal({ mode: 'create' }) : null}
+        />
+      ) : (
+        <ul className="record-list">
         {filtered.map((client) => (
           <li key={client.id} className="record-list-item">
             <button type="button" className="record-list-main record-list-link" onClick={() => setHistoryClient(client)}>
               <strong>{client.name}</strong>
               <span>{client.phone || client.email || '—'}</span>
-              {!client.active && <span className="tag-inactive">inativo</span>}
+              {!client.active && <Badge variant="neutral">inativo</Badge>}
             </button>
             {canWrite && (
-              <button type="button" className="link-button" onClick={() => setModal({ mode: 'edit', client })}>
+              <Button variant="link" onClick={() => setModal({ mode: 'edit', client })}>
                 Editar
-              </button>
+              </Button>
             )}
             {canDelete && confirmingRemoveId !== client.id && (
-              <button type="button" className="link-button" onClick={() => setConfirmingRemoveId(client.id)}>
+              <Button variant="link" onClick={() => setConfirmingRemoveId(client.id)}>
                 Remover
-              </button>
+              </Button>
             )}
             {canDelete && confirmingRemoveId === client.id && (
               <>
                 <span>Confirma?</span>
-                <button type="button" className="danger-button" onClick={() => handleRemove(client)}>
+                <Button variant="danger" onClick={() => handleRemove(client)}>
                   Sim
-                </button>
-                <button type="button" className="link-button" onClick={() => setConfirmingRemoveId(null)}>
+                </Button>
+                <Button variant="link" onClick={() => setConfirmingRemoveId(null)}>
                   Não
-                </button>
+                </Button>
               </>
             )}
           </li>

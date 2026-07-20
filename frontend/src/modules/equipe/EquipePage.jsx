@@ -6,6 +6,8 @@ import { ProfessionalModal } from './ProfessionalModal.jsx';
 import { InviteModal } from './InviteModal.jsx';
 import { MembershipRow } from './MembershipRow.jsx';
 import { CapabilitiesTab } from './CapabilitiesTab.jsx';
+import { Button } from '../../ui/primitives/Button.jsx';
+import { Badge } from '../../ui/primitives/Badge.jsx';
 
 // Mirrors backend/src/modules/professionals/professionals.route.js
 // WRITE_ROLES/DELETE_ROLES. memberships.route.js SET_ROLES is owner-only.
@@ -108,9 +110,7 @@ export function EquipePage() {
     return (
       <div className="full-page-error">
         <p>{error}</p>
-        <button type="button" onClick={load}>
-          Tentar novamente
-        </button>
+        <Button onClick={load}>Tentar novamente</Button>
       </div>
     );
   }
@@ -127,9 +127,9 @@ export function EquipePage() {
             Mostrar inativos
           </label>
           {canWrite && (
-            <button type="button" onClick={() => setModal({ mode: 'create' })}>
+            <Button onClick={() => setModal({ mode: 'create' })}>
               + Novo profissional
-            </button>
+            </Button>
           )}
         </div>
 
@@ -143,27 +143,27 @@ export function EquipePage() {
               <span className="record-list-main">
                 <strong>{professional.name}</strong>
                 {professional.user_id && <span className="tag-muted">vinculado a um usuário</span>}
-                {!professional.active && <span className="tag-inactive">inativo</span>}
+                {!professional.active && <Badge variant="neutral">inativo</Badge>}
               </span>
               {canWrite && (
-                <button type="button" className="link-button" onClick={() => setModal({ mode: 'edit', professional })}>
+                <Button variant="link" onClick={() => setModal({ mode: 'edit', professional })}>
                   Editar
-                </button>
+                </Button>
               )}
               {canDelete && confirmingRemoveId !== professional.id && (
-                <button type="button" className="link-button" onClick={() => setConfirmingRemoveId(professional.id)}>
+                <Button variant="link" onClick={() => setConfirmingRemoveId(professional.id)}>
                   Remover
-                </button>
+                </Button>
               )}
               {canDelete && confirmingRemoveId === professional.id && (
                 <>
                   <span>Confirma?</span>
-                  <button type="button" className="danger-button" onClick={() => handleRemove(professional)}>
+                  <Button variant="danger" onClick={() => handleRemove(professional)}>
                     Sim
-                  </button>
-                  <button type="button" className="link-button" onClick={() => setConfirmingRemoveId(null)}>
+                  </Button>
+                  <Button variant="link" onClick={() => setConfirmingRemoveId(null)}>
                     Não
-                  </button>
+                  </Button>
                 </>
               )}
             </li>
@@ -175,9 +175,9 @@ export function EquipePage() {
         <div className="list-toolbar">
           <h2>Papéis da equipe</h2>
           {canSetRole && (
-            <button type="button" onClick={() => setInviteModalOpen(true)}>
+            <Button onClick={() => setInviteModalOpen(true)}>
               + Convidar membro
-            </button>
+            </Button>
           )}
         </div>
         <p className="section-hint">

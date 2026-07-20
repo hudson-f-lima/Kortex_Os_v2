@@ -1,0 +1,42 @@
+.k-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-2);
+  height: 24px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: var(--radius-pill);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.k-badge--neutral {
+  background-color: var(--slate-100);
+  color: var(--slate-700);
+}
+
+.k-badge--success {
+  background-color: var(--emerald-100);
+  color: var(--emerald-700);
+}
+
+.k-badge--warning {
+  background-color: #fef3c7; /* amber-100 */
+  color: #b45309; /* amber-700 */
+}
+
+.k-badge--danger {
+  background-color: #fee2e2; /* red-100 */
+  color: #b91c1c; /* red-700 */
+}
+
+.k-badge--info {
+  background-color: var(--royal-100);
+  color: var(--royal-700);
+}
+
+.k-badge--ai {
+  background-color: #ede9fe; /* violet-100 */
+  color: var(--ai);
+}

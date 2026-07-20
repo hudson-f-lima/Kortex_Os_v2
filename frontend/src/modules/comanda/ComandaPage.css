@@ -1,0 +1,156 @@
+.comanda-page {
+  padding: var(--space-4);
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding-bottom: 120px; /* espaco para fixed FABs/actions se houver */
+}
+
+.comanda-page h1 {
+  font-family: var(--font-page-title);
+  font-size: var(--size-page-title);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.agenda-view-toggle {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.comanda-catalog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.comanda-catalog-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.comanda-catalog-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+}
+
+.comanda-catalog-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.comanda-catalog-item-name {
+  font-family: var(--font-card-title);
+  color: var(--color-text-primary);
+}
+
+.comanda-catalog-item-meta {
+  font-family: var(--font-supporting);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.comanda-cart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.comanda-cart h2 {
+  font-family: var(--font-section-title);
+  font-size: var(--size-section-title);
+}
+
+.comanda-cart-line {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background-color: var(--slate-50);
+  border: 1px solid var(--color-border);
+}
+
+.comanda-cart-line-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.comanda-cart-line-header strong {
+  color: var(--color-text-primary);
+}
+
+.comanda-cart-line-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.comanda-cart-line-assignment {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.comanda-total {
+  font-family: var(--font-page-title);
+  font-size: 1.25rem;
+  color: var(--color-text-primary);
+  text-align: right;
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.comanda-discount-tip {
+  display: flex;
+  gap: var(--space-4);
+}
+
+.comanda-payment-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.comanda-payments-sum {
+  font-family: var(--font-supporting);
+  color: var(--color-text-secondary);
+  text-align: right;
+  margin-top: var(--space-2);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+
+.comanda-closed {
+  align-items: center;
+  text-align: center;
+  padding-top: var(--space-10);
+}
+
+.comanda-closed-id {
+  font-family: var(--font-supporting);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-6);
+}

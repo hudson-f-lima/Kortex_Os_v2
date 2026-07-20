@@ -8,6 +8,10 @@ import { ServiceGroupModal } from './ServiceGroupModal.jsx';
 import { ServiceModal } from './ServiceModal.jsx';
 import { ProductModal } from './ProductModal.jsx';
 import { PackageModal } from './PackageModal.jsx';
+import { Button } from '../../ui/primitives/Button.jsx';
+import { Badge } from '../../ui/primitives/Badge.jsx';
+import { EmptyState } from '../../ui/primitives/EmptyState.jsx';
+import { Settings, Scissors, PackageOpen, Layers } from 'lucide-react';
 
 // Mirrors the WRITE_ROLES/DELETE_ROLES shared by services/products/
 // service-groups/packages routes (owner/admin/manager write, owner/admin
@@ -116,9 +120,7 @@ export function CatalogoPage() {
     return (
       <div className="full-page-error">
         <p>{error}</p>
-        <button type="button" onClick={load}>
-          Tentar novamente
-        </button>
+        <Button onClick={load}>Tentar novamente</Button>
       </div>
     );
   }
@@ -129,9 +131,9 @@ export function CatalogoPage() {
 
       <div className="agenda-view-toggle">
         {TABS.map((item) => (
-          <button key={item.key} type="button" className={tab === item.key ? 'active' : ''} onClick={() => setTab(item.key)}>
+          <Button key={item.key} variant={tab === item.key ? 'primary' : 'ghost'} onClick={() => setTab(item.key)}>
             {item.label}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -143,12 +145,20 @@ export function CatalogoPage() {
             <p className="section-hint">Cadastre um grupo de serviço antes de criar serviços.</p>
           )}
           {canWrite && groups.length > 0 && (
-            <button type="button" onClick={() => setModal({ type: 'service', mode: 'create' })}>
+            <Button onClick={() => setModal({ type: 'service', mode: 'create' })}>
               + Novo serviço
-            </button>
+            </Button>
           )}
-          {services.length === 0 && <p className="list-empty">Nenhum serviço cadastrado ainda.</p>}
-          <ul className="record-list">
+          {services.length === 0 ? (
+            <EmptyState
+              icon={Scissors}
+              title="Nenhum serviço cadastrado"
+              description="Cadastre os serviços que o seu estabelecimento oferece."
+              actionLabel={canWrite && groups.length > 0 ? "Criar Serviço" : null}
+              onAction={canWrite && groups.length > 0 ? () => setModal({ type: 'service', mode: 'create' }) : null}
+            />
+          ) : (
+            <ul className="record-list">
             {services.map((service) => (
               <li key={service.id} className="record-list-item">
                 <span className="record-list-main">
@@ -164,12 +174,12 @@ export function CatalogoPage() {
                         : formatCents(service.commission_value)}
                     </span>
                   )}
-                  {!service.active && <span className="tag-inactive">inativo</span>}
+                  {!service.active && <Badge variant="neutral">inativo</Badge>}
                 </span>
                 {canWrite && (
-                  <button type="button" className="link-button" onClick={() => setModal({ type: 'service', mode: 'edit', service })}>
+                  <Button variant="link" onClick={() => setModal({ type: 'service', mode: 'edit', service })}>
                     Editar
-                  </button>
+                  </Button>
                 )}
                 {canDelete && (
                   <RemoveControl
@@ -183,18 +193,27 @@ export function CatalogoPage() {
               </li>
             ))}
           </ul>
+          )}
         </section>
       )}
 
       {tab === 'produtos' && (
         <section>
           {canWrite && (
-            <button type="button" onClick={() => setModal({ type: 'product', mode: 'create' })}>
+            <Button onClick={() => setModal({ type: 'product', mode: 'create' })}>
               + Novo produto
-            </button>
+            </Button>
           )}
-          {products.length === 0 && <p className="list-empty">Nenhum produto cadastrado ainda.</p>}
-          <ul className="record-list">
+          {products.length === 0 ? (
+            <EmptyState
+              icon={PackageOpen}
+              title="Nenhum produto cadastrado"
+              description="Cadastre os produtos para revenda ou uso interno."
+              actionLabel={canWrite ? "Criar Produto" : null}
+              onAction={canWrite ? () => setModal({ type: 'product', mode: 'create' }) : null}
+            />
+          ) : (
+            <ul className="record-list">
             {products.map((product) => (
               <li key={product.id} className="record-list-item">
                 <span className="record-list-main">
@@ -202,12 +221,12 @@ export function CatalogoPage() {
                   <span>
                     {product.sku} · {formatCents(product.price_cents)} · estoque: {product.stock_on_hand}
                   </span>
-                  {!product.active && <span className="tag-inactive">inativo</span>}
+                  {!product.active && <Badge variant="neutral">inativo</Badge>}
                 </span>
                 {canWrite && (
-                  <button type="button" className="link-button" onClick={() => setModal({ type: 'product', mode: 'edit', product })}>
+                  <Button variant="link" onClick={() => setModal({ type: 'product', mode: 'edit', product })}>
                     Editar
-                  </button>
+                  </Button>
                 )}
                 {canDelete && (
                   <RemoveControl
@@ -221,6 +240,7 @@ export function CatalogoPage() {
               </li>
             ))}
           </ul>
+          )}
         </section>
       )}
 
@@ -230,23 +250,31 @@ export function CatalogoPage() {
             <p className="section-hint">Cadastre serviços antes de montar um pacote.</p>
           )}
           {canWrite && services.length > 0 && (
-            <button type="button" onClick={() => setModal({ type: 'package', mode: 'create' })}>
+            <Button onClick={() => setModal({ type: 'package', mode: 'create' })}>
               + Novo pacote
-            </button>
+            </Button>
           )}
-          {packages.length === 0 && <p className="list-empty">Nenhum pacote cadastrado ainda.</p>}
-          <ul className="record-list">
+          {packages.length === 0 ? (
+            <EmptyState
+              icon={Layers}
+              title="Nenhum pacote cadastrado"
+              description="Crie combos de serviços por um preço promocional."
+              actionLabel={canWrite && services.length > 0 ? "Criar Pacote" : null}
+              onAction={canWrite && services.length > 0 ? () => setModal({ type: 'package', mode: 'create' }) : null}
+            />
+          ) : (
+            <ul className="record-list">
             {packages.map((pkg) => (
               <li key={pkg.id} className="record-list-item">
                 <span className="record-list-main">
                   <strong>{pkg.name}</strong>
                   <span>{formatCents(pkg.price_cents)}</span>
-                  {!pkg.active && <span className="tag-inactive">inativo</span>}
+                  {!pkg.active && <Badge variant="neutral">inativo</Badge>}
                 </span>
                 {canWrite && (
-                  <button type="button" className="link-button" onClick={() => openEditPackage(pkg)}>
+                  <Button variant="link" onClick={() => openEditPackage(pkg)}>
                     Editar
-                  </button>
+                  </Button>
                 )}
                 {canDelete && (
                   <RemoveControl
@@ -260,18 +288,27 @@ export function CatalogoPage() {
               </li>
             ))}
           </ul>
+          )}
         </section>
       )}
 
       {tab === 'grupos' && (
         <section>
           {canWrite && (
-            <button type="button" onClick={() => setModal({ type: 'group', mode: 'create' })}>
+            <Button onClick={() => setModal({ type: 'group', mode: 'create' })}>
               + Novo grupo
-            </button>
+            </Button>
           )}
-          {groups.length === 0 && <p className="list-empty">Nenhum grupo de serviço cadastrado ainda.</p>}
-          <ul className="record-list">
+          {groups.length === 0 ? (
+            <EmptyState
+              icon={Settings}
+              title="Nenhum grupo de serviço"
+              description="Os grupos organizam seus serviços e podem definir regras de comissão."
+              actionLabel={canWrite ? "Criar Grupo" : null}
+              onAction={canWrite ? () => setModal({ type: 'group', mode: 'create' }) : null}
+            />
+          ) : (
+            <ul className="record-list">
             {groups.map((group) => (
               <li key={group.id} className="record-list-item">
                 <span className="record-list-main">
@@ -281,12 +318,12 @@ export function CatalogoPage() {
                       ? formatPercent(group.default_commission_value)
                       : formatCents(group.default_commission_value)}
                   </span>
-                  {!group.active && <span className="tag-inactive">inativo</span>}
+                  {!group.active && <Badge variant="neutral">inativo</Badge>}
                 </span>
                 {canWrite && (
-                  <button type="button" className="link-button" onClick={() => setModal({ type: 'group', mode: 'edit', group })}>
+                  <Button variant="link" onClick={() => setModal({ type: 'group', mode: 'edit', group })}>
                     Editar
-                  </button>
+                  </Button>
                 )}
                 {canDelete && (
                   <RemoveControl
@@ -300,6 +337,7 @@ export function CatalogoPage() {
               </li>
             ))}
           </ul>
+          )}
         </section>
       )}
 
@@ -361,20 +399,20 @@ function RemoveControl({ id, type, confirmingRemove, setConfirmingRemove, onRemo
   const confirming = confirmingRemove?.type === type && confirmingRemove?.id === id;
   if (!confirming) {
     return (
-      <button type="button" className="link-button" onClick={() => setConfirmingRemove({ type, id })}>
+      <Button variant="link" onClick={() => setConfirmingRemove({ type, id })}>
         Remover
-      </button>
+      </Button>
     );
   }
   return (
     <>
       <span>Confirma?</span>
-      <button type="button" className="danger-button" onClick={onRemove}>
+      <Button variant="danger" onClick={onRemove}>
         Sim
-      </button>
-      <button type="button" className="link-button" onClick={() => setConfirmingRemove(null)}>
+      </Button>
+      <Button variant="link" onClick={() => setConfirmingRemove(null)}>
         Não
-      </button>
+      </Button>
     </>
   );
 }

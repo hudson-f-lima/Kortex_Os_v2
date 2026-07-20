@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { formatCents } from '../../shared/money.js';
 import { messageForError, OFFLINE_FALLBACK } from '../../shared/apiErrorMessage.js';
 import { RefundModal } from './RefundModal.jsx';
+import { Button } from '../../ui/primitives/Button.jsx';
 
 const STATUS_LABELS = { closed: 'Fechada', refunded: 'Estornada', draft: 'Rascunho', cancelled: 'Cancelada' };
 
@@ -37,9 +38,7 @@ export function OrderHistory({ apiClient, canRefund }) {
     return (
       <div className="full-page-error">
         <p>{error}</p>
-        <button type="button" onClick={load}>
-          Tentar novamente
-        </button>
+        <Button onClick={load}>Tentar novamente</Button>
       </div>
     );
   }
@@ -64,9 +63,9 @@ export function OrderHistory({ apiClient, canRefund }) {
               </span>
             </span>
             {canRefund && order.status === 'closed' && (
-              <button type="button" className="link-button" onClick={() => setRefundingOrder(order)}>
+              <Button variant="link" onClick={() => setRefundingOrder(order)}>
                 Estornar
-              </button>
+              </Button>
             )}
           </li>
         ))}

@@ -4,6 +4,10 @@ import { useOrganization } from '../../shared/useOrganization.js';
 import { formatCents } from '../../shared/money.js';
 import { messageForError, OFFLINE_FALLBACK } from '../../shared/apiErrorMessage.js';
 import { ManualEntryModal } from './ManualEntryModal.jsx';
+import { Button } from '../../ui/primitives/Button.jsx';
+import { Input } from '../../ui/primitives/Input.jsx';
+import { Select } from '../../ui/primitives/Select.jsx';
+import './CaixaPage.css';
 
 // Mirrors backend/src/modules/cashEntries/cashEntries.route.js READ_ROLES
 // (owner/admin/manager) — reception has 'caixa' in nav.js (recepção também
@@ -96,9 +100,7 @@ export function CaixaPage() {
     return (
       <div className="full-page-error">
         <p>{error}</p>
-        <button type="button" onClick={load}>
-          Tentar novamente
-        </button>
+        <Button onClick={load}>Tentar novamente</Button>
       </div>
     );
   }
@@ -108,25 +110,19 @@ export function CaixaPage() {
       <h1>Caixa</h1>
 
       <div className="list-toolbar">
-        <select aria-label="Filtrar por tipo" value={kindFilter} onChange={(event) => setKindFilter(event.target.value)}>
+        <Select aria-label="Filtrar por tipo" value={kindFilter} onChange={(event) => setKindFilter(event.target.value)}>
           {KIND_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>
           ))}
-        </select>
-        <label>
-          De
-          <input type="date" aria-label="Data inicial" value={fromDate} onChange={(event) => setFromDate(event.target.value)} />
-        </label>
-        <label>
-          Até
-          <input type="date" aria-label="Data final" value={toDate} onChange={(event) => setToDate(event.target.value)} />
-        </label>
+        </Select>
+        <Input label="De" type="date" aria-label="Data inicial" value={fromDate} onChange={(event) => setFromDate(event.target.value)} />
+        <Input label="Até" type="date" aria-label="Data final" value={toDate} onChange={(event) => setToDate(event.target.value)} />
         {canWrite && (
-          <button type="button" onClick={() => setShowManualEntry(true)}>
+          <Button onClick={() => setShowManualEntry(true)}>
             + Novo lançamento
-          </button>
+          </Button>
         )}
       </div>
 

@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Modal } from '../../shared/Modal.jsx';
 import { messageForError, FORBIDDEN_MESSAGE } from '../../shared/apiErrorMessage.js';
+import { Button } from '../../ui/primitives/Button.jsx';
+import { Input } from '../../ui/primitives/Input.jsx';
+import { Select } from '../../ui/primitives/Select.jsx';
 
 function toIntOrNull(value) {
   if (value === '' || value === null || value === undefined) return null;
@@ -81,77 +84,62 @@ export function CapabilityModal({ capability, professionals, services, apiClient
     <Modal onClose={onClose}>
       <h2>{capability ? 'Editar capacidade' : 'Nova capacidade'}</h2>
         <form className="auth-form" onSubmit={handleSubmit} noValidate>
-          <label>
-            Profissional
-            <select
-              value={professionalId}
-              onChange={(event) => setProfessionalId(event.target.value)}
-              disabled={!!capability}
-              required
-            >
-              <option value="">Selecione um profissional</option>
-              {professionals?.map((professional) => (
-                <option key={professional.id} value={professional.id}>
-                  {professional.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <Select
+            label="Profissional"
+            value={professionalId}
+            onChange={(event) => setProfessionalId(event.target.value)}
+            disabled={!!capability}
+            required
+          >
+            <option value="">Selecione um profissional</option>
+            {professionals?.map((professional) => (
+              <option key={professional.id} value={professional.id}>
+                {professional.name}
+              </option>
+            ))}
+          </Select>
 
-          <label>
-            Serviço
-            <select value={serviceId} onChange={(event) => setServiceId(event.target.value)} disabled={!!capability} required>
-              <option value="">Selecione um serviço</option>
-              {services?.map((service) => (
-                <option key={service.id} value={service.id}>
-                  {service.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <Select label="Serviço" value={serviceId} onChange={(event) => setServiceId(event.target.value)} disabled={!!capability} required>
+            <option value="">Selecione um serviço</option>
+            {services?.map((service) => (
+              <option key={service.id} value={service.id}>
+                {service.name}
+              </option>
+            ))}
+          </Select>
 
-          <label>
-            Duração customizada (minutos)
-            <input
-              type="number"
-              min="5"
-              max="1440"
-              value={durationOverride}
-              onChange={(event) => setDurationOverride(event.target.value)}
-              placeholder="Padrão do serviço"
-            />
-          </label>
+          <Input
+            label="Duração customizada (minutos)"
+            type="number"
+            min="5"
+            max="1440"
+            value={durationOverride}
+            onChange={(event) => setDurationOverride(event.target.value)}
+            placeholder="Padrão do serviço"
+          />
 
-          <label>
-            Preço customizado (centavos)
-            <input
-              type="number"
-              min="0"
-              value={priceOverride}
-              onChange={(event) => setPriceOverride(event.target.value)}
-              placeholder="Padrão do serviço"
-            />
-          </label>
+          <Input
+            label="Preço customizado (centavos)"
+            type="number"
+            min="0"
+            value={priceOverride}
+            onChange={(event) => setPriceOverride(event.target.value)}
+            placeholder="Padrão do serviço"
+          />
 
-          <label>
-            Buffer antes (minutos)
-            <input type="number" min="0" max="480" value={bufferBefore} onChange={(event) => setBufferBefore(event.target.value)} />
-          </label>
+          <Input label="Buffer antes (minutos)" type="number" min="0" max="480" value={bufferBefore} onChange={(event) => setBufferBefore(event.target.value)} />
 
-          <label>
-            Buffer depois (minutos)
-            <input type="number" min="0" max="480" value={bufferAfter} onChange={(event) => setBufferAfter(event.target.value)} />
-          </label>
+          <Input label="Buffer depois (minutos)" type="number" min="0" max="480" value={bufferAfter} onChange={(event) => setBufferAfter(event.target.value)} />
 
           {error && <p className="form-error" role="alert">{error}</p>}
 
           <div className="modal-actions">
-            <button type="button" className="link-button" onClick={onClose}>
+            <Button variant="secondary" onClick={onClose}>
               Fechar
-            </button>
-            <button type="submit" disabled={submitting}>
+            </Button>
+            <Button type="submit" disabled={submitting}>
               {submitting ? 'Salvando…' : 'Salvar'}
-            </button>
+            </Button>
           </div>
         </form>
     </Modal>

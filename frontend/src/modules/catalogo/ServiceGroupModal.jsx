@@ -3,6 +3,9 @@ import { Modal } from '../../shared/Modal.jsx';
 import { reaisToCents } from '../../shared/money.js';
 import { messageForError, FORBIDDEN_MESSAGE } from '../../shared/apiErrorMessage.js';
 import { basisPointsToPercentString, percentStringToBasisPoints } from './commission.js';
+import { Button } from '../../ui/primitives/Button.jsx';
+import { Input } from '../../ui/primitives/Input.jsx';
+import { Select } from '../../ui/primitives/Select.jsx';
 
 // Todo serviço pertence a um grupo (cascata de comissão profissional>serviço>
 // grupo só termina se houver um padrão de grupo) — este é o fundamento da
@@ -53,26 +56,18 @@ export function ServiceGroupModal({ mode, group, apiClient, onClose, onSaved }) 
     <Modal onClose={onClose}>
       <h2>{mode === 'edit' ? 'Editar grupo de serviço' : 'Novo grupo de serviço'}</h2>
         <form className="auth-form" onSubmit={handleSubmit}>
-          <label>
-            Nome
-            <input value={name} onChange={(event) => setName(event.target.value)} required />
-          </label>
-          <label>
-            Tipo de comissão padrão
-            <select value={commissionType} onChange={(event) => setCommissionType(event.target.value)}>
-              <option value="percentage">Percentual</option>
-              <option value="fixed">Valor fixo</option>
-            </select>
-          </label>
-          <label>
-            {commissionType === 'percentage' ? 'Comissão padrão (%)' : 'Comissão padrão (R$)'}
-            <input
-              inputMode="decimal"
-              value={commissionValue}
-              onChange={(event) => setCommissionValue(event.target.value)}
-              required
-            />
-          </label>
+          <Input label="Nome" value={name} onChange={(event) => setName(event.target.value)} required />
+          <Select label="Tipo de comissão padrão" value={commissionType} onChange={(event) => setCommissionType(event.target.value)}>
+            <option value="percentage">Percentual</option>
+            <option value="fixed">Valor fixo</option>
+          </Select>
+          <Input
+            label={commissionType === 'percentage' ? 'Comissão padrão (%)' : 'Comissão padrão (R$)'}
+            inputMode="decimal"
+            value={commissionValue}
+            onChange={(event) => setCommissionValue(event.target.value)}
+            required
+          />
 
           {mode === 'edit' && (
             <label className="inline-checkbox">
@@ -84,12 +79,12 @@ export function ServiceGroupModal({ mode, group, apiClient, onClose, onSaved }) 
           {error && <p className="form-error" role="alert">{error}</p>}
 
           <div className="modal-actions">
-            <button type="button" className="link-button" onClick={onClose}>
+            <Button variant="secondary" onClick={onClose}>
               Fechar
-            </button>
-            <button type="submit" disabled={submitting}>
+            </Button>
+            <Button type="submit" disabled={submitting}>
               {mode === 'edit' ? 'Salvar' : 'Criar grupo'}
-            </button>
+            </Button>
           </div>
         </form>
     </Modal>

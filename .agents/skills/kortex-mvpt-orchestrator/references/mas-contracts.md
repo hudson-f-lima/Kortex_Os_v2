@@ -15,6 +15,8 @@ Todo especialista deve retornar: achados classificados, evidências com caminhos
 3. **Validação:** QA e Red Team tentam quebrar tenant, dinheiro, estoque, agenda, cache e entrega.
 4. **Integração:** somente o orquestrador consolida mudanças conflitantes.
 
+Para a transição MVP → produto final KortexOS 5.1.2 (`docs/KORTEXOS_5_1_2_TRUTH_MAP.md`), a onda de Descoberta usa `$kortex-truth-mapper`; a onda seguinte, ainda de mapeamento (não de Desenho), usa `$kortex-migration-mapper` — só ativa depois do Truth Map vigente aprovado e registrado como DEC. Desenho de domínio novo (Blueprint) permanece bloqueado até o Migration Map existir.
+
 Avançar de onda somente com entradas citadas, escopo preservado e bloqueios registrados. Um `CRÍTICO` sem mitigação implica `NO-GO`.
 
 ## Limites de autoridade

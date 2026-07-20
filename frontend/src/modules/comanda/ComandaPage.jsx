@@ -9,6 +9,10 @@ import { messageForError, OFFLINE_FALLBACK } from '../../shared/apiErrorMessage.
 import { useCart } from './useCart.js';
 import { useCheckout } from './useCheckout.js';
 import { OrderHistory } from './OrderHistory.jsx';
+import { Button } from '../../ui/primitives/Button.jsx';
+import { Input } from '../../ui/primitives/Input.jsx';
+import { Select } from '../../ui/primitives/Select.jsx';
+import './ComandaPage.css';
 
 // Mirrors backend/src/modules/checkout/checkout.route.js CHECKOUT_ROLES and
 // orders.route.js READ_ROLES — professional is deliberately excluded from
@@ -203,12 +207,18 @@ export function ComandaPage() {
 
   const viewToggle = (
     <div className="agenda-view-toggle">
-      <button type="button" className={view === 'nova' ? 'active' : ''} onClick={() => setView('nova')}>
+      <Button 
+        variant={view === 'nova' ? 'primary' : 'ghost'} 
+        onClick={() => setView('nova')}
+      >
         Nova comanda
-      </button>
-      <button type="button" className={view === 'historico' ? 'active' : ''} onClick={() => setView('historico')}>
+      </Button>
+      <Button 
+        variant={view === 'historico' ? 'primary' : 'ghost'} 
+        onClick={() => setView('historico')}
+      >
         Comandas fechadas
-      </button>
+      </Button>
     </div>
   );
 
@@ -228,9 +238,7 @@ export function ComandaPage() {
     return (
       <div className="full-page-error">
         <p>{listsError}</p>
-        <button type="button" onClick={loadLists}>
-          Tentar novamente
-        </button>
+        <Button onClick={loadLists}>Tentar novamente</Button>
       </div>
     );
   }
@@ -247,9 +255,7 @@ export function ComandaPage() {
         {tipCents > 0 && <p>Gorjeta: +{formatCents(tipCents)}</p>}
         <p>Total: {formatCents(closedOrder.total_cents)}</p>
         <p className="comanda-closed-id">Pedido #{closedOrder.order_id.slice(0, 8)}</p>
-        <button type="button" onClick={startNewComanda}>
-          Nova comanda
-        </button>
+        <Button onClick={startNewComanda}>Nova comanda</Button>
       </div>
     );
   }
@@ -261,29 +267,23 @@ export function ComandaPage() {
         <p className="comanda-total">Subtotal: {formatCents(subtotalCents)}</p>
 
         <div className="comanda-discount-tip">
-          <label>
-            Desconto (R$)
-            <input
-              type="text"
-              inputMode="decimal"
-              aria-label="Desconto"
-              value={discountReais}
-              placeholder="0,00"
-              onChange={(event) => setDiscountReais(event.target.value)}
-            />
-          </label>
-          <label>
-            Gorjeta (R$)
-            <input
-              type="text"
-              inputMode="decimal"
-              aria-label="Gorjeta"
-              value={tipReais}
-              placeholder="0,00"
-              disabled={!hasServiceLine}
-              onChange={(event) => setTipReais(event.target.value)}
-            />
-          </label>
+          <Input
+            label="Desconto (R$)"
+            type="text"
+            inputMode="decimal"
+            value={discountReais}
+            placeholder="0,00"
+            onChange={(event) => setDiscountReais(event.target.value)}
+          />
+          <Input
+            label="Gorjeta (R$)"
+            type="text"
+            inputMode="decimal"
+            value={tipReais}
+            placeholder="0,00"
+            disabled={!hasServiceLine}
+            onChange={(event) => setTipReais(event.target.value)}
+          />
         </div>
         {!discountValid && discountReais !== '' && (
           <p className="form-error" role="alert">O desconto deve ser um valor entre 0 e o subtotal da comanda.</p>
@@ -295,33 +295,35 @@ export function ComandaPage() {
 
         {payments.map((payment) => (
           <div className="comanda-payment-row" key={payment.key}>
-            <select value={payment.method} onChange={(event) => updatePayment(payment.key, { method: event.target.value })}>
+            <Select 
+              value={payment.method} 
+              onChange={(event) => updatePayment(payment.key, { method: event.target.value })}
+            >
               {PAYMENT_METHODS.map((method) => (
                 <option key={method.value} value={method.value}>
                   {method.label}
                 </option>
               ))}
-            </select>
-            <input
+            </Select>
+            <Input
               type="text"
               inputMode="decimal"
-              aria-label="Valor do pagamento"
               value={payment.amountReais}
               onChange={(event) => updatePayment(payment.key, { amountReais: event.target.value })}
             />
-            <button type="button" className="link-button" onClick={() => fillRemaining(payment.key)}>
+            <Button variant="link" onClick={() => fillRemaining(payment.key)}>
               Preencher restante
-            </button>
+            </Button>
             {payments.length > 1 && (
-              <button type="button" className="link-button" onClick={() => removePaymentLine(payment.key)}>
+              <Button variant="danger" onClick={() => removePaymentLine(payment.key)}>
                 Remover
-              </button>
+              </Button>
             )}
           </div>
         ))}
-        <button type="button" className="link-button" onClick={addPaymentLine}>
+        <Button variant="link" onClick={addPaymentLine}>
           + Forma de pagamento (dividir conta)
-        </button>
+        </Button>
 
         <p className="comanda-payments-sum">
           Pagamentos: {formatCents(paymentsTotalCents)} {!paymentsReconcile && '— não bate com o total'}
@@ -330,12 +332,12 @@ export function ComandaPage() {
         {checkoutError && <p className="form-error" role="alert">{checkoutError}</p>}
 
         <div className="modal-actions">
-          <button type="button" className="link-button" onClick={backToBuilding} disabled={submitting}>
+          <Button variant="secondary" onClick={backToBuilding} disabled={submitting}>
             Voltar para itens
-          </button>
-          <button type="button" disabled={!canClose || submitting} onClick={handleClose}>
+          </Button>
+          <Button disabled={!canClose || submitting} onClick={handleClose}>
             {submitting ? 'Fechando…' : 'Confirmar fechamento'}
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -357,23 +359,25 @@ export function ComandaPage() {
       />
 
       <div className="comanda-catalog">
-        <input
+        <Input
           type="text"
-          aria-label="Buscar serviço, produto ou pacote"
           placeholder="Buscar serviço, produto ou pacote"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
         <ul className="comanda-catalog-list">
           {filteredCatalog.map((item) => (
-            <li key={`${item.kind}-${item.id}`}>
-              <span>
-                {item.name} · {formatCents(item.price_cents)}
-                {item.kind === 'product' && item.stock_on_hand !== undefined && ` · estoque: ${item.stock_on_hand}`}
-              </span>
-              <button type="button" onClick={() => (item.kind === 'package' ? addPackage(item) : addServiceOrProduct(item))}>
-                + Adicionar
-              </button>
+            <li key={`${item.kind}-${item.id}`} className="comanda-catalog-item">
+              <div className="comanda-catalog-item-info">
+                <span className="comanda-catalog-item-name">{item.name}</span>
+                <span className="comanda-catalog-item-meta">
+                  {formatCents(item.price_cents)}
+                  {item.kind === 'product' && item.stock_on_hand !== undefined && ` · estoque: ${item.stock_on_hand}`}
+                </span>
+              </div>
+              <Button variant="secondary" onClick={() => (item.kind === 'package' ? addPackage(item) : addServiceOrProduct(item))}>
+                Adicionar
+              </Button>
             </li>
           ))}
         </ul>
@@ -387,20 +391,20 @@ export function ComandaPage() {
             <div className="comanda-cart-line-header">
               <strong>{line.name}</strong>
               <span>{formatCents(line.kind === 'package' ? line.unitPriceCents : line.unitPriceCents * line.quantity)}</span>
-              <button type="button" className="link-button" onClick={() => removeLine(line.key)}>
+              <Button variant="danger" onClick={() => removeLine(line.key)}>
                 Remover
-              </button>
+              </Button>
             </div>
 
             {line.kind !== 'package' && (
               <div className="comanda-cart-line-controls">
-                <button type="button" onClick={() => updateLineQuantity(line.key, -1)} aria-label={`Diminuir quantidade de ${line.name}`}>
+                <Button variant="secondary" onClick={() => updateLineQuantity(line.key, -1)} aria-label={`Diminuir quantidade de ${line.name}`}>
                   −
-                </button>
+                </Button>
                 <span>{line.quantity}</span>
-                <button type="button" onClick={() => updateLineQuantity(line.key, 1)} aria-label={`Aumentar quantidade de ${line.name}`}>
+                <Button variant="secondary" onClick={() => updateLineQuantity(line.key, 1)} aria-label={`Aumentar quantidade de ${line.name}`}>
                   +
-                </button>
+                </Button>
                 {line.stockOnHand !== undefined && line.quantity > line.stockOnHand && (
                   <span className="form-error" role="alert">acima do estoque disponível ({line.stockOnHand})</span>
                 )}
@@ -410,9 +414,9 @@ export function ComandaPage() {
             {line.kind === 'service' && (
               <div className="comanda-cart-line-assignment">
                 <span>{line.professionalId ? `Profissional: ${professionalName(line.professionalId)}` : 'Profissional não atribuído'}</span>
-                <button type="button" className="link-button" onClick={() => setAssigningKey(line.key)}>
+                <Button variant="link" onClick={() => setAssigningKey(line.key)}>
                   Atribuir profissional
-                </button>
+                </Button>
               </div>
             )}
 
@@ -423,9 +427,9 @@ export function ComandaPage() {
                     ? 'Profissionais atribuídos'
                     : 'Profissionais pendentes'}
                 </span>
-                <button type="button" className="link-button" onClick={() => setAssigningKey(line.key)}>
+                <Button variant="link" onClick={() => setAssigningKey(line.key)}>
                   Atribuir profissionais
-                </button>
+                </Button>
               </div>
             )}
           </div>
@@ -434,58 +438,53 @@ export function ComandaPage() {
 
       <p className="comanda-total">Total: {formatCents(subtotalCents)}</p>
 
-      <button type="button" disabled={!cartIsReady} onClick={goToPayment}>
+      <Button disabled={!cartIsReady} onClick={goToPayment}>
         Fechar comanda
-      </button>
+      </Button>
 
       {assigningLine && (
         <Modal onClose={() => setAssigningKey(null)}>
           <h2>Atribuir profissional — {assigningLine.name}</h2>
 
           {assigningLine.kind === 'service' && (
-            <label>
-              Profissional
-              <select
-                aria-label={`Profissional para ${assigningLine.name}`}
-                value={assigningLine.professionalId}
-                onChange={(event) => setLineProfessional(assigningLine.key, event.target.value)}
-              >
-                <option value="">Selecione um profissional</option>
-                {professionals.map((professional) => (
-                  <option key={professional.id} value={professional.id}>
-                    {professional.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <Select
+              label="Profissional"
+              value={assigningLine.professionalId}
+              onChange={(event) => setLineProfessional(assigningLine.key, event.target.value)}
+            >
+              <option value="">Selecione um profissional</option>
+              {professionals.map((professional) => (
+                <option key={professional.id} value={professional.id}>
+                  {professional.name}
+                </option>
+              ))}
+            </Select>
           )}
 
           {assigningLine.kind === 'package' && (
             <div className="comanda-package-components">
               {assigningLine.components.map((component) => (
-                <label key={component.serviceId}>
-                  {component.serviceName}
-                  <select
-                    aria-label={`Profissional para ${component.serviceName} (${assigningLine.name})`}
-                    value={component.professionalId}
-                    onChange={(event) => setPackageComponentProfessional(assigningLine.key, component.serviceId, event.target.value)}
-                  >
-                    <option value="">Selecione um profissional</option>
-                    {professionals.map((professional) => (
-                      <option key={professional.id} value={professional.id}>
-                        {professional.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <Select
+                  key={component.serviceId}
+                  label={component.serviceName}
+                  value={component.professionalId}
+                  onChange={(event) => setPackageComponentProfessional(assigningLine.key, component.serviceId, event.target.value)}
+                >
+                  <option value="">Selecione um profissional</option>
+                  {professionals.map((professional) => (
+                    <option key={professional.id} value={professional.id}>
+                      {professional.name}
+                    </option>
+                  ))}
+                </Select>
               ))}
             </div>
           )}
 
           <div className="modal-actions">
-            <button type="button" onClick={() => setAssigningKey(null)}>
+            <Button onClick={() => setAssigningKey(null)}>
               Concluir
-            </button>
+            </Button>
           </div>
         </Modal>
       )}

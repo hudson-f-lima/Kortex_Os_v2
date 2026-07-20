@@ -25,10 +25,15 @@ Entregar um ERP vertical multi-tenant mínimo para beleza e bem-estar: organiza�
 - Dinheiro usa centavos inteiros; checkout é atômico e idempotente.
 - Migrations são criadas pela Supabase CLI e testadas em ambiente local/descartável antes de produção.
 - Exemplos antigos podem inspirar testes, nunca definir a arquitetura.
+- A interface (PWA) DEVE usar exclusivamente os componentes primitivos do Kortex Design System (`<Button>`, `<Input>`, `<Badge>`, etc.) localizados em `ui/primitives`, nunca tags HTML nativas. A tela principal (Agenda) usa obrigatoriamente layout em Timeline Vertical.
 
 ## Processo MAS
 
 Usar `$kortex-mvpt-orchestrator`. Delegar por domínio com ownership exclusivo de arquivos. Classificar evidência como `REAL`, `PARCIAL`, `MOCKADO`, `HARDCODED`, `CRÍTICO`, `BLOQUEADO`, `DESCONHECIDO`, `OBSOLETO` ou `CONTRADITÓRIO`.
+
+## Visão pós-MVP
+
+`docs/KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md` é a visão de produto final vigente (Trilha F do `docs/INDEX.md`). Ela não substitui as regras acima nem autoriza domínio, tabela ou endpoint novo por si só — `docs/KORTEXOS_5_1_2_TRUTH_MAP.md` audita a lacuna entre esta fundação e aquela visão, e a promoção segue etapas gated (Migration Map → Blueprint → SQL) que exigem aprovação explícita do Platform Owner em cada uma.
 
 ## Handoff
 
