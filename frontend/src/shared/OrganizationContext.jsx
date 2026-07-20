@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createApiClient } from './apiClient.js';
 import { useAuth } from './useAuth.js';
 import { OrganizationContext } from './useOrganization.js';
-import { clearAllStores } from './idb.js';
+import { clearAllStores, getMeta, putMeta } from './idb.js';
 import { createSyncEngine } from './syncEngine.js';
 
 const STORAGE_KEY = 'kortex.selectedOrganizationId';
@@ -58,7 +58,7 @@ export function OrganizationProvider({ children }) {
   }, [user]);
 
   useEffect(() => {
-    if (!accessToken || !organizationId) return;
+    if (!accessToken || !organizationId || !user?.id) return;
 
     const apiClient = createApiClient({
       getAccessToken: () => accessToken,
@@ -72,18 +72,45 @@ export function OrganizationProvider({ children }) {
     });
 
     let cancelled = false;
-    clearAllStores()
-      .then(() => {
-        if (!cancelled) return engine.start();
-        return undefined;
-      })
-      .catch((err) => console.error('Failed to reset organization cache', err));
+
+    async function initSync() {
+      try {
+        const savedUserId = await getMeta('active_user_id');
+        const savedOrgId = await getMeta('active_organization_id');
+        const savedSchemaVersion = await getMeta('active_schema_version');
+
+        const CURRENT_SCHEMA_VERSION = 1;
+
+        const contextMatches =
+          savedUserId === user.id &&
+          savedOrgId === organizationId &&
+          savedSchemaVersion === CURRENT_SCHEMA_VERSION;
+
+        if (!contextMatches) {
+          await clearAllStores();
+
+          if (!cancelled) {
+            await putMeta('active_user_id', user.id);
+            await putMeta('active_organization_id', organizationId);
+            await putMeta('active_schema_version', CURRENT_SCHEMA_VERSION);
+          }
+        }
+
+        if (!cancelled) {
+          await engine.start();
+        }
+      } catch (err) {
+        console.error('Failed to safely initialize organization sync engine', err);
+      }
+    }
+
+    initSync();
 
     return () => {
       cancelled = true;
       engine.stop();
     };
-  }, [accessToken, organizationId]);
+  }, [accessToken, organizationId, user?.id]);
 
   function selectOrganization(id) {
     setOrganizationId(id);

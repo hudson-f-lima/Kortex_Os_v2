@@ -114,8 +114,9 @@ Render hospeda API Node e PWA estática; Supabase permanece serviço externo. Us
 5. Checkout/estoque/pagamentos/caixa idempotente.
 6. PWA modular, offline apenas para shell/rascunhos não críticos.
 7. CI, Render, observabilidade e Red Team.
+13. Refatoração UI/UX MVP: Implementação do Kortex Design System (AppShell, Primitives) e observabilidade PWA (LCP/INP, Offline Status).
 
-Fases 8+ vivem em `PLANEJAMENTO_EXECUCAO_UNIFICADO.md`.
+Fases 8 a 12 vivem em `PLANEJAMENTO_EXECUCAO_UNIFICADO.md`.
 
 ## 11. Não objetivos
 

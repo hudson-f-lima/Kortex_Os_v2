@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useApiClient } from '../../shared/useApiClient.js';
 import { messageForError, OFFLINE_FALLBACK } from '../../shared/apiErrorMessage.js';
 import { CapabilityModal } from './CapabilityModal.jsx';
+import { Button } from '../../ui/primitives/Button.jsx';
 
 // Mirrors backend/src/modules/professionalServiceCapabilities/professionalServiceCapabilities.route.js
 // WRITE_ROLES/DELETE_ROLES. Read is open to any active member (professional
@@ -66,9 +67,7 @@ export function CapabilitiesTab({ professionals, services, currentRole }) {
     return (
       <div className="full-page-error">
         <p>{error}</p>
-        <button type="button" onClick={load}>
-          Tentar novamente
-        </button>
+        <Button onClick={load}>Tentar novamente</Button>
       </div>
     );
   }
@@ -77,9 +76,9 @@ export function CapabilitiesTab({ professionals, services, currentRole }) {
     <div>
       {canWrite && (
         <div className="list-toolbar">
-          <button type="button" onClick={() => setModal({ capability: null })}>
+          <Button onClick={() => setModal({ capability: null })}>
             + Adicionar capacidade
-          </button>
+          </Button>
         </div>
       )}
 
@@ -112,24 +111,24 @@ export function CapabilitiesTab({ professionals, services, currentRole }) {
                 {(canWrite || canDelete) && (
                   <td>
                     {canWrite && (
-                      <button type="button" className="link-button" onClick={() => setModal({ capability: cap })}>
+                      <Button variant="link" onClick={() => setModal({ capability: cap })}>
                         Editar
-                      </button>
+                      </Button>
                     )}
                     {canDelete && confirmingRemoveId !== cap.id && (
-                      <button type="button" className="link-button" onClick={() => setConfirmingRemoveId(cap.id)}>
+                      <Button variant="link" onClick={() => setConfirmingRemoveId(cap.id)}>
                         Remover
-                      </button>
+                      </Button>
                     )}
                     {canDelete && confirmingRemoveId === cap.id && (
                       <>
                         <span>Confirma?</span>
-                        <button type="button" className="danger-button" onClick={() => handleRemove(cap)}>
+                        <Button variant="danger" onClick={() => handleRemove(cap)}>
                           Sim
-                        </button>
-                        <button type="button" className="link-button" onClick={() => setConfirmingRemoveId(null)}>
+                        </Button>
+                        <Button variant="link" onClick={() => setConfirmingRemoveId(null)}>
                           Não
-                        </button>
+                        </Button>
                       </>
                     )}
                   </td>

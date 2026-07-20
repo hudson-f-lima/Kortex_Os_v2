@@ -141,7 +141,7 @@ describe('AgendaPage', () => {
           })(),
           ends_at: (() => {
             const d = new Date();
-            d.setHours(9, 30, 0, 0);
+            d.setHours(10, 0, 0, 0);
             return d.toISOString();
           })(),
           status: 'scheduled',
@@ -152,7 +152,9 @@ describe('AgendaPage', () => {
     renderAgenda();
 
     await waitFor(() => expect(screen.getAllByText('Ana').length).toBeGreaterThan(0));
-    expect(screen.getByText('Beatriz', { selector: '.agenda-grid-header-cell' })).toBeInTheDocument();
+    // Timeline Vertical (redesign) troca colunas por profissional por um filtro
+    // único — Beatriz aparece como opção no <select>, não como cabeçalho de coluna.
+    expect(screen.getByRole('option', { name: 'Beatriz' })).toBeInTheDocument();
     expect(screen.getByText('Carla', { exact: false })).toBeInTheDocument();
     expect(screen.getByText('Corte', { exact: false })).toBeInTheDocument();
   });
@@ -163,7 +165,7 @@ describe('AgendaPage', () => {
     renderAgenda();
 
     await waitFor(() =>
-      expect(screen.getByText(/Nenhum profissional cadastrado ainda/)).toBeInTheDocument(),
+      expect(screen.getByText(/Nenhum profissional cadastrado. Cadastre/)).toBeInTheDocument(),
     );
   });
 
@@ -187,17 +189,17 @@ describe('AgendaPage', () => {
 
     await waitFor(() => expect(screen.getByText('Ana')).toBeInTheDocument());
     expect(screen.queryByText('Beatriz')).not.toBeInTheDocument();
-    expect(screen.queryByText('+ Novo agendamento')).not.toBeInTheDocument();
+    expect(screen.queryByText('+ Novo')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Filtrar por profissional')).not.toBeInTheDocument();
   });
 
-  it('opens the create modal when clicking "+ Novo agendamento"', async () => {
+  it('opens the create modal when clicking "+ Novo"', async () => {
     mockLists();
 
     renderAgenda();
 
-    await waitFor(() => expect(screen.getByText('+ Novo agendamento')).toBeInTheDocument());
-    fireEvent.click(screen.getByText('+ Novo agendamento'));
+    await waitFor(() => expect(screen.getByText('+ Novo')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('+ Novo'));
 
     expect(screen.getByText('Novo agendamento')).toBeInTheDocument();
   });

@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { Modal } from '../../shared/Modal.jsx';
 import { reaisToCents } from '../../shared/money.js';
 import { messageForError, FORBIDDEN_MESSAGE } from '../../shared/apiErrorMessage.js';
+import { Button } from '../../ui/primitives/Button.jsx';
+import { Input } from '../../ui/primitives/Input.jsx';
+import { Select } from '../../ui/primitives/Select.jsx';
 
 function newRowKey() {
   return crypto.randomUUID();
@@ -66,19 +69,13 @@ export function PackageModal({ mode, pkg, services, apiClient, onClose, onSaved 
     <Modal onClose={onClose}>
       <h2>{mode === 'edit' ? 'Editar pacote' : 'Novo pacote'}</h2>
         <form className="auth-form" onSubmit={handleSubmit}>
-          <label>
-            Nome
-            <input value={name} onChange={(event) => setName(event.target.value)} required />
-          </label>
-          <label>
-            Preço do pacote (R$)
-            <input inputMode="decimal" value={priceReais} onChange={(event) => setPriceReais(event.target.value)} required />
-          </label>
+          <Input label="Nome" value={name} onChange={(event) => setName(event.target.value)} required />
+          <Input label="Preço do pacote (R$)" inputMode="decimal" value={priceReais} onChange={(event) => setPriceReais(event.target.value)} required />
 
           <p className="section-hint">Composição (serviços inclusos)</p>
           {items.map((item) => (
             <div className="inline-row" key={item.key}>
-              <select
+              <Select
                 aria-label="Selecionar serviço do pacote"
                 value={item.serviceId}
                 onChange={(event) => updateItem(item.key, { serviceId: event.target.value })}
@@ -89,8 +86,8 @@ export function PackageModal({ mode, pkg, services, apiClient, onClose, onSaved 
                     {service.name}
                   </option>
                 ))}
-              </select>
-              <input
+              </Select>
+              <Input
                 type="number"
                 min="1"
                 aria-label="Quantidade do componente"
@@ -98,15 +95,15 @@ export function PackageModal({ mode, pkg, services, apiClient, onClose, onSaved 
                 onChange={(event) => updateItem(item.key, { quantity: event.target.value })}
               />
               {items.length > 1 && (
-                <button type="button" className="link-button" onClick={() => removeItem(item.key)}>
+                <Button variant="link" onClick={() => removeItem(item.key)}>
                   Remover
-                </button>
+                </Button>
               )}
             </div>
           ))}
-          <button type="button" className="link-button" onClick={addItem}>
+          <Button variant="link" onClick={addItem}>
             + Serviço na composição
-          </button>
+          </Button>
 
           {mode === 'edit' && (
             <label className="inline-checkbox">
@@ -118,12 +115,12 @@ export function PackageModal({ mode, pkg, services, apiClient, onClose, onSaved 
           {error && <p className="form-error" role="alert">{error}</p>}
 
           <div className="modal-actions">
-            <button type="button" className="link-button" onClick={onClose}>
+            <Button variant="secondary" onClick={onClose}>
               Fechar
-            </button>
-            <button type="submit" disabled={submitting}>
+            </Button>
+            <Button type="submit" disabled={submitting}>
               {mode === 'edit' ? 'Salvar' : 'Criar pacote'}
-            </button>
+            </Button>
           </div>
         </form>
     </Modal>

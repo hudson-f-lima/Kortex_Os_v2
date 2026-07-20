@@ -1,0 +1,97 @@
+:root {
+  /* ==========================================================================
+     KORTEX DESIGN SYSTEM v1.0 - TOKENS
+     ========================================================================== */
+
+  /* --- PALETA DE CORES --- */
+  
+  /* Verde-esmeralda (Ação e Resultado) */
+  --emerald-50: #ECFDF5;
+  --emerald-100: #D1FAE5;
+  --emerald-500: #10B981;
+  --emerald-600: #059669;
+  --emerald-700: #047857;
+  --emerald-900: #064E3B;
+
+  /* Azul-royal (Inteligência e Informação) */
+  --royal-50: #EFF6FF;
+  --royal-100: #DBEAFE;
+  --royal-500: #2563EB;
+  --royal-600: #1D4ED8;
+  --royal-700: #1E40AF;
+  --royal-900: #172554;
+
+  /* Neutros (Slate) */
+  --slate-0: #FFFFFF;
+  --slate-25: #FCFCFD;
+  --slate-50: #F8FAFC;
+  --slate-100: #F1F5F9;
+  --slate-200: #E2E8F0;
+  --slate-300: #CBD5E1;
+  --slate-500: #64748B;
+  --slate-700: #334155;
+  --slate-900: #0F172A;
+  --slate-950: #08111F;
+
+  /* Estados */
+  --success: #059669;
+  --warning: #D97706;
+  --danger: #DC2626;
+  --info: #2563EB;
+  --ai: #6D5CE7;
+
+  /* --- PAPÉIS SEMÂNTICOS (Light Theme) --- */
+  --color-action-primary: var(--emerald-600);
+  --color-action-primary-hover: var(--emerald-700);
+  --color-intelligence: var(--royal-600);
+  
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  
+  --color-text-primary: var(--slate-900);
+  --color-text-secondary: var(--slate-700);
+  --color-text-muted: var(--slate-500);
+  
+  --color-border: var(--slate-200);
+  --color-border-strong: var(--slate-300);
+  
+  --color-canvas: var(--slate-50);
+  --color-surface: var(--slate-0);
+  --color-surface-elevated: var(--slate-0);
+  --color-surface-muted: var(--slate-100);
+  
+  --color-focus: var(--royal-500);
+
+  /* --- ESPAÇAMENTO --- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* --- RADIUS --- */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --radius-pill: 999px;
+
+  /* --- CONTROLES (Altura de campos/botões) --- */
+  --control-sm: 36px;
+  --control-md: 44px;
+  --control-lg: 52px;
+
+  /* --- MOTION --- */
+  --motion-fast: 120ms;
+  --motion-base: 180ms;
+  --motion-slow: 240ms;
+
+  /* --- TIPOGRAFIA --- */
+  --font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", sans-serif;
+}

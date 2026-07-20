@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Modal } from '../../shared/Modal.jsx';
 import { messageForError, FORBIDDEN_MESSAGE } from '../../shared/apiErrorMessage.js';
+import { Button } from '../../ui/primitives/Button.jsx';
+import { Input } from '../../ui/primitives/Input.jsx';
 
 // Cria/edita clientes (docs/PWA_PLANEJAMENTO.md §4.1/§6): só os campos que o
 // backend expõe (name/phone/email/active) — sem preferências/observações,
@@ -44,18 +46,23 @@ export function ClientModal({ mode, client, apiClient, onClose, onSaved }) {
     <Modal onClose={onClose}>
       <h2>{mode === 'edit' ? 'Editar cliente' : 'Novo cliente'}</h2>
         <form className="auth-form" onSubmit={handleSubmit}>
-          <label>
-            Nome
-            <input value={name} onChange={(event) => setName(event.target.value)} required />
-          </label>
-          <label>
-            Telefone
-            <input value={phone} onChange={(event) => setPhone(event.target.value)} />
-          </label>
-          <label>
-            E-mail
-            <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
-          </label>
+          <Input 
+            label="Nome" 
+            value={name} 
+            onChange={(event) => setName(event.target.value)} 
+            required 
+          />
+          <Input 
+            label="Telefone" 
+            value={phone} 
+            onChange={(event) => setPhone(event.target.value)} 
+          />
+          <Input 
+            label="E-mail" 
+            type="email" 
+            value={email} 
+            onChange={(event) => setEmail(event.target.value)} 
+          />
 
           {mode === 'edit' && (
             <label className="inline-checkbox">
@@ -67,12 +74,12 @@ export function ClientModal({ mode, client, apiClient, onClose, onSaved }) {
           {error && <p className="form-error" role="alert">{error}</p>}
 
           <div className="modal-actions">
-            <button type="button" className="link-button" onClick={onClose}>
+            <Button variant="secondary" onClick={onClose}>
               Fechar
-            </button>
-            <button type="submit" disabled={submitting}>
+            </Button>
+            <Button type="submit" disabled={submitting}>
               {mode === 'edit' ? 'Salvar' : 'Criar cliente'}
-            </button>
+            </Button>
           </div>
         </form>
     </Modal>

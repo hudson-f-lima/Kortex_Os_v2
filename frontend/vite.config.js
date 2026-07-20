@@ -7,8 +7,13 @@ import { VitePWA } from 'vite-plugin-pwa';
 // segundo arquivo em frontend/. Seguro: o Vite só expõe ao bundle do
 // cliente variáveis prefixadas VITE_ — os segredos do backend no mesmo
 // arquivo (SUPABASE_SERVICE_ROLE_KEY etc.) nunca entram no build.
+// DEC-28: base path é condicional por ambiente — GitHub Pages serve sob
+// /Kortex_Os_v2/ (subcaminho), Render e dev local servem na raiz do domínio.
+// VITE_BASE_PATH é setado só no workflow do GitHub Pages (env do passo de
+// build), então o default '/' cobre Render e desenvolvimento local sem
+// precisar de config própria em nenhum dos dois.
 export default defineConfig({
-  base: '/Kortex_Os_v2/',
+  base: process.env.VITE_BASE_PATH || '/',
   envDir: '..',
   plugins: [
     react(),

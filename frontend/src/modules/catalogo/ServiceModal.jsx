@@ -3,6 +3,9 @@ import { Modal } from '../../shared/Modal.jsx';
 import { reaisToCents } from '../../shared/money.js';
 import { messageForError, FORBIDDEN_MESSAGE } from '../../shared/apiErrorMessage.js';
 import { basisPointsToPercentString, percentStringToBasisPoints } from './commission.js';
+import { Button } from '../../ui/primitives/Button.jsx';
+import { Input } from '../../ui/primitives/Input.jsx';
+import { Select } from '../../ui/primitives/Select.jsx';
 
 // commission_type/commission_value são um par opcional que sobrepõe o
 // padrão do grupo só para este serviço (nível 2 da cascata) — ambos ou
@@ -68,41 +71,31 @@ export function ServiceModal({ mode, service, groups, apiClient, onClose, onSave
     <Modal onClose={onClose}>
       <h2>{mode === 'edit' ? 'Editar serviço' : 'Novo serviço'}</h2>
         <form className="auth-form" onSubmit={handleSubmit}>
-          <label>
-            Nome
-            <input value={name} onChange={(event) => setName(event.target.value)} required />
-          </label>
-          <label>
-            Preço (R$)
-            <input inputMode="decimal" value={priceReais} onChange={(event) => setPriceReais(event.target.value)} required />
-          </label>
-          <label>
-            Duração (minutos)
-            <input
-              type="number"
-              min="5"
-              max="1440"
-              value={durationMinutes}
-              onChange={(event) => setDurationMinutes(event.target.value)}
-              required
-            />
-          </label>
-          <label>
-            Grupo de serviço
-            <select
-              aria-label="Selecionar grupo de serviço"
-              value={groupId}
-              onChange={(event) => setGroupId(event.target.value)}
-              required
-            >
-              <option value="">Selecione um grupo</option>
-              {groups.map((group) => (
-                <option key={group.id} value={group.id}>
-                  {group.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <Input label="Nome" value={name} onChange={(event) => setName(event.target.value)} required />
+          <Input label="Preço (R$)" inputMode="decimal" value={priceReais} onChange={(event) => setPriceReais(event.target.value)} required />
+          <Input
+            label="Duração (minutos)"
+            type="number"
+            min="5"
+            max="1440"
+            value={durationMinutes}
+            onChange={(event) => setDurationMinutes(event.target.value)}
+            required
+          />
+          <Select
+            label="Grupo de serviço"
+            aria-label="Selecionar grupo de serviço"
+            value={groupId}
+            onChange={(event) => setGroupId(event.target.value)}
+            required
+          >
+            <option value="">Selecione um grupo</option>
+            {groups.map((group) => (
+              <option key={group.id} value={group.id}>
+                {group.name}
+              </option>
+            ))}
+          </Select>
 
           <label className="inline-checkbox">
             <input
@@ -115,21 +108,16 @@ export function ServiceModal({ mode, service, groups, apiClient, onClose, onSave
 
           {overrideCommission && (
             <>
-              <label>
-                Tipo de comissão
-                <select value={commissionType} onChange={(event) => setCommissionType(event.target.value)}>
-                  <option value="percentage">Percentual</option>
-                  <option value="fixed">Valor fixo</option>
-                </select>
-              </label>
-              <label>
-                {commissionType === 'percentage' ? 'Comissão (%)' : 'Comissão (R$)'}
-                <input
-                  inputMode="decimal"
-                  value={commissionValue}
-                  onChange={(event) => setCommissionValue(event.target.value)}
-                />
-              </label>
+              <Select label="Tipo de comissão" value={commissionType} onChange={(event) => setCommissionType(event.target.value)}>
+                <option value="percentage">Percentual</option>
+                <option value="fixed">Valor fixo</option>
+              </Select>
+              <Input
+                label={commissionType === 'percentage' ? 'Comissão (%)' : 'Comissão (R$)'}
+                inputMode="decimal"
+                value={commissionValue}
+                onChange={(event) => setCommissionValue(event.target.value)}
+              />
             </>
           )}
 
@@ -143,12 +131,12 @@ export function ServiceModal({ mode, service, groups, apiClient, onClose, onSave
           {error && <p className="form-error" role="alert">{error}</p>}
 
           <div className="modal-actions">
-            <button type="button" className="link-button" onClick={onClose}>
+            <Button variant="secondary" onClick={onClose}>
               Fechar
-            </button>
-            <button type="submit" disabled={submitting}>
+            </Button>
+            <Button type="submit" disabled={submitting}>
               {mode === 'edit' ? 'Salvar' : 'Criar serviço'}
-            </button>
+            </Button>
           </div>
         </form>
     </Modal>

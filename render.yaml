@@ -25,9 +25,13 @@ services:
         sync: false
       - key: SUPABASE_SECRET_KEY
         sync: false
-      # CORS: Permitir acesso do frontend no GitHub Pages
+      # CORS: Permitir acesso do frontend no GitHub Pages e no próprio
+      # kortex-pwa (Render, definido abaixo neste arquivo) — DEC-28.
+      # ATENÇÃO: URL do kortex-pwa assumida pelo padrão default do Render
+      # (https://<nome-do-serviço>.onrender.com); confirme no dashboard do
+      # Render e corrija aqui se um domínio customizado estiver configurado.
       - key: CORS_ORIGINS
-        value: https://hudson-f-lima.github.io
+        value: https://hudson-f-lima.github.io,https://kortex-pwa.onrender.com
 
   - type: web
     name: kortex-pwa

@@ -103,13 +103,13 @@ describe('CapabilitiesTab', () => {
     await waitFor(() => expect(screen.getByText('+ Adicionar capacidade')).toBeInTheDocument());
     fireEvent.click(screen.getByText('+ Adicionar capacidade'));
 
-    fireEvent.change(screen.getByText('Profissional').closest('label').querySelector('select'), {
+    fireEvent.change(screen.getByLabelText('Profissional'), {
       target: { value: 'prof-1' },
     });
-    fireEvent.change(screen.getByText('Serviço').closest('label').querySelector('select'), {
+    fireEvent.change(screen.getByLabelText('Serviço'), {
       target: { value: 'svc-1' },
     });
-    fireEvent.change(screen.getByText('Duração customizada (minutos)').closest('label').querySelector('input'), {
+    fireEvent.change(screen.getByLabelText('Duração customizada (minutos)'), {
       target: { value: '40' },
     });
     fireEvent.click(screen.getByText('Salvar'));
@@ -132,10 +132,10 @@ describe('CapabilitiesTab', () => {
 
     await waitFor(() => expect(screen.getByText('+ Adicionar capacidade')).toBeInTheDocument());
     fireEvent.click(screen.getByText('+ Adicionar capacidade'));
-    fireEvent.change(screen.getByText('Profissional').closest('label').querySelector('select'), {
+    fireEvent.change(screen.getByLabelText('Profissional'), {
       target: { value: 'prof-1' },
     });
-    fireEvent.change(screen.getByText('Serviço').closest('label').querySelector('select'), {
+    fireEvent.change(screen.getByLabelText('Serviço'), {
       target: { value: 'svc-1' },
     });
     fireEvent.click(screen.getByText('Salvar'));
@@ -169,7 +169,7 @@ describe('CapabilitiesTab', () => {
     await waitFor(() => expect(screen.getByText('Editar')).toBeInTheDocument());
     fireEvent.click(screen.getByText('Editar'));
 
-    fireEvent.change(screen.getByText('Buffer antes (minutos)').closest('label').querySelector('input'), {
+    fireEvent.change(screen.getByLabelText('Buffer antes (minutos)'), {
       target: { value: '500' },
     });
     fireEvent.click(screen.getByText('Salvar'));

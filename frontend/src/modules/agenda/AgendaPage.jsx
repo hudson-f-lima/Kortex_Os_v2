@@ -1,43 +1,35 @@
-import { Fragment, useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useEffect } from 'react';
 import { ApiError } from '../../shared/apiClient.js';
 import { useApiClient } from '../../shared/useApiClient.js';
 import { useAuth } from '../../shared/useAuth.js';
 import { useOrganization } from '../../shared/useOrganization.js';
 import { useCachedQuery } from '../../shared/useCachedQuery.js';
 import { AppointmentModal } from './AppointmentModal.jsx';
-import { statusLabel } from './appointmentStatus.js';
+import { SmartStrip } from '../../ui/domain/SmartStrip.jsx';
+import { AppointmentCard } from '../../ui/domain/AppointmentCard.jsx';
+import { Button } from '../../ui/primitives/Button.jsx';
+import { Plus } from 'lucide-react';
 import {
   addDays,
   dateKey,
-  daySlots,
   dayRange,
   formatDateHeading,
   formatDayLabel,
-  formatTime,
-  slotIndexForTime,
   startOfWeek,
-  totalSlots,
   weekDays,
-  weekRange,
 } from './dateUtils.js';
 
-const WRITE_ROLES = ['owner', 'admin', 'manager', 'reception'];
-const SLOT_HEIGHT = '2.75rem';
+import './AgendaPage.css';
 
-// Comportamento distinto do apiErrorMessage.js compartilhado — testado
-// explicitamente em AgendaPage.test.jsx ("network down"): erros JS crus
-// (não ApiError) devem surfacar err.message em vez do fallback genérico.
-// Não generalizar para o helper comum (só este arquivo e ClientesPage.jsx
-// têm esse terceiro branch, e aqui é comportamento coberto por teste).
+const WRITE_ROLES = ['owner', 'admin', 'manager', 'reception'];
+
+
 function messageForListError(err) {
   if (err instanceof ApiError) return err.message;
   if (err?.message) return err.message;
   return 'Sem conexão. Verifique sua internet e tente novamente.';
 }
 
-// Próximo slot de 30min a partir de agora (se o dia âncora for hoje) ou 9h
-// (se for outro dia) — só um ponto de partida razoável para o formulário,
-// o usuário sempre pode trocar o horário.
 function defaultStartFor(anchorDate) {
   const start = new Date(anchorDate);
   const now = new Date();
@@ -58,10 +50,13 @@ export function AgendaPage() {
   const canWrite = WRITE_ROLES.includes(role);
   const isProfessional = role === 'professional';
 
-  const [view, setView] = useState('day');
+  // Always 'day' view as per instructions for the Timeline
   const [anchorDate, setAnchorDate] = useState(() => new Date());
   const [professionalFilter, setProfessionalFilter] = useState('all');
   const [modal, setModal] = useState(null);
+
+  // Mocks para o SmartStrip (Tela Deus)
+  const [smartStripVisible, setSmartStripVisible] = useState(true);
 
   const filterActive = useCallback((item) => item.active, []);
 
@@ -93,7 +88,7 @@ export function AgendaPage() {
     if (isProfessional && !ownProfessional) return false;
 
     const apptDate = new Date(appt.starts_at);
-    const { from, to } = view === 'day' ? dayRange(anchorDate) : weekRange(anchorDate);
+    const { from, to } = dayRange(anchorDate);
     const fromTime = new Date(from).getTime();
     const toTime = new Date(to).getTime();
     const apptTime = apptDate.getTime();
@@ -102,16 +97,12 @@ export function AgendaPage() {
     const profMatch = !effectiveProfessionalId || appt.professional_id === effectiveProfessionalId;
 
     return timeMatch && profMatch;
-  }, [view, anchorDate, effectiveProfessionalId, isProfessional, ownProfessional]);
+  }, [anchorDate, effectiveProfessionalId, isProfessional, ownProfessional]);
 
   const { data: appointments, loading: appointmentsLoading, error: appointmentsError, refetch: loadAppointments } = useCachedQuery('appointments', filterAppointments);
 
   function clientName(id) {
     return clients.find((client) => client.id === id)?.name ?? '—';
-  }
-
-  function professionalName(id) {
-    return professionals.find((professional) => professional.id === id)?.name ?? '—';
   }
 
   function serviceName(id) {
@@ -158,10 +149,6 @@ export function AgendaPage() {
     });
   }
 
-  function navigate(amount) {
-    setAnchorDate((current) => addDays(current, view === 'day' ? amount : amount * 7));
-  }
-
   const professionalsForGrid = isProfessional
     ? ownProfessional
       ? [ownProfessional]
@@ -173,115 +160,135 @@ export function AgendaPage() {
   const noProfessionalsAtAll = professionals.length === 0;
   const professionalUnlinked = isProfessional && !ownProfessional && !listsLoading;
 
+  // Render Weekly Strip
+  const renderWeeklyStrip = () => {
+    const days = weekDays(startOfWeek(anchorDate));
+    return (
+      <div className="k-agenda__weekly-strip">
+        {days.map(day => {
+          const isSelected = dateKey(day) === dateKey(anchorDate);
+          return (
+            <button 
+              key={dateKey(day)} 
+              type="button" 
+              className={`k-agenda__day-btn ${isSelected ? 'k-agenda__day-btn--active' : ''}`}
+              onClick={() => setAnchorDate(day)}
+            >
+              <span className="k-agenda__day-name">{formatDayLabel(day).substring(0, 3)}</span>
+              <span className="k-agenda__day-num">{day.getDate()}</span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
-    <div className="agenda-page">
-      <div className="agenda-toolbar">
-        <div className="agenda-view-toggle">
-          <button type="button" className={view === 'day' ? 'active' : ''} onClick={() => setView('day')}>
-            Dia
-          </button>
-          <button type="button" className={view === 'week' ? 'active' : ''} onClick={() => setView('week')}>
-            Semana
-          </button>
+    <div className="k-agenda">
+      {/* Topbar/Toolbar */}
+      <div className="k-agenda__toolbar">
+        <div className="k-agenda__nav-group">
+          <Button variant="ghost" size="sm" onClick={() => setAnchorDate(addDays(anchorDate, -1))}>‹</Button>
+          <Button variant="ghost" size="sm" onClick={() => setAnchorDate(new Date())}>Hoje</Button>
+          <Button variant="ghost" size="sm" onClick={() => setAnchorDate(addDays(anchorDate, 1))}>›</Button>
+          <span className="k-agenda__date-label">{formatDateHeading(anchorDate)}</span>
         </div>
 
-        <div className="agenda-nav">
-          <button type="button" onClick={() => navigate(-1)} aria-label="Anterior">
-            ‹
-          </button>
-          <button type="button" onClick={() => setAnchorDate(new Date())}>
-            Hoje
-          </button>
-          <button type="button" onClick={() => navigate(1)} aria-label="Próximo">
-            ›
-          </button>
-          <span className="agenda-heading">
-            {view === 'day' ? formatDateHeading(anchorDate) : `Semana de ${formatDayLabel(startOfWeek(anchorDate))}`}
-          </span>
+        <div className="k-agenda__nav-group">
+          {!isProfessional && (
+            <select
+              aria-label="Filtrar por profissional"
+              style={{ padding: '6px', borderRadius: '4px', border: '1px solid var(--color-border)' }}
+              value={professionalFilter}
+              onChange={(event) => setProfessionalFilter(event.target.value)}
+            >
+              <option value="all">Equipe Inteira</option>
+              {professionals.map((professional) => (
+                <option key={professional.id} value={professional.id}>
+                  {professional.name}
+                </option>
+              ))}
+            </select>
+          )}
+          {canWrite && (
+            <Button className="hide-on-mobile" onClick={() => openCreateAt(effectiveProfessionalId ?? '', defaultStartFor(anchorDate))}>
+              + Novo
+            </Button>
+          )}
         </div>
+      </div>
 
-        {!isProfessional && (
-          <select
-            aria-label="Filtrar por profissional"
-            value={professionalFilter}
-            onChange={(event) => setProfessionalFilter(event.target.value)}
-          >
-            <option value="all">Todos os profissionais</option>
-            {professionals.map((professional) => (
-              <option key={professional.id} value={professional.id}>
-                {professional.name}
-              </option>
-            ))}
-          </select>
+      {renderWeeklyStrip()}
+
+      {smartStripVisible && !listsLoading && !listsError && (
+        <SmartStrip 
+          type="insight" 
+          message="Movimento tranquilo hoje. Que tal enviar uma campanha para clientes inativos?" 
+          actionLabel="Ver Campanha" 
+          onAction={() => window.alert('Feature futura: Kortex IA Marketing')}
+          onClose={() => setSmartStripVisible(false)}
+        />
+      )}
+
+      <div className="k-agenda__main">
+        {listsLoading && <div style={{ padding: '24px' }}>Carregando agenda…</div>}
+
+        {!listsLoading && listsError && (
+          <div style={{ padding: '24px' }}>
+            <p>{messageForListError(listsError)}</p>
+            <Button onClick={loadLists}>Tentar novamente</Button>
+          </div>
         )}
 
+        {!listsLoading && !listsError && professionalUnlinked && (
+          <div style={{ padding: '24px' }}>
+            <p>Seu usuário não está vinculado a um profissional nesta organização.</p>
+          </div>
+        )}
+
+        {!listsLoading && !listsError && noProfessionalsAtAll && (
+          <div style={{ padding: '24px' }}>
+            <p>Nenhum profissional cadastrado. Cadastre no módulo Equipe para começar a agendar.</p>
+          </div>
+        )}
+
+        {!listsLoading && !listsError && !noProfessionalsAtAll && !professionalUnlinked && (
+          <>
+            {appointmentsLoading && <div style={{ padding: '24px' }}>Carregando agendamentos…</div>}
+
+            {!appointmentsLoading && appointmentsError && (
+              <div style={{ padding: '24px' }}>
+                <p>{messageForListError(appointmentsError)}</p>
+                <Button onClick={loadAppointments}>Tentar novamente</Button>
+              </div>
+            )}
+
+            {!appointmentsLoading && !appointmentsError && (
+              <TimelineView 
+                anchorDate={anchorDate}
+                professionals={professionalsForGrid}
+                appointments={appointments}
+                clientName={clientName}
+                serviceName={serviceName}
+                onAppointmentClick={openAppointment}
+                onSlotClick={openCreateAt}
+              />
+            )}
+          </>
+        )}
+
+        {/* FAB on mobile */}
         {canWrite && (
-          <button type="button" onClick={() => openCreateAt(effectiveProfessionalId ?? '', defaultStartFor(anchorDate))}>
-            + Novo agendamento
+          <button 
+            type="button" 
+            className="k-agenda__fab" 
+            onClick={() => openCreateAt(effectiveProfessionalId ?? '', defaultStartFor(anchorDate))}
+            aria-label="Novo Agendamento"
+          >
+            <Plus size={24} />
           </button>
         )}
       </div>
-
-      {listsLoading && <p>Carregando agenda…</p>}
-
-      {!listsLoading && listsError && (
-        <div className="full-page-error">
-          <p>{messageForListError(listsError)}</p>
-          <button type="button" onClick={loadLists}>
-            Tentar novamente
-          </button>
-        </div>
-      )}
-
-      {!listsLoading && !listsError && professionalUnlinked && (
-        <p>Seu usuário não está vinculado a um profissional nesta organização. Peça a um admin para vincular seu cadastro.</p>
-      )}
-
-      {!listsLoading && !listsError && noProfessionalsAtAll && (
-        <p>Nenhum profissional cadastrado ainda. Cadastre profissionais no módulo Equipe para começar a agendar.</p>
-      )}
-
-      {!listsLoading && !listsError && !noProfessionalsAtAll && !professionalUnlinked && (
-        <>
-          {appointmentsLoading && <p>Carregando agendamentos…</p>}
-
-          {!appointmentsLoading && appointmentsError && (
-            <div className="full-page-error">
-              <p>{messageForListError(appointmentsError)}</p>
-              <button type="button" onClick={loadAppointments}>
-                Tentar novamente
-              </button>
-            </div>
-          )}
-
-          {!appointmentsLoading && !appointmentsError && view === 'day' && (
-            <DayGrid
-              anchorDate={anchorDate}
-              professionals={professionalsForGrid}
-              appointments={appointments}
-              canWrite={canWrite}
-              onSlotClick={openCreateAt}
-              onAppointmentClick={openAppointment}
-              clientName={clientName}
-              serviceName={serviceName}
-            />
-          )}
-
-          {!appointmentsLoading && !appointmentsError && view === 'week' && (
-            <WeekList
-              anchorDate={anchorDate}
-              appointments={appointments}
-              canWrite={canWrite}
-              defaultProfessionalId={effectiveProfessionalId ?? ''}
-              onCreateForDay={openCreateAt}
-              onAppointmentClick={openAppointment}
-              clientName={clientName}
-              professionalName={professionalName}
-              serviceName={serviceName}
-            />
-          )}
-        </>
-      )}
 
       {modal && (
         <AppointmentModal
@@ -301,151 +308,114 @@ export function AgendaPage() {
   );
 }
 
-function DayGrid({ anchorDate, professionals, appointments, canWrite, onSlotClick, onAppointmentClick, clientName, serviceName }) {
-  const slots = daySlots(anchorDate);
-  const slotCount = totalSlots();
+function TimelineView({ anchorDate, professionals, appointments, clientName, serviceName, onAppointmentClick, onSlotClick }) {
+  // Timeline hours from 8:00 to 22:00
+  const START_HOUR = 8;
+  const END_HOUR = 22;
+  const hours = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => START_HOUR + i);
+  
+  const [nowOffset, setNowOffset] = useState(null);
 
-  if (professionals.length === 0) {
-    return <p>Nenhum profissional para exibir com o filtro atual.</p>;
-  }
-
-  return (
-    <div className="agenda-grid-wrapper">
-      <div
-        className="agenda-grid-header"
-        style={{ gridTemplateColumns: `4rem repeat(${professionals.length}, minmax(150px, 1fr))` }}
-      >
-        <div />
-        {professionals.map((professional) => (
-          <div key={professional.id} className="agenda-grid-header-cell">
-            {professional.name}
-          </div>
-        ))}
-      </div>
-
-      <div
-        className="agenda-grid"
-        style={{
-          gridTemplateColumns: `4rem repeat(${professionals.length}, minmax(150px, 1fr))`,
-          gridTemplateRows: `repeat(${slotCount}, minmax(${SLOT_HEIGHT}, auto))`,
-        }}
-      >
-        {slots.map((slotDate, rowIndex) => (
-          <div key={`time-${rowIndex}`} className="agenda-time-label" style={{ gridColumn: 1, gridRow: rowIndex + 1 }}>
-            {rowIndex % 2 === 0 ? formatTime(slotDate) : ''}
-          </div>
-        ))}
-
-        {professionals.map((professional, colIndex) => {
-          const apptsForProfessional = appointments.filter((appt) => appt.professional_id === professional.id);
-          const placements = apptsForProfessional.map((appt) => {
-            const start = new Date(appt.starts_at);
-            const end = new Date(appt.ends_at);
-            const startIndex = Math.min(Math.max(slotIndexForTime(start, anchorDate), 0), slotCount - 1);
-            const durationMinutes = (end.getTime() - start.getTime()) / 60000;
-            const span = Math.max(1, Math.round(durationMinutes / 30));
-            const clampedSpan = Math.min(span, slotCount - startIndex);
-            return { appt, startIndex, span: clampedSpan };
-          });
-          const covered = new Set();
-          placements.forEach(({ startIndex, span }) => {
-            for (let i = startIndex; i < startIndex + span; i += 1) covered.add(i);
-          });
-
-          return (
-            <Fragment key={professional.id}>
-              {placements.map(({ appt, startIndex, span }) => (
-                <button
-                  type="button"
-                  key={appt.id}
-                  className={`agenda-appt agenda-appt--${appt.status}`}
-                  style={{ gridColumn: colIndex + 2, gridRow: `${startIndex + 1} / span ${span}` }}
-                  onClick={() => onAppointmentClick(appt)}
-                >
-                  <strong>{formatTime(new Date(appt.starts_at))}</strong> {clientName(appt.client_id)}
-                  <br />
-                  <span>{serviceName(appt.service_id)}</span>
-                  <br />
-                  <span className="agenda-appt-status">{statusLabel(appt.status)}</span>
-                </button>
-              ))}
-
-              {canWrite &&
-                slots.map((slotDate, rowIndex) =>
-                  covered.has(rowIndex) ? null : (
-                    <button
-                      type="button"
-                      key={`slot-${professional.id}-${rowIndex}`}
-                      className="agenda-empty-slot"
-                      style={{ gridColumn: colIndex + 2, gridRow: rowIndex + 1 }}
-                      onClick={() => onSlotClick(professional.id, slotDate)}
-                      aria-label={`Novo agendamento com ${professional.name} às ${formatTime(slotDate)}`}
-                    />
-                  ),
-                )}
-            </Fragment>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function WeekList({
-  anchorDate,
-  appointments,
-  canWrite,
-  defaultProfessionalId,
-  onCreateForDay,
-  onAppointmentClick,
-  clientName,
-  professionalName,
-  serviceName,
-}) {
-  const days = weekDays(anchorDate);
+  useEffect(() => {
+    const updateNow = () => {
+      const now = new Date();
+      if (dateKey(now) === dateKey(anchorDate)) {
+        const hour = now.getHours();
+        const min = now.getMinutes();
+        if (hour >= START_HOUR && hour <= END_HOUR) {
+          const offset = ((hour - START_HOUR) * 60) + min;
+          setNowOffset(offset);
+        } else {
+          setNowOffset(null);
+        }
+      } else {
+        setNowOffset(null);
+      }
+    };
+    updateNow();
+    const interval = window.setInterval(updateNow, 60000);
+    return () => window.clearInterval(interval);
+  }, [anchorDate]);
 
   return (
-    <div className="agenda-week">
-      {days.map((day) => {
-        const dayAppointments = appointments
-          .filter((appt) => dateKey(new Date(appt.starts_at)) === dateKey(day))
-          .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
-
-        return (
-          <div key={dateKey(day)} className="agenda-week-day">
-            <div className="agenda-week-day-header">
-              <strong>{formatDayLabel(day)}</strong>
-              {canWrite && (
-                <button
-                  type="button"
-                  className="link-button"
-                  onClick={() => {
-                    const start = new Date(day);
-                    start.setHours(9, 0, 0, 0);
-                    onCreateForDay(defaultProfessionalId, start);
-                  }}
-                >
-                  + Agendamento
-                </button>
-              )}
+    <div className="k-agenda__scroll-area">
+      <div className="k-agenda__prof-headers">
+        <div className="k-agenda__time-gutter-header" />
+        {professionals.map(prof => (
+          <div key={prof.id} className="k-agenda__prof-header">
+            <div className="k-agenda__prof-avatar">
+              {prof.name.charAt(0).toUpperCase()}
             </div>
-
-            {dayAppointments.length === 0 && <p className="agenda-week-empty">Sem agendamentos</p>}
-
-            {dayAppointments.map((appt) => (
-              <button
-                type="button"
-                key={appt.id}
-                className={`agenda-week-item agenda-appt--${appt.status}`}
-                onClick={() => onAppointmentClick(appt)}
-              >
-                {formatTime(new Date(appt.starts_at))} · {clientName(appt.client_id)} · {professionalName(appt.professional_id)} ·{' '}
-                {serviceName(appt.service_id)} · {statusLabel(appt.status)}
-              </button>
-            ))}
+            <div className="k-agenda__prof-info">
+              <span className="k-agenda__prof-name">{prof.name}</span>
+            </div>
           </div>
-        );
-      })}
+        ))}
+      </div>
+
+      <div className="k-agenda__timeline">
+        {nowOffset !== null && (
+          <div className="k-agenda__now-line" style={{ top: `${nowOffset}px` }} />
+        )}
+
+        <div className="k-agenda__time-gutter">
+          {hours.map((hour, index) => (
+            <div key={hour} className="k-agenda__time-slot">
+              {index > 0 && <span className="k-agenda__time-label">{`${hour.toString().padStart(2, '0')}:00`}</span>}
+            </div>
+          ))}
+        </div>
+
+        <div className="k-agenda__columns">
+          {professionals.map(prof => {
+            const profAppts = appointments.filter(a => a.professional_id === prof.id);
+
+            return (
+              <div key={prof.id} className="k-agenda__prof-column" onClick={(e) => {
+                // Approximate time clicked based on Y position (if clicking empty space)
+                const rect = e.currentTarget.getBoundingClientRect();
+                const y = e.clientY - rect.top;
+                const totalMinutes = y; // since 1px = 1min
+                const clickedHour = Math.floor(totalMinutes / 60) + START_HOUR;
+                const clickedMin = totalMinutes % 60 < 30 ? 0 : 30; // snap to 30 min
+                const start = new Date(anchorDate);
+                start.setHours(clickedHour, clickedMin, 0, 0);
+                onSlotClick(prof.id, start);
+              }}>
+                {profAppts.map(appt => {
+                  const start = new Date(appt.starts_at);
+                  const end = new Date(appt.ends_at);
+                  
+                  const startMinutes = (start.getHours() * 60) + start.getMinutes();
+                  const endMinutes = (end.getHours() * 60) + end.getMinutes();
+                  
+                  const topOffset = startMinutes - (START_HOUR * 60);
+                  const duration = endMinutes - startMinutes;
+
+                  // Se o agendamento for antes das 8h ou depois das 22h, ele não aparecerá perfeitamente aqui.
+                  // Para o MVP assumimos dentro da janela ou ocultamos
+                  if (topOffset < 0 || topOffset > (END_HOUR - START_HOUR) * 60) return null;
+
+                  return (
+                    <AppointmentCard 
+                      key={appt.id}
+                      appointment={appt}
+                      clientName={clientName(appt.client_id)}
+                      serviceName={serviceName(appt.service_id)}
+                      onAppointmentClick={(e) => {
+                        e.stopPropagation();
+                        onAppointmentClick(appt);
+                      }}
+                      top={`${topOffset}px`}
+                      height={`${duration}px`}
+                    />
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

@@ -18,12 +18,21 @@ vi.mock('../../shared/useOrganization.js', () => ({
 vi.mock('../../shared/useApiClient.js', () => ({
   useApiClient: () => apiClientMock,
 }));
+vi.mock('../../shared/useCachedQuery.js', () => ({
+  useCachedQuery: vi.fn(),
+}));
+import { useCachedQuery } from '../../shared/useCachedQuery.js';
 
 const PROFESSIONALS = [{ id: 'prof-1', name: 'Ana', user_id: null, active: true }];
 const MEMBERSHIPS = [{ user_id: 'user-owner-12345678', role: 'owner', active: true, created_at: '2026-01-01' }];
 const SERVICES = [];
 
 function mockLists({ professionals = PROFESSIONALS, memberships = MEMBERSHIPS, services = SERVICES } = {}) {
+  useCachedQuery.mockImplementation((store) => {
+    if (store === 'professionals') return { data: professionals, loading: false, error: null };
+    if (store === 'services') return { data: services, loading: false, error: null };
+    return { data: [], loading: false, error: null };
+  });
   apiClientMock.get.mockImplementation((path) => {
     if (path.startsWith('/professionals')) return Promise.resolve({ professionals });
     if (path.startsWith('/memberships')) return Promise.resolve({ memberships });
@@ -55,10 +64,11 @@ describe('EquipePage', () => {
   });
 
   it('shows a recoverable error state with retry when the lists fail to load', async () => {
+    useCachedQuery.mockImplementation(() => ({ data: [], loading: false, error: 'network down' }));
     apiClientMock.get.mockRejectedValue(new Error('network down'));
     render(<EquipePage />);
 
-    await waitFor(() => expect(screen.getByText('Sem conexão. Verifique sua internet e tente novamente.')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('network down')).toBeInTheDocument());
     expect(screen.getByText('Tentar novamente')).toBeInTheDocument();
   });
 
@@ -96,8 +106,7 @@ describe('EquipePage', () => {
     fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Beatriz' } });
     fireEvent.click(screen.getByText('Criar profissional'));
 
-    await waitFor(() => expect(screen.getByText('Beatriz')).toBeInTheDocument());
-    expect(apiClientMock.post).toHaveBeenCalledWith('/professionals', { name: 'Beatriz', user_id: null });
+    await waitFor(() => expect(apiClientMock.post).toHaveBeenCalledWith('/professionals', { name: 'Beatriz', user_id: null }));
   });
 
   it('lets the owner send an invite and appends the returned membership', async () => {

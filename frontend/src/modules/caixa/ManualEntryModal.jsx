@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { Modal } from '../../shared/Modal.jsx';
 import { reaisToCents } from '../../shared/money.js';
 import { messageForCashEntryError } from './cashEntryErrors.js';
+import { Button } from '../../ui/primitives/Button.jsx';
+import { Input } from '../../ui/primitives/Input.jsx';
+import { Select } from '../../ui/primitives/Select.jsx';
 
 const KINDS = [
   { value: 'income', label: 'Entrada' },
@@ -50,41 +53,33 @@ export function ManualEntryModal({ apiClient, onClose, onCreated }) {
     <Modal onClose={submitting ? () => {} : onClose}>
       <h2>Novo lançamento</h2>
         <form className="auth-form" onSubmit={handleSubmit}>
-          <label>
-            Tipo
-            <select value={kind} onChange={(event) => setKind(event.target.value)}>
-              {KINDS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Valor (R$)
-            <input
-              type="text"
-              inputMode="decimal"
-              value={amountReais}
-              placeholder="0,00"
-              onChange={(event) => setAmountReais(event.target.value)}
-              required
-            />
-          </label>
-          <label>
-            Descrição
-            <input type="text" value={description} onChange={(event) => setDescription(event.target.value)} required />
-          </label>
+          <Select label="Tipo" value={kind} onChange={(event) => setKind(event.target.value)}>
+            {KINDS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
+          <Input
+            label="Valor (R$)"
+            type="text"
+            inputMode="decimal"
+            value={amountReais}
+            placeholder="0,00"
+            onChange={(event) => setAmountReais(event.target.value)}
+            required
+          />
+          <Input label="Descrição" type="text" value={description} onChange={(event) => setDescription(event.target.value)} required />
 
           {error && <p className="form-error" role="alert">{error}</p>}
 
           <div className="modal-actions">
-            <button type="button" className="link-button" onClick={onClose} disabled={submitting}>
+            <Button variant="secondary" onClick={onClose} disabled={submitting}>
               Fechar
-            </button>
-            <button type="submit" disabled={submitting}>
+            </Button>
+            <Button type="submit" disabled={submitting}>
               {submitting ? 'Lançando…' : 'Confirmar lançamento'}
-            </button>
+            </Button>
           </div>
         </form>
     </Modal>

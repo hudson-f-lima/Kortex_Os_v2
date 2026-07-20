@@ -1,0 +1,34 @@
+.k-skeleton {
+  background-color: var(--slate-200);
+  background-image: linear-gradient(
+    90deg,
+    var(--slate-200) 0px,
+    var(--slate-100) 50%,
+    var(--slate-200) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+.k-skeleton--text {
+  height: 1em;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-1);
+}
+
+.k-skeleton--circular {
+  border-radius: 50%;
+}
+
+.k-skeleton--rectangular {
+  border-radius: var(--radius-md);
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}

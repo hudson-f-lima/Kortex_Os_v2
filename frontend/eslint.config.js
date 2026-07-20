@@ -57,4 +57,14 @@ export default [
       },
     },
   },
+  {
+    // vite.config.js executa em Node (fase de build), não no browser — só
+    // esse arquivo precisa do global process (DEC-28, base path condicional).
+    files: ["vite.config.js"],
+    languageOptions: {
+      globals: {
+        process: "readonly",
+      },
+    },
+  },
 ];

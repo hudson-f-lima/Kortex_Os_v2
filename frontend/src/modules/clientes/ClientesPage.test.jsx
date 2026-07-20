@@ -98,7 +98,7 @@ describe('ClientesPage', () => {
     mockClients([]);
     render(<ClientesPage />);
 
-    await waitFor(() => expect(screen.getByText('Nenhum cliente encontrado.')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Nenhum cliente encontrado')).toBeInTheDocument());
   });
 
   it('shows a recoverable error state with retry when the list fails to load', async () => {

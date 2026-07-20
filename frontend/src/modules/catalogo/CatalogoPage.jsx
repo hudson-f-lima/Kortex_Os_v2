@@ -1,13 +1,18 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useApiClient } from '../../shared/useApiClient.js';
+import { useCachedQuery } from '../../shared/useCachedQuery.js';
 import { useOrganization } from '../../shared/useOrganization.js';
 import { formatCents } from '../../shared/money.js';
-import { messageForError, OFFLINE_FALLBACK } from '../../shared/apiErrorMessage.js';
+import { messageForError } from '../../shared/apiErrorMessage.js';
 import { formatPercent } from './commission.js';
 import { ServiceGroupModal } from './ServiceGroupModal.jsx';
 import { ServiceModal } from './ServiceModal.jsx';
 import { ProductModal } from './ProductModal.jsx';
 import { PackageModal } from './PackageModal.jsx';
+import { Button } from '../../ui/primitives/Button.jsx';
+import { Badge } from '../../ui/primitives/Badge.jsx';
+import { EmptyState } from '../../ui/primitives/EmptyState.jsx';
+import { Settings, Scissors, PackageOpen, Layers } from 'lucide-react';
 
 // Mirrors the WRITE_ROLES/DELETE_ROLES shared by services/products/
 // service-groups/packages routes (owner/admin/manager write, owner/admin
@@ -36,12 +41,6 @@ function messageForActionError(err, type) {
   return messageForError(err, { statuses: { 409: CONFLICT_MESSAGES[type] } });
 }
 
-function upsertSorted(list, saved) {
-  const exists = list.some((item) => item.id === saved.id);
-  const next = exists ? list.map((item) => (item.id === saved.id ? saved : item)) : [...list, saved];
-  return next.sort((a, b) => a.name.localeCompare(b.name));
-}
-
 export function CatalogoPage() {
   const { role } = useOrganization();
   const apiClient = useApiClient();
@@ -49,40 +48,24 @@ export function CatalogoPage() {
   const canDelete = DELETE_ROLES.includes(role);
 
   const [tab, setTab] = useState('servicos');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [groups, setGroups] = useState([]);
-  const [services, setServices] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [packages, setPackages] = useState([]);
+  const { data: groups, loading: groupsLoading, error: groupsError, refetch: refetchGroups } = useCachedQuery('service_groups');
+  const { data: services, loading: servicesLoading, error: servicesError, refetch: refetchServices } = useCachedQuery('services');
+  const { data: products, loading: productsLoading, error: productsError, refetch: refetchProducts } = useCachedQuery('products');
+  const { data: packages, loading: packagesLoading, error: packagesError, refetch: refetchPackages } = useCachedQuery('packages');
+
+  const loading = groupsLoading || servicesLoading || productsLoading || packagesLoading;
+  const error = groupsError || servicesError || productsError || packagesError;
+
+  function retryLoad() {
+    refetchGroups();
+    refetchServices();
+    refetchProducts();
+    refetchPackages();
+  }
+
   const [modal, setModal] = useState(null);
   const [actionError, setActionError] = useState(null);
   const [confirmingRemove, setConfirmingRemove] = useState(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [groupsRes, servicesRes, productsRes, packagesRes] = await Promise.all([
-        apiClient.get('/service-groups'),
-        apiClient.get('/services'),
-        apiClient.get('/products'),
-        apiClient.get('/packages'),
-      ]);
-      setGroups(groupsRes.service_groups);
-      setServices(servicesRes.services);
-      setProducts(productsRes.products);
-      setPackages(packagesRes.packages);
-    } catch (err) {
-      setError(messageForError(err, { fallback: OFFLINE_FALLBACK }));
-    } finally {
-      setLoading(false);
-    }
-  }, [apiClient]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
 
   function groupName(id) {
     return groups.find((group) => group.id === id)?.name ?? '—';
@@ -92,8 +75,6 @@ export function CatalogoPage() {
     setActionError(null);
     try {
       await apiClient.delete(`/${REMOVE_PATHS[type]}/${id}`);
-      const setters = { group: setGroups, service: setServices, product: setProducts, package: setPackages };
-      setters[type]((current) => current.filter((item) => item.id !== id));
       setConfirmingRemove(null);
     } catch (err) {
       setActionError(messageForActionError(err, type));
@@ -110,15 +91,13 @@ export function CatalogoPage() {
     }
   }
 
-  if (loading) return <p>Carregando catálogo…</p>;
+  if (loading) return null; // Será instantâneo, evitamos piscar a tela
 
   if (error) {
     return (
       <div className="full-page-error">
         <p>{error}</p>
-        <button type="button" onClick={load}>
-          Tentar novamente
-        </button>
+        <Button onClick={retryLoad}>Tentar novamente</Button>
       </div>
     );
   }
@@ -129,9 +108,9 @@ export function CatalogoPage() {
 
       <div className="agenda-view-toggle">
         {TABS.map((item) => (
-          <button key={item.key} type="button" className={tab === item.key ? 'active' : ''} onClick={() => setTab(item.key)}>
+          <Button key={item.key} variant={tab === item.key ? 'primary' : 'ghost'} onClick={() => setTab(item.key)}>
             {item.label}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -143,12 +122,20 @@ export function CatalogoPage() {
             <p className="section-hint">Cadastre um grupo de serviço antes de criar serviços.</p>
           )}
           {canWrite && groups.length > 0 && (
-            <button type="button" onClick={() => setModal({ type: 'service', mode: 'create' })}>
+            <Button onClick={() => setModal({ type: 'service', mode: 'create' })}>
               + Novo serviço
-            </button>
+            </Button>
           )}
-          {services.length === 0 && <p className="list-empty">Nenhum serviço cadastrado ainda.</p>}
-          <ul className="record-list">
+          {services.length === 0 ? (
+            <EmptyState
+              icon={Scissors}
+              title="Nenhum serviço cadastrado"
+              description="Cadastre os serviços que o seu estabelecimento oferece."
+              actionLabel={canWrite && groups.length > 0 ? "Criar Serviço" : null}
+              onAction={canWrite && groups.length > 0 ? () => setModal({ type: 'service', mode: 'create' }) : null}
+            />
+          ) : (
+            <ul className="record-list">
             {services.map((service) => (
               <li key={service.id} className="record-list-item">
                 <span className="record-list-main">
@@ -164,12 +151,12 @@ export function CatalogoPage() {
                         : formatCents(service.commission_value)}
                     </span>
                   )}
-                  {!service.active && <span className="tag-inactive">inativo</span>}
+                  {!service.active && <Badge variant="neutral">inativo</Badge>}
                 </span>
                 {canWrite && (
-                  <button type="button" className="link-button" onClick={() => setModal({ type: 'service', mode: 'edit', service })}>
+                  <Button variant="link" onClick={() => setModal({ type: 'service', mode: 'edit', service })}>
                     Editar
-                  </button>
+                  </Button>
                 )}
                 {canDelete && (
                   <RemoveControl
@@ -183,18 +170,27 @@ export function CatalogoPage() {
               </li>
             ))}
           </ul>
+          )}
         </section>
       )}
 
       {tab === 'produtos' && (
         <section>
           {canWrite && (
-            <button type="button" onClick={() => setModal({ type: 'product', mode: 'create' })}>
+            <Button onClick={() => setModal({ type: 'product', mode: 'create' })}>
               + Novo produto
-            </button>
+            </Button>
           )}
-          {products.length === 0 && <p className="list-empty">Nenhum produto cadastrado ainda.</p>}
-          <ul className="record-list">
+          {products.length === 0 ? (
+            <EmptyState
+              icon={PackageOpen}
+              title="Nenhum produto cadastrado"
+              description="Cadastre os produtos para revenda ou uso interno."
+              actionLabel={canWrite ? "Criar Produto" : null}
+              onAction={canWrite ? () => setModal({ type: 'product', mode: 'create' }) : null}
+            />
+          ) : (
+            <ul className="record-list">
             {products.map((product) => (
               <li key={product.id} className="record-list-item">
                 <span className="record-list-main">
@@ -202,12 +198,12 @@ export function CatalogoPage() {
                   <span>
                     {product.sku} · {formatCents(product.price_cents)} · estoque: {product.stock_on_hand}
                   </span>
-                  {!product.active && <span className="tag-inactive">inativo</span>}
+                  {!product.active && <Badge variant="neutral">inativo</Badge>}
                 </span>
                 {canWrite && (
-                  <button type="button" className="link-button" onClick={() => setModal({ type: 'product', mode: 'edit', product })}>
+                  <Button variant="link" onClick={() => setModal({ type: 'product', mode: 'edit', product })}>
                     Editar
-                  </button>
+                  </Button>
                 )}
                 {canDelete && (
                   <RemoveControl
@@ -221,6 +217,7 @@ export function CatalogoPage() {
               </li>
             ))}
           </ul>
+          )}
         </section>
       )}
 
@@ -230,23 +227,31 @@ export function CatalogoPage() {
             <p className="section-hint">Cadastre serviços antes de montar um pacote.</p>
           )}
           {canWrite && services.length > 0 && (
-            <button type="button" onClick={() => setModal({ type: 'package', mode: 'create' })}>
+            <Button onClick={() => setModal({ type: 'package', mode: 'create' })}>
               + Novo pacote
-            </button>
+            </Button>
           )}
-          {packages.length === 0 && <p className="list-empty">Nenhum pacote cadastrado ainda.</p>}
-          <ul className="record-list">
+          {packages.length === 0 ? (
+            <EmptyState
+              icon={Layers}
+              title="Nenhum pacote cadastrado"
+              description="Crie combos de serviços por um preço promocional."
+              actionLabel={canWrite && services.length > 0 ? "Criar Pacote" : null}
+              onAction={canWrite && services.length > 0 ? () => setModal({ type: 'package', mode: 'create' }) : null}
+            />
+          ) : (
+            <ul className="record-list">
             {packages.map((pkg) => (
               <li key={pkg.id} className="record-list-item">
                 <span className="record-list-main">
                   <strong>{pkg.name}</strong>
                   <span>{formatCents(pkg.price_cents)}</span>
-                  {!pkg.active && <span className="tag-inactive">inativo</span>}
+                  {!pkg.active && <Badge variant="neutral">inativo</Badge>}
                 </span>
                 {canWrite && (
-                  <button type="button" className="link-button" onClick={() => openEditPackage(pkg)}>
+                  <Button variant="link" onClick={() => openEditPackage(pkg)}>
                     Editar
-                  </button>
+                  </Button>
                 )}
                 {canDelete && (
                   <RemoveControl
@@ -260,18 +265,27 @@ export function CatalogoPage() {
               </li>
             ))}
           </ul>
+          )}
         </section>
       )}
 
       {tab === 'grupos' && (
         <section>
           {canWrite && (
-            <button type="button" onClick={() => setModal({ type: 'group', mode: 'create' })}>
+            <Button onClick={() => setModal({ type: 'group', mode: 'create' })}>
               + Novo grupo
-            </button>
+            </Button>
           )}
-          {groups.length === 0 && <p className="list-empty">Nenhum grupo de serviço cadastrado ainda.</p>}
-          <ul className="record-list">
+          {groups.length === 0 ? (
+            <EmptyState
+              icon={Settings}
+              title="Nenhum grupo de serviço"
+              description="Os grupos organizam seus serviços e podem definir regras de comissão."
+              actionLabel={canWrite ? "Criar Grupo" : null}
+              onAction={canWrite ? () => setModal({ type: 'group', mode: 'create' }) : null}
+            />
+          ) : (
+            <ul className="record-list">
             {groups.map((group) => (
               <li key={group.id} className="record-list-item">
                 <span className="record-list-main">
@@ -281,12 +295,12 @@ export function CatalogoPage() {
                       ? formatPercent(group.default_commission_value)
                       : formatCents(group.default_commission_value)}
                   </span>
-                  {!group.active && <span className="tag-inactive">inativo</span>}
+                  {!group.active && <Badge variant="neutral">inativo</Badge>}
                 </span>
                 {canWrite && (
-                  <button type="button" className="link-button" onClick={() => setModal({ type: 'group', mode: 'edit', group })}>
+                  <Button variant="link" onClick={() => setModal({ type: 'group', mode: 'edit', group })}>
                     Editar
-                  </button>
+                  </Button>
                 )}
                 {canDelete && (
                   <RemoveControl
@@ -300,6 +314,7 @@ export function CatalogoPage() {
               </li>
             ))}
           </ul>
+          )}
         </section>
       )}
 
@@ -309,8 +324,7 @@ export function CatalogoPage() {
           group={modal.group}
           apiClient={apiClient}
           onClose={() => setModal(null)}
-          onSaved={(saved) => {
-            setGroups((current) => upsertSorted(current, saved));
+          onSaved={() => {
             setModal(null);
           }}
         />
@@ -322,8 +336,7 @@ export function CatalogoPage() {
           groups={groups}
           apiClient={apiClient}
           onClose={() => setModal(null)}
-          onSaved={(saved) => {
-            setServices((current) => upsertSorted(current, saved));
+          onSaved={() => {
             setModal(null);
           }}
         />
@@ -334,8 +347,7 @@ export function CatalogoPage() {
           product={modal.product}
           apiClient={apiClient}
           onClose={() => setModal(null)}
-          onSaved={(saved) => {
-            setProducts((current) => upsertSorted(current, saved));
+          onSaved={() => {
             setModal(null);
           }}
         />
@@ -347,8 +359,7 @@ export function CatalogoPage() {
           services={services}
           apiClient={apiClient}
           onClose={() => setModal(null)}
-          onSaved={(saved) => {
-            setPackages((current) => upsertSorted(current, saved));
+          onSaved={() => {
             setModal(null);
           }}
         />
@@ -361,20 +372,20 @@ function RemoveControl({ id, type, confirmingRemove, setConfirmingRemove, onRemo
   const confirming = confirmingRemove?.type === type && confirmingRemove?.id === id;
   if (!confirming) {
     return (
-      <button type="button" className="link-button" onClick={() => setConfirmingRemove({ type, id })}>
+      <Button variant="link" onClick={() => setConfirmingRemove({ type, id })}>
         Remover
-      </button>
+      </Button>
     );
   }
   return (
     <>
       <span>Confirma?</span>
-      <button type="button" className="danger-button" onClick={onRemove}>
+      <Button variant="danger" onClick={onRemove}>
         Sim
-      </button>
-      <button type="button" className="link-button" onClick={() => setConfirmingRemove(null)}>
+      </Button>
+      <Button variant="link" onClick={() => setConfirmingRemove(null)}>
         Não
-      </button>
+      </Button>
     </>
   );
 }
