@@ -1,6 +1,6 @@
 # PROJECT STATE — KortexOS MVP técnico
 
-**Atualizado:** 2026-07-18 | Fase 11 (convite de equipe por e-mail + RLS self-view) e correção de crash no SSE de sync mergeados em `main` (PR #9). Opção C Phase 3 segue concluída (banco + backend + wiring do frontend), sem dado de teste residual, banner de atualização da PWA verificado funcionando. **Pendência aberta:** confirmar se a migration da Fase 11 (fix de RLS) já rodou em produção — ver Próxima Ação Imediata.
+**Atualizado:** 2026-07-20 | Migration da Fase 11 (fix de RLS em `professionals_select`) aplicada e verificada em produção — vazamento fechado, ver "Resolvido em 2026-07-20" abaixo. Fase 11 (convite de equipe por e-mail + RLS self-view) e correção de crash no SSE de sync seguem mergeados em `main` (PR #9). Opção C Phase 3 segue concluída (banco + backend + wiring do frontend), sem dado de teste residual, banner de atualização da PWA verificado funcionando.
 
 ## Estado do MVP
 
@@ -30,8 +30,10 @@
 - **Fase 6:** PWA Modular (Subfases 6.1 a 6.6: app shell, Agenda, Comanda/Checkout, cadastros e caixas).
 - **Fases 7 a 10:** CI/CD, deploys Render/GitHub Pages, fundação financeira e capacidades profissional × serviço.
 - **Fase Extra:** Projection Cache local e sincronização incremental via REST + SSE (ADR 0009).
-- **Fase 11:** Convite de equipe por e-mail e RLS self-view em `professionals` (ADR 0014) — código em produção, migration pendente de confirmação (ver Próxima Ação Imediata).
+- **Fase 11:** Convite de equipe por e-mail e RLS self-view em `professionals` (ADR 0014) — código e migration em produção, paridade confirmada em 2026-07-20.
 - **Fase 13 (MVP Refatorado):** Kortex Design System implementado globalmente (Ondas 1 a 5). PWA padronizada com primitives, Agenda reescrita para Timeline Vertical e AppShell consolidado. Métricas (LCP/INP) e NetworkStatus ativo na TopBar.
+  - **Onda 6 (Polish UI/UX):** PWA Installer (antes do install prompt), Toasts globais, Skeletons de Transição (PageFadeIn animado) e Empty States amigáveis espalhados. Branch `feature/ui-ux-polish-onda6`.
+  - **Onda 7 (Carregamento Instantâneo):** Otimização massiva com o *Projection Cache* (IndexedDB local). Telas de Catálogo e Equipe agora abrem em 0ms (Offline First). Telas não cacheadas (Caixa e Comanda) não bloqueiam a renderização da AppShell e usam `<PageSkeleton />` em vez de texto cru. SWR implantado no carregamento de memberships da Equipe.
 
 ---
 
@@ -40,6 +42,9 @@
 2. **Sessões de Caixa:** Correção operacional de checkout fechado por erro (Fase 12, ADR 0007).
 3. **UI de gestão de elegibilidade (Opção C):** não existe tela para configurar `professional_service_group_eligibility` nem `organizations.default_service_eligibility` — só a API/RPC. `CapabilityModal.jsx`/`CapabilitiesTab.jsx` (Equipe) seguem cobrindo só duração/buffer/preço, sem campo para `eligibility` (têm `default 'ENABLED'`, então não quebraram, mas o tri-state fica inacessível pela PWA por ora).
 4. **Ambiente de homologação:** não existe hoje — merge em `main` dispara deploy direto para produção (Render + GitHub Pages), sem etapa intermediária de QA manual. Só a CI (testes automatizados contra Supabase local efêmero) protege esse caminho. Ver conversa de 2026-07-18 sobre opções (segundo projeto Supabase/Render gratuitos vs. Supabase Branching + Render Preview Environments pagos).
+
+### Resolvido em 2026-07-20: migration da Fase 11 aplicada em produção
+Pendência aberta desde 2026-07-18 (sem acesso MCP ao projeto de produção naquela sessão). Confirmado nesta sessão que a MCP do Supabase disponível aqui está conectada exatamente ao projeto de produção (`kpedsuklnedlhjvadiyc`, mesmo do `render.yaml`, confirmado via `get_project_url`) — `supabase/migrations/20260718120000_fase11_professionals_self_view.sql` estava de fato ausente lá (`list_migrations` parava em `20260717060000`). Aplicada via `apply_migration` (registrada como `20260720223256_fase11_professionals_self_view`), seguida de `NOTIFY pgrst, 'reload schema'` manual (mesma lição de 2026-07-17: aplicar fora do `supabase db push` não recarrega o cache do PostgREST sozinho). **Verificado com a policy real do banco**, não só a presença da migration: `professionals_select` em produção agora é `owner/admin/manager/reception veem todos, professional só vê a própria linha (user_id = auth.uid())`, idêntico ao arquivo local. `get_advisors` (security) não aponta nada novo para `professionals`; os 2 avisos INFO de RLS sem policy (`idempotency_keys`, `sync_events`) continuam sendo o estado terminal esperado (2026-07-17). Achado à parte, de baixa prioridade: `auth_leaked_password_protection` está desabilitado no projeto Supabase — não relacionado a este fix, não endereçado nesta sessão.
 
 ### Resolvido em 2026-07-18: Fase 11 — convite de equipe por e-mail
 Gap #1 anterior ("Gestão de Equipe: sem convite por e-mail no frontend") fechado. Endpoint `POST /convites` (`auth.admin.inviteUserByEmail` + `membership_set` + vínculo opcional a `professionals.user_id`), UI de envio no módulo Equipe e tela de aceite que define senha após o clique no link. Fecha também um vazamento de RLS: um membro com papel `professional` via `professionals_select` enxergava toda a lista da organização, não só o próprio registro. Decisão de SMTP (Resend) e expiração de 24h formalizadas em [ADR 0014](file:///c:/Users/hudso/OneDrive/Documentos/Kortex%20Os%20v2/docs/adr/0014-fase11-convite-equipe-smtp.md). Mergeado em `main` (commit `233e941`).
@@ -76,8 +81,8 @@ Usuário reportou que "não estava funcionando". Testado de ponta a ponta em bui
 
 ## Próxima Ação Imediata
 
-**⚠️ Verificar/aplicar migration em produção:** `233e941` (Fase 11) inclui `supabase/migrations/20260718120000_fase11_professionals_self_view.sql`, que fecha um vazamento de RLS (papel `professional` enxergando toda a lista de profissionais da organização, não só a própria linha). Backend e frontend dessa mesma feature já foram para produção via deploy automático (push em `main` dispara Render + GitHub Pages), mas **nenhuma automação de CI/CD aplica migrations em produção** (mesma lição da paridade de 2026-07-17) — sem confirmação de que essa migration específica já rodou lá, o vazamento pode seguir ativo em produção mesmo com o código já publicado. Sem acesso MCP ao projeto de produção nesta sessão para confirmar (mesma limitação registrada em 2026-07-17); precisa ser checado manualmente (`supabase migration list --db-url ...` ou advisors) antes de considerar a Fase 11 realmente concluída em produção.
+**Nenhum bloqueador crítico de produção conhecido pendente** — a migration da Fase 11 (item que ocupava esta seção desde 2026-07-18) foi aplicada e verificada em produção em 2026-07-20 (ver "Resolvido" acima).
 
-Fora esse ponto, **nenhum outro bloqueador conhecido pendente.** As três suítes de teste verdes na última verificação (pgTAP 236/236 em 2026-07-17, backend 239/239 em 2026-07-18, frontend 91/91 em 2026-07-17 — ver nota de reexecução pendente acima), lint limpo, produção sem dado de teste residual.
+Pendências conhecidas seguem as mesmas dos Gaps listados acima (ambiente de homologação, UI de elegibilidade Opção C, Sessões de Caixa/Fase 12) mais o que a Onda 6/7 (Fase 13) registrou nesta mesma data — reexecução das suítes de teste após essas mudanças ainda não confirmada nesta seção.
 
-*Próximos candidatos, por ordem de valor: confirmar migration da Fase 11 em produção (acima), ambiente de homologação (Gap #4, evita repetir esse tipo de lacuna), UI de gestão de elegibilidade (Gap #3, torna o tri-state da Opção C configurável pela PWA), ou Fase 12 (Sessões de Caixa, ADR 0007).*
+*Próximos candidatos, por ordem de valor: ambiente de homologação (Gap #4, evita repetir o tipo de lacuna que a Fase 11 teve), UI de gestão de elegibilidade (Gap #3, torna o tri-state da Opção C configurável pela PWA), ou Fase 12 (Sessões de Caixa, ADR 0007).*
