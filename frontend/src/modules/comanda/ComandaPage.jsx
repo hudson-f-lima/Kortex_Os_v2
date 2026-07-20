@@ -12,6 +12,7 @@ import { OrderHistory } from './OrderHistory.jsx';
 import { Button } from '../../ui/primitives/Button.jsx';
 import { Input } from '../../ui/primitives/Input.jsx';
 import { Select } from '../../ui/primitives/Select.jsx';
+import { PageSkeleton } from '../../ui/primitives/PageSkeleton.jsx';
 import './ComandaPage.css';
 
 // Mirrors backend/src/modules/checkout/checkout.route.js CHECKOUT_ROLES and
@@ -232,7 +233,15 @@ export function ComandaPage() {
     );
   }
 
-  if (listsLoading) return <p>Carregando comanda…</p>;
+  if (listsLoading) {
+    return (
+      <div className="comanda-page">
+        <h1>Comanda</h1>
+        {viewToggle}
+        <PageSkeleton />
+      </div>
+    );
+  }
 
   if (listsError) {
     return (

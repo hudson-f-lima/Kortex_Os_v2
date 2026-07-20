@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useApiClient } from '../../shared/useApiClient.js';
+import { useCachedQuery } from '../../shared/useCachedQuery.js';
 import { useOrganization } from '../../shared/useOrganization.js';
-import { messageForError, OFFLINE_FALLBACK } from '../../shared/apiErrorMessage.js';
+import { messageForError } from '../../shared/apiErrorMessage.js';
 import { ProfessionalModal } from './ProfessionalModal.jsx';
 import { InviteModal } from './InviteModal.jsx';
 import { MembershipRow } from './MembershipRow.jsx';
@@ -21,48 +22,40 @@ export function EquipePage() {
   const canDelete = DELETE_ROLES.includes(role);
   const canSetRole = role === 'owner';
 
-  const [professionals, setProfessionals] = useState([]);
-  const [services, setServices] = useState([]);
-  const [memberships, setMemberships] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [showInactive, setShowInactive] = useState(false);
+  const filterFn = useCallback((item) => showInactive || item.active, [showInactive]);
+
+  const { data: professionals, loading: profLoading, error: profError } = useCachedQuery('professionals', filterFn);
+  const { data: services, loading: srvLoading, error: srvError } = useCachedQuery('services', filterFn);
+  const [memberships, setMemberships] = useState([]);
+  const [membershipsLoading, setMembershipsLoading] = useState(true);
+
+  const loading = profLoading || srvLoading;
+  const error = profError || srvError;
+
   const [modal, setModal] = useState(null);
   const [removeError, setRemoveError] = useState(null);
   const [confirmingRemoveId, setConfirmingRemoveId] = useState(null);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [inviteNotice, setInviteNotice] = useState(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const loadMemberships = useCallback(async () => {
     try {
-      const query = showInactive ? '' : '?active=true';
-      const [professionalsRes, membershipsRes, servicesRes] = await Promise.all([
-        apiClient.get(`/professionals${query}`),
-        apiClient.get('/memberships'),
-        apiClient.get('/services'),
-      ]);
-      setProfessionals(professionalsRes.professionals);
-      setMemberships(membershipsRes.memberships);
-      setServices(servicesRes.services);
+      const res = await apiClient.get('/memberships');
+      setMemberships(res.memberships);
     } catch (err) {
-      setError(messageForError(err, { fallback: OFFLINE_FALLBACK }));
+      console.error('Failed to load memberships', err);
     } finally {
-      setLoading(false);
+      setMembershipsLoading(false);
     }
-  }, [apiClient, showInactive]);
+  }, [apiClient]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    loadMemberships();
+  }, [loadMemberships]);
 
-  function handleSaved(professional) {
-    setProfessionals((current) => {
-      const exists = current.some((item) => item.id === professional.id);
-      const next = exists ? current.map((item) => (item.id === professional.id ? professional : item)) : [...current, professional];
-      return next.sort((a, b) => a.name.localeCompare(b.name));
-    });
+  function handleSaved() {
+    // Apenas fechamos o modal; o syncEngine atualiza o IDB em milissegundos
     setModal(null);
   }
 
@@ -70,7 +63,6 @@ export function EquipePage() {
     setRemoveError(null);
     try {
       await apiClient.delete(`/professionals/${professional.id}`);
-      setProfessionals((current) => current.filter((item) => item.id !== professional.id));
       setConfirmingRemoveId(null);
     } catch (err) {
       setRemoveError(
@@ -91,20 +83,12 @@ export function EquipePage() {
       ...current,
       { user_id: invite.userId, role: invite.role, active: true, created_at: new Date().toISOString() },
     ]);
-    if (invite.professional) {
-      setProfessionals((current) => {
-        const exists = current.some((item) => item.id === invite.professional.id);
-        const next = exists
-          ? current.map((item) => (item.id === invite.professional.id ? invite.professional : item))
-          : [...current, invite.professional];
-        return next.sort((a, b) => a.name.localeCompare(b.name));
-      });
-    }
+    // invite.professional (se houver) será atualizado automaticamente pelo cache via Supabase trigger
     setInviteModalOpen(false);
     setInviteNotice(`Convite enviado para ${invite.email}.`);
   }
 
-  if (loading) return <p>Carregando equipe…</p>;
+  if (loading) return null;
 
   if (error) {
     return (
@@ -186,17 +170,21 @@ export function EquipePage() {
             : 'Somente o owner da organização pode alterar papéis.'}
         </p>
         {inviteNotice && <p className="form-success" role="status">{inviteNotice}</p>}
-        <ul className="record-list">
-          {memberships.map((membership) => (
-            <MembershipRow
-              key={membership.user_id}
-              membership={membership}
-              canSetRole={canSetRole}
-              apiClient={apiClient}
-              onSaved={handleMembershipSaved}
-            />
-          ))}
-        </ul>
+        {membershipsLoading ? (
+          <p>Carregando membros...</p>
+        ) : (
+          <ul className="record-list">
+            {memberships.map((membership) => (
+              <MembershipRow
+                key={membership.user_id}
+                membership={membership}
+                canSetRole={canSetRole}
+                apiClient={apiClient}
+                onSaved={handleMembershipSaved}
+              />
+            ))}
+          </ul>
+        )}
       </section>
 
       <section>

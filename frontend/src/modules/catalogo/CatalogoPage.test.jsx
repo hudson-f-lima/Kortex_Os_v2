@@ -17,6 +17,10 @@ vi.mock('../../shared/useOrganization.js', () => ({
 vi.mock('../../shared/useApiClient.js', () => ({
   useApiClient: () => apiClientMock,
 }));
+vi.mock('../../shared/useCachedQuery.js', () => ({
+  useCachedQuery: vi.fn(),
+}));
+import { useCachedQuery } from '../../shared/useCachedQuery.js';
 
 const GROUPS = [{ id: 'group-1', name: 'Cabelo', default_commission_type: 'percentage', default_commission_value: 1000, active: true }];
 const SERVICES = [
@@ -26,6 +30,13 @@ const PRODUCTS = [{ id: 'prod-1', sku: 'SKU1', name: 'Shampoo', price_cents: 300
 const PACKAGES = [{ id: 'pkg-1', name: 'Combo', price_cents: 8000, active: true }];
 
 function mockLists({ groups = GROUPS, services = SERVICES, products = PRODUCTS, packages = PACKAGES } = {}) {
+  useCachedQuery.mockImplementation((store) => {
+    if (store === 'service_groups') return { data: groups, loading: false, error: null };
+    if (store === 'services') return { data: services, loading: false, error: null };
+    if (store === 'products') return { data: products, loading: false, error: null };
+    if (store === 'packages') return { data: packages, loading: false, error: null };
+    return { data: [], loading: false, error: null };
+  });
   apiClientMock.get.mockImplementation((path) => {
     if (path.startsWith('/service-groups')) return Promise.resolve({ service_groups: groups });
     if (path.startsWith('/services')) return Promise.resolve({ services });
@@ -60,10 +71,11 @@ describe('CatalogoPage', () => {
   });
 
   it('shows a recoverable error state with retry when the lists fail to load', async () => {
+    useCachedQuery.mockImplementation(() => ({ data: [], loading: false, error: 'network down' }));
     apiClientMock.get.mockRejectedValue(new Error('network down'));
     render(<CatalogoPage />);
 
-    await waitFor(() => expect(screen.getByText('Sem conexão. Verifique sua internet e tente novamente.')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('network down')).toBeInTheDocument());
     expect(screen.getByText('Tentar novamente')).toBeInTheDocument();
   });
 
@@ -100,12 +112,11 @@ describe('CatalogoPage', () => {
     fireEvent.change(screen.getByLabelText(/Comissão padrão/), { target: { value: '15' } });
     fireEvent.click(screen.getByText('Criar grupo'));
 
-    await waitFor(() => expect(screen.getByText('Unhas')).toBeInTheDocument());
-    expect(apiClientMock.post).toHaveBeenCalledWith('/service-groups', {
+    await waitFor(() => expect(apiClientMock.post).toHaveBeenCalledWith('/service-groups', {
       name: 'Unhas',
       default_commission_type: 'percentage',
       default_commission_value: 1500,
-    });
+    }));
   });
 
   it('maps a 409 conflict on group removal to a Portuguese message', async () => {

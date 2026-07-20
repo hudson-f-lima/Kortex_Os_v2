@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useApiClient } from '../../shared/useApiClient.js';
+import { useCachedQuery } from '../../shared/useCachedQuery.js';
 import { useOrganization } from '../../shared/useOrganization.js';
 import { formatCents } from '../../shared/money.js';
 import { messageForError, OFFLINE_FALLBACK } from '../../shared/apiErrorMessage.js';
@@ -53,40 +54,17 @@ export function CatalogoPage() {
   const canDelete = DELETE_ROLES.includes(role);
 
   const [tab, setTab] = useState('servicos');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [groups, setGroups] = useState([]);
-  const [services, setServices] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [packages, setPackages] = useState([]);
+  const { data: groups, loading: groupsLoading, error: groupsError } = useCachedQuery('service_groups');
+  const { data: services, loading: servicesLoading, error: servicesError } = useCachedQuery('services');
+  const { data: products, loading: productsLoading, error: productsError } = useCachedQuery('products');
+  const { data: packages, loading: packagesLoading, error: packagesError } = useCachedQuery('packages');
+
+  const loading = groupsLoading || servicesLoading || productsLoading || packagesLoading;
+  const error = groupsError || servicesError || productsError || packagesError;
+
   const [modal, setModal] = useState(null);
   const [actionError, setActionError] = useState(null);
   const [confirmingRemove, setConfirmingRemove] = useState(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [groupsRes, servicesRes, productsRes, packagesRes] = await Promise.all([
-        apiClient.get('/service-groups'),
-        apiClient.get('/services'),
-        apiClient.get('/products'),
-        apiClient.get('/packages'),
-      ]);
-      setGroups(groupsRes.service_groups);
-      setServices(servicesRes.services);
-      setProducts(productsRes.products);
-      setPackages(packagesRes.packages);
-    } catch (err) {
-      setError(messageForError(err, { fallback: OFFLINE_FALLBACK }));
-    } finally {
-      setLoading(false);
-    }
-  }, [apiClient]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
 
   function groupName(id) {
     return groups.find((group) => group.id === id)?.name ?? '—';
@@ -96,8 +74,6 @@ export function CatalogoPage() {
     setActionError(null);
     try {
       await apiClient.delete(`/${REMOVE_PATHS[type]}/${id}`);
-      const setters = { group: setGroups, service: setServices, product: setProducts, package: setPackages };
-      setters[type]((current) => current.filter((item) => item.id !== id));
       setConfirmingRemove(null);
     } catch (err) {
       setActionError(messageForActionError(err, type));
@@ -114,7 +90,7 @@ export function CatalogoPage() {
     }
   }
 
-  if (loading) return <p>Carregando catálogo…</p>;
+  if (loading) return null; // Será instantâneo, evitamos piscar a tela
 
   if (error) {
     return (
@@ -347,8 +323,7 @@ export function CatalogoPage() {
           group={modal.group}
           apiClient={apiClient}
           onClose={() => setModal(null)}
-          onSaved={(saved) => {
-            setGroups((current) => upsertSorted(current, saved));
+          onSaved={() => {
             setModal(null);
           }}
         />
@@ -360,8 +335,7 @@ export function CatalogoPage() {
           groups={groups}
           apiClient={apiClient}
           onClose={() => setModal(null)}
-          onSaved={(saved) => {
-            setServices((current) => upsertSorted(current, saved));
+          onSaved={() => {
             setModal(null);
           }}
         />
@@ -372,8 +346,7 @@ export function CatalogoPage() {
           product={modal.product}
           apiClient={apiClient}
           onClose={() => setModal(null)}
-          onSaved={(saved) => {
-            setProducts((current) => upsertSorted(current, saved));
+          onSaved={() => {
             setModal(null);
           }}
         />
@@ -385,8 +358,7 @@ export function CatalogoPage() {
           services={services}
           apiClient={apiClient}
           onClose={() => setModal(null)}
-          onSaved={(saved) => {
-            setPackages((current) => upsertSorted(current, saved));
+          onSaved={() => {
             setModal(null);
           }}
         />

@@ -7,6 +7,7 @@ import { ManualEntryModal } from './ManualEntryModal.jsx';
 import { Button } from '../../ui/primitives/Button.jsx';
 import { Input } from '../../ui/primitives/Input.jsx';
 import { Select } from '../../ui/primitives/Select.jsx';
+import { PageSkeleton } from '../../ui/primitives/PageSkeleton.jsx';
 import './CaixaPage.css';
 
 // Mirrors backend/src/modules/cashEntries/cashEntries.route.js READ_ROLES
@@ -94,7 +95,14 @@ export function CaixaPage() {
     );
   }
 
-  if (loading) return <p>Carregando caixa…</p>;
+  if (loading) {
+    return (
+      <div className="caixa-page">
+        <h1>Caixa</h1>
+        <PageSkeleton />
+      </div>
+    );
+  }
 
   if (error) {
     return (
