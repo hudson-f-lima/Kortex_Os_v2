@@ -25,13 +25,18 @@ export function EquipePage() {
   const [showInactive, setShowInactive] = useState(false);
   const filterFn = useCallback((item) => showInactive || item.active, [showInactive]);
 
-  const { data: professionals, loading: profLoading, error: profError } = useCachedQuery('professionals', filterFn);
-  const { data: services, loading: srvLoading, error: srvError } = useCachedQuery('services', filterFn);
+  const { data: professionals, loading: profLoading, error: profError, refetch: refetchProfessionals } = useCachedQuery('professionals', filterFn);
+  const { data: services, loading: srvLoading, error: srvError, refetch: refetchServices } = useCachedQuery('services', filterFn);
   const [memberships, setMemberships] = useState([]);
   const [membershipsLoading, setMembershipsLoading] = useState(true);
 
   const loading = profLoading || srvLoading;
   const error = profError || srvError;
+
+  function retryLoad() {
+    refetchProfessionals();
+    refetchServices();
+  }
 
   const [modal, setModal] = useState(null);
   const [removeError, setRemoveError] = useState(null);
@@ -94,7 +99,7 @@ export function EquipePage() {
     return (
       <div className="full-page-error">
         <p>{error}</p>
-        <Button onClick={load}>Tentar novamente</Button>
+        <Button onClick={retryLoad}>Tentar novamente</Button>
       </div>
     );
   }

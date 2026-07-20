@@ -77,12 +77,14 @@ describe('ComandaPage', () => {
     renderComanda();
 
     await waitFor(() => expect(screen.getByText('Corte', { exact: false })).toBeInTheDocument());
-    fireEvent.click(screen.getAllByText('+ Adicionar')[0]);
+    fireEvent.click(screen.getAllByText('Adicionar')[0]);
 
-    const closeButton = screen.getByText('Fechar comanda');
+    const closeButton = screen.getByRole('button', { name: 'Fechar comanda' });
     expect(closeButton).toBeDisabled();
 
-    fireEvent.change(screen.getByLabelText('Profissional para Corte'), { target: { value: 'prof-1' } });
+    // Adicionar um serviço abre automaticamente o modal de atribuição de profissional.
+    fireEvent.change(screen.getByLabelText('Profissional'), { target: { value: 'prof-1' } });
+    fireEvent.click(screen.getByText('Concluir'));
     expect(closeButton).not.toBeDisabled();
   });
 
@@ -93,8 +95,9 @@ describe('ComandaPage', () => {
     renderComanda();
 
     await waitFor(() => expect(screen.getByText('Corte', { exact: false })).toBeInTheDocument());
-    fireEvent.click(screen.getAllByText('+ Adicionar')[0]);
-    fireEvent.change(screen.getByLabelText('Profissional para Corte'), { target: { value: 'prof-1' } });
+    fireEvent.click(screen.getAllByText('Adicionar')[0]);
+    fireEvent.change(screen.getByLabelText('Profissional'), { target: { value: 'prof-1' } });
+    fireEvent.click(screen.getByText('Concluir'));
 
     fireEvent.click(screen.getByText('Fechar comanda'));
 
@@ -119,7 +122,7 @@ describe('ComandaPage', () => {
     renderComanda();
 
     await waitFor(() => expect(screen.getByText('Shampoo', { exact: false })).toBeInTheDocument());
-    fireEvent.click(screen.getAllByText('+ Adicionar')[1]);
+    fireEvent.click(screen.getAllByText('Adicionar')[1]);
     fireEvent.click(screen.getByText('Fechar comanda'));
     fireEvent.click(screen.getByText('Confirmar fechamento'));
 
@@ -135,12 +138,13 @@ describe('ComandaPage', () => {
     renderComanda();
 
     await waitFor(() => expect(screen.getByText('Corte', { exact: false })).toBeInTheDocument());
-    fireEvent.click(screen.getAllByText('+ Adicionar')[0]);
-    fireEvent.change(screen.getByLabelText('Profissional para Corte'), { target: { value: 'prof-1' } });
+    fireEvent.click(screen.getAllByText('Adicionar')[0]);
+    fireEvent.change(screen.getByLabelText('Profissional'), { target: { value: 'prof-1' } });
+    fireEvent.click(screen.getByText('Concluir'));
     fireEvent.click(screen.getByText('Fechar comanda'));
 
-    fireEvent.change(screen.getByLabelText('Desconto'), { target: { value: '10,00' } });
-    fireEvent.change(screen.getByLabelText('Gorjeta'), { target: { value: '5,00' } });
+    fireEvent.change(screen.getByLabelText('Desconto (R$)'), { target: { value: '10,00' } });
+    fireEvent.change(screen.getByLabelText('Gorjeta (R$)'), { target: { value: '5,00' } });
 
     expect(screen.getByText('Total a pagar: R$ 45,00')).toBeInTheDocument();
     fireEvent.click(screen.getByText('Preencher restante'));
@@ -160,15 +164,15 @@ describe('ComandaPage', () => {
     renderComanda();
 
     await waitFor(() => expect(screen.getByText('Shampoo', { exact: false })).toBeInTheDocument());
-    fireEvent.click(screen.getAllByText('+ Adicionar')[1]); // product only, no service line
+    fireEvent.click(screen.getAllByText('Adicionar')[1]); // product only, no service line
     fireEvent.click(screen.getByText('Fechar comanda'));
 
-    expect(screen.getByLabelText('Gorjeta')).toBeDisabled();
+    expect(screen.getByLabelText('Gorjeta (R$)')).toBeDisabled();
     expect(screen.getByText(/Gorjeta só pode ser aplicada/)).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('Desconto'), { target: { value: '999,00' } });
+    fireEvent.change(screen.getByLabelText('Desconto (R$)'), { target: { value: '999,00' } });
     expect(screen.getByText(/O desconto deve ser um valor entre 0 e o subtotal/)).toBeInTheDocument();
-    expect(screen.getByText('Confirmar fechamento')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Confirmar fechamento' })).toBeDisabled();
   });
 
   it('lists closed orders and refunds one with a required reason', async () => {
@@ -193,7 +197,7 @@ describe('ComandaPage', () => {
     await waitFor(() => expect(screen.getByText(/Pedido #order-ab/)).toBeInTheDocument());
 
     fireEvent.click(screen.getByText('Estornar'));
-    const confirmButton = screen.getByText('Confirmar estorno');
+    const confirmButton = screen.getByRole('button', { name: 'Confirmar estorno' });
     expect(confirmButton).toBeDisabled();
 
     fireEvent.change(screen.getByLabelText('Motivo do estorno'), { target: { value: 'customer_cancellation' } });
@@ -247,7 +251,7 @@ describe('ComandaPage', () => {
 
     renderComanda('/comanda?appointment_id=appt-1');
 
-    await waitFor(() => expect(screen.getByText('Fechar comanda')).not.toBeDisabled());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Fechar comanda' })).not.toBeDisabled());
     expect(screen.getByLabelText('Selecionar cliente').value).toBe('client-1');
   });
 
@@ -272,7 +276,7 @@ describe('ComandaPage', () => {
 
     renderComanda('/comanda?appointment_id=appt-1');
 
-    await waitFor(() => expect(screen.getByText('Fechar comanda')).not.toBeDisabled());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Fechar comanda' })).not.toBeDisabled());
     fireEvent.click(screen.getByText('Fechar comanda'));
     fireEvent.click(screen.getByText('Confirmar fechamento'));
 

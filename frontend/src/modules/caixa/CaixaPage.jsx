@@ -8,7 +8,6 @@ import { Button } from '../../ui/primitives/Button.jsx';
 import { Input } from '../../ui/primitives/Input.jsx';
 import { Select } from '../../ui/primitives/Select.jsx';
 import { PageSkeleton } from '../../ui/primitives/PageSkeleton.jsx';
-import './CaixaPage.css';
 
 // Mirrors backend/src/modules/cashEntries/cashEntries.route.js READ_ROLES
 // (owner/admin/manager) — reception has 'caixa' in nav.js (recepção também

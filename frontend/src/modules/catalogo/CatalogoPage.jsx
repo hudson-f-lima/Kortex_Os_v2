@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useApiClient } from '../../shared/useApiClient.js';
 import { useCachedQuery } from '../../shared/useCachedQuery.js';
 import { useOrganization } from '../../shared/useOrganization.js';
 import { formatCents } from '../../shared/money.js';
-import { messageForError, OFFLINE_FALLBACK } from '../../shared/apiErrorMessage.js';
+import { messageForError } from '../../shared/apiErrorMessage.js';
 import { formatPercent } from './commission.js';
 import { ServiceGroupModal } from './ServiceGroupModal.jsx';
 import { ServiceModal } from './ServiceModal.jsx';
@@ -41,12 +41,6 @@ function messageForActionError(err, type) {
   return messageForError(err, { statuses: { 409: CONFLICT_MESSAGES[type] } });
 }
 
-function upsertSorted(list, saved) {
-  const exists = list.some((item) => item.id === saved.id);
-  const next = exists ? list.map((item) => (item.id === saved.id ? saved : item)) : [...list, saved];
-  return next.sort((a, b) => a.name.localeCompare(b.name));
-}
-
 export function CatalogoPage() {
   const { role } = useOrganization();
   const apiClient = useApiClient();
@@ -54,13 +48,20 @@ export function CatalogoPage() {
   const canDelete = DELETE_ROLES.includes(role);
 
   const [tab, setTab] = useState('servicos');
-  const { data: groups, loading: groupsLoading, error: groupsError } = useCachedQuery('service_groups');
-  const { data: services, loading: servicesLoading, error: servicesError } = useCachedQuery('services');
-  const { data: products, loading: productsLoading, error: productsError } = useCachedQuery('products');
-  const { data: packages, loading: packagesLoading, error: packagesError } = useCachedQuery('packages');
+  const { data: groups, loading: groupsLoading, error: groupsError, refetch: refetchGroups } = useCachedQuery('service_groups');
+  const { data: services, loading: servicesLoading, error: servicesError, refetch: refetchServices } = useCachedQuery('services');
+  const { data: products, loading: productsLoading, error: productsError, refetch: refetchProducts } = useCachedQuery('products');
+  const { data: packages, loading: packagesLoading, error: packagesError, refetch: refetchPackages } = useCachedQuery('packages');
 
   const loading = groupsLoading || servicesLoading || productsLoading || packagesLoading;
   const error = groupsError || servicesError || productsError || packagesError;
+
+  function retryLoad() {
+    refetchGroups();
+    refetchServices();
+    refetchProducts();
+    refetchPackages();
+  }
 
   const [modal, setModal] = useState(null);
   const [actionError, setActionError] = useState(null);
@@ -96,7 +97,7 @@ export function CatalogoPage() {
     return (
       <div className="full-page-error">
         <p>{error}</p>
-        <Button onClick={load}>Tentar novamente</Button>
+        <Button onClick={retryLoad}>Tentar novamente</Button>
       </div>
     );
   }

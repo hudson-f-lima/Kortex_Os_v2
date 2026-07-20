@@ -154,6 +154,7 @@ export function ClientesPage() {
           </li>
         ))}
       </ul>
+      )}
 
       {modal && (
         <ClientModal

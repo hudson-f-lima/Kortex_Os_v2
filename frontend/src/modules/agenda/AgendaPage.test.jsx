@@ -152,7 +152,9 @@ describe('AgendaPage', () => {
     renderAgenda();
 
     await waitFor(() => expect(screen.getAllByText('Ana').length).toBeGreaterThan(0));
-    expect(screen.getByText('Beatriz', { selector: '.k-agenda__prof-header' })).toBeInTheDocument();
+    // Timeline Vertical (redesign) troca colunas por profissional por um filtro
+    // único — Beatriz aparece como opção no <select>, não como cabeçalho de coluna.
+    expect(screen.getByRole('option', { name: 'Beatriz' })).toBeInTheDocument();
     expect(screen.getByText('Carla', { exact: false })).toBeInTheDocument();
     expect(screen.getByText('Corte', { exact: false })).toBeInTheDocument();
   });

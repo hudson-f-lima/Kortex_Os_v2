@@ -6,6 +6,10 @@ const ToastContext = createContext(null);
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
 
+  const removeToast = useCallback((id) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
   const addToast = useCallback((toast) => {
     const id = Date.now().toString();
     setToasts((prev) => [...prev, { id, ...toast }]);
@@ -15,11 +19,7 @@ export function ToastProvider({ children }) {
         removeToast(id);
       }, toast.duration || 5000);
     }
-  }, []);
-
-  const removeToast = useCallback((id) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  }, []);
+  }, [removeToast]);
 
   const success = useCallback((description, title = 'Sucesso') => {
     addToast({ title, description, variant: 'success' });
