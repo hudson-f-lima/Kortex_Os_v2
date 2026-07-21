@@ -1,6 +1,8 @@
 # PLANEJAMENTO_EXECUCAO_UNIFICADO
 
-Status: CANÔNICO — única fonte de numeração de fases a partir da Fase 8
+> **ARQUIVADO em 2026-07-20 (DEC-29).** A construção do MVP técnico foi encerrada formalmente pelo Platform Owner; a sequência de Fases 8+ descrita aqui é retirada de circulação (Fases 12-19, ainda não executadas, NÃO continuam com esta numeração). Toda execução futura — incluindo os temas que tinham fase alocada aqui (sessões de caixa, comissões escalonadas, no-show, calendário, agenda transacional) — passa a seguir as Ondas do `docs/KORTEXOS_5_1_2_MIGRATION_MAP.md`, gateadas pelo Blueprint (etapa 7) do Master Briefing 5.1.2. Mantido como registro histórico do que já foi decidido e executado (Fases 8-11). Ver `docs/INDEX.md`.
+
+Status: ~~CANÔNICO~~ **HISTÓRICO, substituído por `docs/KORTEXOS_5_1_2_MIGRATION_MAP.md`** — única fonte de numeração de fases a partir da Fase 8
 Fase atual: 10 [CONCLUÍDA] | Última atualização: 2026-07-16 (Fase 10 concluída — capacidades N:N + hardening do agendamento) | Supersede sequenciamentos de:
 PLANEJAMENTO_FINANCEIRO §4-5, PLANEJAMENTO_COMISSOES §8, PLANEJAMENTO_ROADMAP_POS_MVP §7, PLANEJAMENTO_CALENDARIO_OPERACIONAL §11, PLANEJAMENTO_AGENDA_TRANSACIONAL §13
 

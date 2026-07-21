@@ -1,5 +1,7 @@
 # KortexOS — MVP técnico greenfield
 
+> **ARQUIVADO em 2026-07-20 (DEC-29).** Construção do MVP encerrada formalmente pelo Platform Owner. Este documento define a arquitetura e o escopo rígido do MVP greenfield — permanece tecnicamente correto sobre o que está em produção hoje, mas não é mais a fonte de escopo ativa para novo trabalho. A visão de produto final vigente é `docs/KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md`; o que dela já é realidade técnica está auditado em `docs/KORTEXOS_5_1_2_TRUTH_MAP.md`. Ver `docs/INDEX.md`.
+
 ## 1. Objetivo
 
 Construir uma fundação pequena, testável e implantável para um ERP vertical de beleza e bem-estar. Os SQL enviados anteriormente são exemplos e não fazem parte da arquitetura vigente.

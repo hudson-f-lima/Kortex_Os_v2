@@ -1,5 +1,7 @@
 # PROJECT STATE — KortexOS MVP técnico
 
+> **ARQUIVADO em 2026-07-20 (DEC-29).** Construção do MVP técnico (Trilhas A–E) encerrada formalmente pelo Platform Owner. Este arquivo descreve o estado operacional do MVP até o encerramento e não é mais atualizado como fonte ativa — mantido como registro histórico. A execução segue em `docs/KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md` (visão), `docs/KORTEXOS_5_1_2_TRUTH_MAP.md` (realidade técnica atual) e `docs/KORTEXOS_5_1_2_MIGRATION_MAP.md` (próximos objetos). Ver `docs/INDEX.md`.
+
 **Atualizado:** 2026-07-20 | Onda 6/7 (Fase 13) mergeada em `main` e em produção — [PR #11](https://github.com/hudson-f-lima/Kortex_Os_v2/pull/11), CI verde (3/3 checks), deploy automático no GitHub Pages confirmado rodando o commit do merge. Verificação rápida desta mesma data reexecutou as 3 suítes com banco local limpo: **106/106 (frontend)**, **239/239 (backend)**, **243/243 (pgTAP)** — todas passando, ver métricas abaixo. Migration da Fase 11 (fix de RLS em `professionals_select`) aplicada e verificada em produção — vazamento fechado, ver "Resolvido em 2026-07-20" abaixo. Opção C Phase 3 segue concluída (banco + backend + wiring do frontend), sem dado de teste residual.
 
 ## Estado do MVP
