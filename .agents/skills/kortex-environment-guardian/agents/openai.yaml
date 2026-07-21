@@ -1,0 +1,4 @@
+interface:
+  display_name: "Kortex Environment Guardian"
+  short_description: "Governa branches e promoção entre ambientes"
+  default_prompt: "Use $kortex-environment-guardian para decidir branch de destino, validar promoção staging→main e mapear qual Supabase/Render cada mudança do KortexOS usa."
