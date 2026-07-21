@@ -1,6 +1,6 @@
 # PROJECT STATE — KortexOS MVP técnico
 
-**Atualizado:** 2026-07-20 | Migration da Fase 11 (fix de RLS em `professionals_select`) aplicada e verificada em produção — vazamento fechado, ver "Resolvido em 2026-07-20" abaixo. Fase 11 (convite de equipe por e-mail + RLS self-view) e correção de crash no SSE de sync seguem mergeados em `main` (PR #9). Opção C Phase 3 segue concluída (banco + backend + wiring do frontend), sem dado de teste residual, banner de atualização da PWA verificado funcionando.
+**Atualizado:** 2026-07-20 | Onda 6/7 (Fase 13) mergeada em `main` e em produção — [PR #11](https://github.com/hudson-f-lima/Kortex_Os_v2/pull/11), CI verde (3/3 checks), deploy automático no GitHub Pages confirmado rodando o commit do merge. Verificação rápida desta mesma data reexecutou as 3 suítes com banco local limpo: **106/106 (frontend)**, **239/239 (backend)**, **243/243 (pgTAP)** — todas passando, ver métricas abaixo. Migration da Fase 11 (fix de RLS em `professionals_select`) aplicada e verificada em produção — vazamento fechado, ver "Resolvido em 2026-07-20" abaixo. Opção C Phase 3 segue concluída (banco + backend + wiring do frontend), sem dado de teste residual.
 
 ## Estado do MVP
 
@@ -19,9 +19,12 @@
 | CI/CD & Deploy | `REAL` | GitHub Actions (lint, testes, secrets scan), Render API (`kortex-api`). |
 
 ## Métricas da Suíte de Testes (PASS)
-- **pgTAP (Banco):** 236 / 236 testes passando (`supabase test db --local`) — +6 do hardening de RLS (`idempotency_keys`/`sync_events`, 2026-07-17). Não reexecutado em 2026-07-18 (Fase 11 e o fix de sync SSE não tocaram schema/RLS).
-- **Backend (Express):** 239 / 239 testes passando (`npm run test`) — +8 desde 2026-07-17: +7 da Fase 11 (`convites.test.js` novo, `env.test.js` +1 caso de `SITE_URL`), +1 de regressão do fix de crash no SSE de sync (conexões concorrentes na mesma organização).
-- **Frontend (PWA):** 91 / 91 testes passando na última execução verificada (2026-07-17, `npm run test`). Fase 11 adicionou `EquipePage.test.jsx` (+1) em 2026-07-18, mas a suíte não foi reexecutada nesta sessão para confirmar o novo total — validar antes de reportar como fato.
+- **pgTAP (Banco):** 243 / 243 testes passando (`supabase test db --local`), reexecutado em 2026-07-20 com `supabase db reset --local` antes (o `npm run test` do backend nesta mesma sessão tinha deixado resíduo de organizações no banco local, causando falhas espúrias tipo "more than one row returned by a subquery" — resetar limpou e a suíte passou 100%; nenhuma falha real de RLS/schema). +7 desde a última contagem confirmada (236, 2026-07-17), consistente com a migration da Fase 11 aplicada.
+- **Backend (Express):** 239 / 239 testes passando (`npm run test`), reconfirmado em 2026-07-20 — mesma contagem de 2026-07-18 (Fase 11 + fix de crash no SSE), sem novos testes desde então.
+- **Frontend (PWA):** 106 / 106 testes passando (`npm run test -- --run`), reconfirmado em 2026-07-20 após o merge da Onda 6/7 (+15 desde 2026-07-17: cobertura nova de PWA Installer, toasts, skeletons/empty states e `useCachedQuery`/Projection Cache).
+- **Lint (frontend):** 0 erros, 1 warning pré-existente (`ToastContext.jsx`, `react-refresh/only-export-components`) — não bloqueante, mesmo estado desde a Onda 6.
+- **Build de produção (frontend):** `npm run build` completo sem erros; aviso pré-existente de chunk >500kB (`index-*.js`, 571.85 kB) — conhecido, não endereçado nesta sessão.
+- **Advisors de segurança (produção, Supabase MCP):** mesmo estado terminal de 2026-07-17 — 2 INFO esperados (`idempotency_keys`/`sync_events` sem policy, documentado como correto) + 1 WARN pré-existente (`auth_leaked_password_protection` desabilitado, não endereçado). Nenhum achado novo.
 
 ---
 
@@ -32,8 +35,9 @@
 - **Fase Extra:** Projection Cache local e sincronização incremental via REST + SSE (ADR 0009).
 - **Fase 11:** Convite de equipe por e-mail e RLS self-view em `professionals` (ADR 0014) — código e migration em produção, paridade confirmada em 2026-07-20.
 - **Fase 13 (MVP Refatorado):** Kortex Design System implementado globalmente (Ondas 1 a 5). PWA padronizada com primitives, Agenda reescrita para Timeline Vertical e AppShell consolidado. Métricas (LCP/INP) e NetworkStatus ativo na TopBar.
-  - **Onda 6 (Polish UI/UX):** PWA Installer (antes do install prompt), Toasts globais, Skeletons de Transição (PageFadeIn animado) e Empty States amigáveis espalhados. Branch `feature/ui-ux-polish-onda6`.
+  - **Onda 6 (Polish UI/UX):** PWA Installer (antes do install prompt), Toasts globais, Skeletons de Transição (PageFadeIn animado) e Empty States amigáveis espalhados.
   - **Onda 7 (Carregamento Instantâneo):** Otimização massiva com o *Projection Cache* (IndexedDB local). Telas de Catálogo e Equipe agora abrem em 0ms (Offline First). Telas não cacheadas (Caixa e Comanda) não bloqueiam a renderização da AppShell e usam `<PageSkeleton />` em vez de texto cru. SWR implantado no carregamento de memberships da Equipe.
+  - **Mergeada e em produção em 2026-07-20** ([PR #11](https://github.com/hudson-f-lima/Kortex_Os_v2/pull/11), branch `feature/ui-ux-polish-onda6` já deletada). Inclui fix complementar de warm start do cache local (`OrganizationContext.jsx`) e correções de regressão encontradas em análise global pré-merge (build quebrado + 12 testes falhando na branch, ver commit `a3c76d6`).
 
 ---
 
@@ -66,6 +70,9 @@ Duas organizações de teste ("Hudson", "Hope"/slug `penha`) e todo dado associa
 ### Resolvido em 2026-07-18: crash do processo backend em conexões SSE concorrentes de sync
 QA manual (`node --watch src/server.js`) reportou o processo Node inteiro morrendo com exceção não tratada ao recarregar a página logo após o login, disparando duas requisições quase simultâneas a `/api/v1/sync/stream` para a mesma organização. Causa raiz: `supabaseAdmin.channel(topic)` do `@supabase/realtime-js` **reaproveita** a instância de `RealtimeChannel` já existente quando o tópico (`sync_stream:<org_id>`) já está registrado — a segunda requisição chamava `.on('postgres_changes', ...)` num canal que a primeira já tinha subscrito, o que lança síncrono ("cannot add callbacks ... after subscribe()") e derruba o processo. Corrigido em [sync.route.js](file:///c:/Users/hudso/OneDrive/Documentos/Kortex%20Os%20v2/backend/src/modules/sync/sync.route.js) com um registro por organização: o canal é criado/subscrito uma única vez por `organization_id` e compartilhado entre conexões SSE concorrentes via um `Set` de listeners, só sendo removido quando a última conexão daquela organização desconecta. Teste de regressão adicionado (`sync.test.js`) dispara duas conexões concorrentes para a mesma organização e confirma que o servidor sobrevive. Mergeado via [PR #9](https://github.com/hudson-f-lima/Kortex_Os_v2/pull/9), CI verde (lint, pgTAP advisors, backend, frontend).
 
+### Achado em 2026-07-20: propagação do banner de atualização da PWA pode levar até 10 min no GitHub Pages
+Usuário reportou "cliquei no botão, nova versão disponível, recarregar, e nada aconteceu" logo após o deploy do PR #11. Reproduzido ao vivo no site publicado: o clique **funcionou** (service worker em `waiting` passou para `active`, banner sumiu) quando testado minutos depois. Causa raiz do sintoma relatado: o GitHub Pages serve `sw.js` e `index.html` via CDN da Fastly com `Cache-Control: max-age=600` (10 min), header fixo que o GH Pages não permite customizar — diferentes nós de borda do CDN podem levar até 10 minutos após um deploy para propagar os arquivos novos, então um clique em "Atualizar" dentro dessa janela pode buscar um `sw.js` que aquele nó específico ainda serve como o antigo. Não é um bug de código (mecanismo do `useRegisterSW`/`updateServiceWorker(true)` em [UpdateBanner.jsx](file:///c:/Users/hudso/OneDrive/Documentos/Kortex%20Os%20v2/frontend/src/shared/UpdateBanner.jsx) está correto) — é uma limitação inerente de hospedar PWA no GitHub Pages, sem controle sobre cache headers. Sem ação de código necessária; registrado aqui para não reabrir essa investigação à toa numa sessão futura caso o mesmo sintoma apareça logo após um deploy.
+
 ### Verificado em 2026-07-17: banner de atualização da PWA funciona corretamente
 Usuário reportou que "não estava funcionando". Testado de ponta a ponta em build de produção real (`vite build` + `vite preview`): registrar SW → mudar código → rebuild → recarregar aba já aberta → banner "Nova versão disponível" aparece → clicar "Recarregar" → nova versão carrega, banner some. Sem bug — o service worker (e portanto todo o mecanismo de update) **fica desabilitado em `npm run dev`** por padrão no vite-plugin-pwa (sem `devOptions.enabled`), então testar em modo dev nunca mostraria o banner. Adicionado `frontend-preview` (porta 4173) ao `.claude/launch.json` para facilitar esse teste em sessões futuras.
 
@@ -81,8 +88,8 @@ Usuário reportou que "não estava funcionando". Testado de ponta a ponta em bui
 
 ## Próxima Ação Imediata
 
-**Nenhum bloqueador crítico de produção conhecido pendente** — a migration da Fase 11 (item que ocupava esta seção desde 2026-07-18) foi aplicada e verificada em produção em 2026-07-20 (ver "Resolvido" acima).
+**Nenhum bloqueador crítico de produção conhecido pendente.** A migration da Fase 11 segue aplicada e verificada em produção (2026-07-20), e a Onda 6/7 (Fase 13) está mergeada, deployada e com as 3 suítes de teste reexecutadas e passando 100% nesta mesma data (ver métricas acima).
 
-Pendências conhecidas seguem as mesmas dos Gaps listados acima (ambiente de homologação, UI de elegibilidade Opção C, Sessões de Caixa/Fase 12) mais o que a Onda 6/7 (Fase 13) registrou nesta mesma data — reexecução das suítes de teste após essas mudanças ainda não confirmada nesta seção.
+Pendências conhecidas seguem as mesmas dos Gaps listados acima (ambiente de homologação, UI de elegibilidade Opção C, Sessões de Caixa/Fase 12).
 
 *Próximos candidatos, por ordem de valor: ambiente de homologação (Gap #4, evita repetir o tipo de lacuna que a Fase 11 teve), UI de gestão de elegibilidade (Gap #3, torna o tri-state da Opção C configurável pela PWA), ou Fase 12 (Sessões de Caixa, ADR 0007).*
