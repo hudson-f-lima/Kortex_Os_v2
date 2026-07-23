@@ -16,7 +16,7 @@ description: Orquestra agentes especialistas para planejar, fatiar e revisar o K
 
 ## 4. Entradas necessárias
 - [AGENTS.md](file:///c:/Users/hudso/OneDrive/Documentos/Kortex%20Os%20v2/AGENTS.md) (regras e invariantes)
-- [PROJECT_STATE.md](file:///c:/Users/hudso/OneDrive/Documentos/Kortex%20Os%20v2/docs/PROJECT_STATE.md) (estado operacional real)
+- [PROJECT_STATE.md](file:///c:/Users/hudso/OneDrive/Documentos/Kortex%20Os%20v2/docs/legacy/mvp-tecnico/PROJECT_STATE.md) (estado operacional real do MVP até seu encerramento em 2026-07-20, DEC-29 — para trabalho novo, ver também `docs/KORTEXOS_5_1_2_TRUTH_MAP.md`)
 - Definição do incremento solicitado pelo usuário.
 
 ## 5. Fluxo mínimo
