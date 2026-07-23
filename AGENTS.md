@@ -1,20 +1,22 @@
-# KortexOS — regras do MVP técnico
+# KortexOS — regras de arquitetura e governança
 
 ## Ordem de leitura
 
 1. `AGENTS.md`
 2. `docs/INDEX.md`
-3. `docs/PROJECT_STATE.md`
-4. `docs/KORTEX_MVP_TECNICO.md`
+3. `docs/KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md` (visão vigente)
+4. `docs/KORTEXOS_5_1_2_TRUTH_MAP.md` + `docs/KORTEXOS_5_1_2_MIGRATION_MAP.md` (realidade técnica atual + próximos objetos)
 5. habilidade aplicável em `.agents/skills/`
+
+A construção do MVP técnico (Fases 1–11, Trilhas A–E) foi encerrada formalmente em 2026-07-20 (DEC-29). `docs/legacy/mvp-tecnico/PROJECT_STATE.md` e `docs/legacy/mvp-tecnico/KORTEX_MVP_TECNICO.md` continuam corretos sobre o que está em produção hoje, mas não são mais lidos como fonte ativa de escopo — consulte-os só para contexto histórico.
 
 ## Premissa
 
 O produto é greenfield. SQL, blueprints e código externos são referências não autoritativas. Não preservar numeração, nomes, tabelas, RPCs ou limitações desses exemplos sem justificativa técnica atual.
 
-## Escopo do MVP
+## Fundação em produção (MVP, encerrado)
 
-Entregar um ERP vertical multi-tenant mínimo para beleza e bem-estar: organizações, usuários/memberships, clientes, profissionais, catálogo, agenda, estoque, checkout, pagamentos e caixa.
+O MVP entregue e em produção — ERP vertical multi-tenant mínimo para beleza e bem-estar: organizações, usuários/memberships, clientes, profissionais, catálogo, agenda, estoque, checkout, pagamentos e caixa — é a fundação real sobre a qual a Trilha 5.1.2 constrói (ver Truth Map). Não é redesenhada do zero; é estendida.
 
 ## Invariantes
 
@@ -33,9 +35,9 @@ Usar `$kortex-mvpt-orchestrator`. Delegar por domínio com ownership exclusivo d
 
 Toda promoção entre branches/ambientes (feature → `staging`, `staging` → `main`) passa por `$kortex-environment-guardian`, que confirma a origem/destino corretos e a ausência de cruzamento entre os valores de staging e produção. Ele aciona `$kortex-delivery-guardian` como gate final antes de qualquer merge em `main` — cujo veredito passa a significar "seguro para promover a produção", não apenas "seguro para publicar".
 
-## Visão pós-MVP
+## Trilha ativa: KortexOS 5.1.2
 
-`docs/KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md` é a visão de produto final vigente (Trilha F do `docs/INDEX.md`). Ela não substitui as regras acima nem autoriza domínio, tabela ou endpoint novo por si só — `docs/KORTEXOS_5_1_2_TRUTH_MAP.md` audita a lacuna entre esta fundação e aquela visão, e a promoção segue etapas gated (Migration Map → Blueprint → SQL) que exigem aprovação explícita do Platform Owner em cada uma.
+`docs/KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md` é a visão de produto final vigente **e**, desde o encerramento do MVP, a única trilha ativa de execução (Trilha F do `docs/INDEX.md`). Ela não substitui as Invariantes acima nem autoriza domínio, tabela ou endpoint novo por si só — `docs/KORTEXOS_5_1_2_TRUTH_MAP.md` audita a lacuna entre a fundação em produção e aquela visão, e a promoção segue etapas gated (Migration Map → Blueprint → SQL) que exigem aprovação explícita do Platform Owner em cada uma. Estado em 2026-07-20: Migration Map aprovado (v1.2); Blueprint (etapa 7) desbloqueado, ainda não iniciado — é o próximo passo.
 
 ## Handoff
 

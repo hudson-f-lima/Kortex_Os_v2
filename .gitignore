@@ -27,6 +27,8 @@ Thumbs.db
 .idea/
 .cache/
 .tmp/
+__pycache__/
+*.pyc
 
 # Runtime exports may contain PII
 data/exports/*

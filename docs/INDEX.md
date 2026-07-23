@@ -1,50 +1,47 @@
 # KORTEX OS — Single Source of Truth (SSoT) Master
 
-Bem-vindo à documentação oficial do KortexOS. Para garantir que as regras de negócio e arquitetura não se descolem do código, seguimos o princípio de "Docs as Code" e "Single Source of Truth". Este arquivo central mapeia as Fases de Desenvolvimento e o Registro de Decisões.
+Bem-vindo à documentação oficial do KortexOS. Para garantir que as regras de negócio e arquitetura não se descolem do código, seguimos o princípio de "Docs as Code" e "Single Source of Truth". Este arquivo central mapeia o estado da documentação e o Registro de Decisões.
 
-## Faseamento do Projeto (Living Document)
+**Encerramento formal do MVP técnico (2026-07-20, DEC-29):** a construção do MVP (Fases 1–11 + Ondas 1–7 do Design System) está concluída e em produção. A partir desta data, toda execução nova segue a Trilha F abaixo — não a numeração de "Fases 8+" usada até aqui. A documentação de planejamento/status do MVP foi arquivada em [`docs/legacy/mvp-tecnico/`](legacy/mvp-tecnico/README.md); nada foi apagado, só deixou de ser a fonte ativa.
 
-A documentação do KortexOS é orgânica e construída em "fatias verticais".
+---
 
-### Trilha A: Fundação do ERP Vertical
-- [KORTEX_MVP_TECNICO.md](KORTEX_MVP_TECNICO.md) — O documento que definiu a arquitetura Greenfield, o modelo Multi-Tenant e o escopo rígido do MVP.
-- [PROJECT_STATE.md](PROJECT_STATE.md) — Estado operacional ao vivo deste workspace e próximo passo de engenharia.
-- [REDTEAM_FASE7.md](REDTEAM_FASE7.md) — Vereditos de segurança, testes e observabilidade (CI/CD).
+## Trilha F: KortexOS 5.1.2 — Trilha Ativa (visão de produto final)
 
-### Trilha B: Finanças e Engrenagens
-- [PLANEJAMENTO_FINANCEIRO.md](PLANEJAMENTO_FINANCEIRO.md) — Auditoria do estado financeiro, descartando modelos obsoletos de *Partidas Dobradas* do MVP em favor do log *append-only* no banco local.
-- [PLANEJAMENTO_COMISSOES.md](PLANEJAMENTO_COMISSOES.md) — O estado da arte de comissionamento de pacotes, comissões escalonadas, repasse e vínculos de serviços N:N.
+**Estado: Migration Map (etapa 6) aprovado. Blueprint (etapa 7) desbloqueado, ainda não iniciado — é o próximo passo de execução.**
 
-### Trilha C: Experiência e UI
-- [PWA_PLANEJAMENTO.md](PWA_PLANEJAMENTO.md) — Plano de Produto/UX da PWA, detalhando as rotas de *Agenda-First*, App Shell seguro e estratégia offline/cache.
-
-### Trilha D: O Futuro (Pós-MVP)
-- [PLANEJAMENTO_ROADMAP_POS_MVP.md](PLANEJAMENTO_ROADMAP_POS_MVP.md) — O mapeamento completo contra a visão estendida do Kortex (D00-D31), pesquisa global sobre *Waitlist* Automática e *Memberships* de retenção.
-- [PLANEJAMENTO_EXECUCAO_UNIFICADO.md](PLANEJAMENTO_EXECUCAO_UNIFICADO.md) — O plano canônico de execução das Fases 8+, unificando e organizando as Fases das Trilhas acima.
-
-### Trilha E: Agenda e Disponibilidade
-- [PLANEJAMENTO_CALENDARIO_OPERACIONAL.md](PLANEJAMENTO_CALENDARIO_OPERACIONAL.md) — Auditoria e blueprint da Availability Engine: timezone, templates semanais, jornadas por profissional, exceções de data/feriados.
-- [PLANEJAMENTO_AGENDA_TRANSACIONAL.md](PLANEJAMENTO_AGENDA_TRANSACIONAL.md) — Auditoria e blueprint do motor de mutação de agendamentos: contrato move-plan/move, matriz de conflitos, lock otimista, auditoria.
-
-### Trilha F: KortexOS 5.1.2 — Visão de Produto Final (pós-MVP)
-**Estado: Etapa 5 (Truth Map) concluída, aguardando aprovação do Platform Owner. Etapas 6+ (Migration Map, Blueprint, SQL) BLOQUEADAS até lá — ver regra de promoção sem implementação no Master, §0.4.**
 - [KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md](KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md) — fonte canônica vigente da visão de produto final: tese, domínios D00–D31, motores (KortexFlow, Wallet, Negative Guard, No-show, Autonomous Operations), RAGOV, Gates 00–25, ordem de construção, cadastros canônicos e regras de configuração/comanda/gorjeta/níveis.
-- [KORTEXOS_5_1_2_DECISION_LOG.md](KORTEXOS_5_1_2_DECISION_LOG.md) — histórico de decisões (DEC-01 a DEC-22, D-01 a D-09), padrão ADR, append-only.
-- [KORTEXOS_5_1_2_GLOBAL_BENCHMARK_MAP.md](KORTEXOS_5_1_2_GLOBAL_BENCHMARK_MAP.md) — benchmark rastreável por fonte dos módulos 01–06 (Booking, Waitlist, Checkout, Ledger, Compensation, No-show).
+- [KORTEXOS_5_1_2_DECISION_LOG.md](KORTEXOS_5_1_2_DECISION_LOG.md) — histórico de decisões (DEC-01 a DEC-29, D-01 a D-09), padrão ADR, append-only. **Consulte aqui para saber o motivo/contexto de qualquer regra vigente do Master Briefing.**
+- [KORTEXOS_5_1_2_GLOBAL_BENCHMARK_MAP.md](KORTEXOS_5_1_2_GLOBAL_BENCHMARK_MAP.md) — benchmark rastreável por fonte dos módulos 01–06 (Booking, Waitlist, Checkout, Ledger, Compensation, No-show), incl. Rodada 4 (multi-unidade, calendário, Action Request, Reliability Score).
 - [KORTEXOS_5_1_2_COMPARATIVE_PROPOSAL.md](KORTEXOS_5_1_2_COMPARATIVE_PROPOSAL.md) — 42 achados do benchmark classificados em HERDAR/REFORÇAR/BACKLOG/DESCARTAR (DEC-22), com 4 itens REFORÇAR CRÍTICO.
-- [KORTEXOS_5_1_2_TRUTH_MAP.md](KORTEXOS_5_1_2_TRUTH_MAP.md) — **v1.0, APROVADO (DEC-23).** Classifica a realidade técnica atual (REAL/PARCIAL/MOCKADO/HARDCODED/CRÍTICO/AUSENTE) contra a visão do Master Briefing, módulos 01–06. Veredito: NO-GO para promoção direta ao produto final; GO para iniciar a Etapa 6.
-- [KORTEXOS_5_1_2_MIGRATION_MAP.md](KORTEXOS_5_1_2_MIGRATION_MAP.md) — **v1.2, APROVADO (DEC-24; revisado por DEC-27/DEC-28).** Mapeia domínio, nome de objeto, dependência e impacto de promoção para cada lacuna `CRÍTICO`/`AUSENTE` do Truth Map, em 7 ondas. Escopo de unidade totalmente decidido: `professional_units` (N:N), `memberships` híbrido, e classificação org-wide/catálogo-com-override/transacional para as 19 tabelas MVP existentes + todos os objetos novos. Não define coluna, tipo, índice ou SQL — isso é do Blueprint (Etapa 7, agora desbloqueada, ainda não iniciada).
-- [KORTEXOS_5_1_2_TRUTH_MAP_ADENDO_D02.md](KORTEXOS_5_1_2_TRUTH_MAP_ADENDO_D02.md) — **v1.0, APROVADO (DEC-25).** Cobertura complementar da Calendar Policy & Availability Layer (D02), fora do escopo original do Truth Map v1.0 — achado do Migration Map. `CRÍTICO`/`AUSENTE` confirmado em toda a extensão (zero coluna de horário/turno/timezone no schema).
-- **RODADA 4** (dentro de `KORTEXOS_5_1_2_GLOBAL_BENCHMARK_MAP.md`) — pesquisa externa cross-cutting (multi-unidade, profundidade de calendário, Action Request, Negative Guard/Reliability Score), motivada pelo mesmo padrão que gerou o adendo D02.
-- [KORTEXOS_5_1_2_PONTOS_CEGOS_PRE_BLUEPRINT.md](KORTEXOS_5_1_2_PONTOS_CEGOS_PRE_BLUEPRINT.md) — **v1.0, APROVADO (DEC-26; item 1 reconsiderado por DEC-27).** 5 pontos cegos pré-Blueprint, o mais profundo sendo a camada "Unidade" (Sistema→Empresa→Unidade→Profissional, Master §1.5) sem nenhuma representação no schema. Resolução final da Unidade: `units` como entidade própria desde já (Migration Map v1.1, Onda 0), não mais adiada.
-- [KORTEXOS_5_1_2_INSTRUCAO_CLAUDE_CODE_TRUTH_MAP.md](KORTEXOS_5_1_2_INSTRUCAO_CLAUDE_CODE_TRUTH_MAP.md) — instrução de processo/auditoria que orientou a produção do Truth Map (Etapa 5); referência para a condução da Etapa 6 quando aprovada.
-- [kortex-5.1.2-design/](kortex-5.1.2-design/) — assets de design de referência (mockup de dashboard, design system) para o produto final; não são especificação normativa.
+- [KORTEXOS_5_1_2_TRUTH_MAP.md](KORTEXOS_5_1_2_TRUTH_MAP.md) — **v1.0, APROVADO (DEC-23).** Classifica a realidade técnica atual (REAL/PARCIAL/MOCKADO/HARDCODED/CRÍTICO/AUSENTE) contra a visão do Master Briefing, módulos 01–06. Veredito: NO-GO para promoção direta ao produto final; GO para a Etapa 6.
+- [KORTEXOS_5_1_2_TRUTH_MAP_ADENDO_D02.md](KORTEXOS_5_1_2_TRUTH_MAP_ADENDO_D02.md) — **v1.0, APROVADO (DEC-25).** Cobertura complementar da Calendar Policy & Availability Layer (D02): `CRÍTICO`/`AUSENTE` confirmado em toda a extensão.
+- [KORTEXOS_5_1_2_MIGRATION_MAP.md](KORTEXOS_5_1_2_MIGRATION_MAP.md) — **v1.2, APROVADO (DEC-24; revisado por DEC-27/DEC-28).** Mapeia domínio, objeto, dependência e impacto de promoção para cada lacuna `CRÍTICO`/`AUSENTE`, em 7 ondas (Onda 0: `units` · Onda 1: Payment Core · Onda 2: KortexFlow Ledger/Wallet · Onda 3: Compensation/Sale Commission · Onda 4: Calendar Policy/Availability · Onda 5: Recurring/Group/Waitlist · Onda 6: versionamento de comanda). Não define coluna, tipo, índice ou SQL — isso é do Blueprint (Etapa 7, desbloqueada, **próximo passo**).
+- [KORTEXOS_5_1_2_PONTOS_CEGOS_PRE_BLUEPRINT.md](KORTEXOS_5_1_2_PONTOS_CEGOS_PRE_BLUEPRINT.md) — **v1.0, APROVADO (DEC-26; item 1 reconsiderado por DEC-27).** 5 pontos cegos pré-Blueprint (o mais profundo: a camada "Unidade", resolvida na Onda 0 do Migration Map).
+- [KORTEXOS_5_1_2_INSTRUCAO_CLAUDE_CODE_TRUTH_MAP.md](KORTEXOS_5_1_2_INSTRUCAO_CLAUDE_CODE_TRUTH_MAP.md) — instrução de processo/auditoria que orientou a produção do Truth Map (Etapa 5); referência para a condução de etapas futuras equivalentes.
+- [kortex-5.1.2-design/](kortex-5.1.2-design/) — assets de design de referência (mockup de dashboard, Design System docx) para o produto final; não são especificação normativa.
+
+### Próximo passo de execução
+
+**Blueprint (Etapa 7):** desenho técnico (domínio → objeto → coluna/tipo/índice/RLS) para as 7 ondas do Migration Map v1.2, começando pela Onda 0 (`units`) e Onda 1 (Payment Core). Exige aprovação própria do Platform Owner antes de autorizar SQL (Etapa 8).
+
+---
+
+## Histórico: MVP Técnico (Trilhas A–E, encerrado em 2026-07-20)
+
+Toda a documentação de planejamento e estado operacional da construção do MVP foi arquivada em [`docs/legacy/mvp-tecnico/`](legacy/mvp-tecnico/README.md) — nada foi apagado, só deixou de ser a fonte ativa. Resumo do que cada trilha entregou:
+
+- **Trilha A (Fundação do ERP Vertical):** arquitetura greenfield multi-tenant, RLS em 17 tabelas, checkout atômico/idempotente. Fases 1–11 concluídas e em produção.
+- **Trilha B (Finanças e Engrenagens):** desconto/gorjeta reais, comissão em cascata (profissional > serviço > grupo), lançamento manual e estorno de caixa (Fase 9).
+- **Trilha C (Experiência e UI):** PWA modular (8 módulos), Kortex Design System implementado globalmente (Ondas 1–7: App Shell, Timeline Vertical, Projection Cache/SWR, PWA Installer).
+- **Trilha D (O Futuro Pós-MVP):** mapeamento D00–D31 e a sequência de "Fases 8+" — **substituída** pelo Migration Map da Trilha F.
+- **Trilha E (Agenda e Disponibilidade):** blueprints de Availability Engine e motor transacional de agenda — **absorvidos** pelo Master Briefing 5.1.2 (D02, D07-D09) e pelo Truth Map Adendo D02.
 
 ---
 
 ## Architecture Decision Records (ADR)
 
-Debates longos não devem se perder em chats. O *porquê* de escolhas técnicas difíceis fica imortalizado aqui:
+Debates longos não devem se perder em chats. O *porquê* de escolhas técnicas difíceis fica imortalizado aqui — permanentes, nunca arquivados:
 
 - [ADR 0001: Record Architecture Decisions](adr/0001-record-architecture-decisions.md)
 - [ADR 0002: Checkout Atômico e Idempotente via Server-Side](adr/0002-checkout-atomico-idempotente-server-side.md)
@@ -62,10 +59,13 @@ Debates longos não devem se perder em chats. O *porquê* de escolhas técnicas 
 - [ADR 0014: Fase 11 — Convite de Equipe por E-mail: Provedor SMTP e Expiração](adr/0014-fase11-convite-equipe-smtp.md)
 - [ADR 0015: Auditoria da Arquitetura Local-First / Sync Incremental do KortexOS](adr/0015-auditoria-arquitetura-sync-offline-first.md)
 
+Nota: decisões de processo/governança/sequenciamento do Platform Owner (escopo de benchmark, aprovação de etapas, encerramento de trilhas) são registradas como **DEC-NN** em `KORTEXOS_5_1_2_DECISION_LOG.md`, não como ADR — os dois registros são complementares, não concorrentes (ADR = decisão técnica/arquitetural; DEC = decisão de processo/produto do Platform Owner).
+
 ---
 
 ## Governança
 
 - [../AGENTS.md](../AGENTS.md) — Limites permanentes e formato de handoff de IA.
-- [legacy/](legacy/) — **Pasta obsoleta reservada para backup manual.** Contém os Master Briefings 5.1/5.1.1 e blueprints legados. *Atenção: SQL e documentos presentes nessa pasta são fontes mortas e não ditam regras sobre a arquitetura do MVP técnico.* O Master Briefing 5.1.1 (`KORTEXOS_5_1_1_MASTER_BRIEFING_CANONICO.md`) originou a Trilha E acima, mas **não é autoridade de implementação** — o próprio documento (§1.3) exige evidência separada para qualquer afirmação de estado real. Também contém o asset de branding Hope OS (legado por regra explícita do Master 5.1.2 §0.3) e o bundle bruto de upload dos documentos 5.1.2 (redundante com a Trilha F, mantido só como cópia bruta).
-- **Regra de dupla verdade documental (Master 5.1.2 §0.4/§0.5):** a Trilha F acima é a visão de produto final vigente; as Trilhas A–E continuam descrevendo o MVP técnico materializado e **não são retrospectivamente reclassificadas como erradas** por isso — o Truth Map da Trilha F faz a ponte entre as duas, não substitui `PROJECT_STATE.md`.
+- [legacy/mvp-tecnico/](legacy/mvp-tecnico/README.md) — Documentação de planejamento/status do MVP técnico (Trilhas A–E), arquivada em 2026-07-20 (DEC-29). Ver manifesto para o mapa completo.
+- [legacy/](legacy/) — Pasta obsoleta reservada para backup manual. Contém os Master Briefings 5.1/5.1.1 e blueprints legados. *Atenção: SQL e documentos presentes nessa pasta são fontes mortas e não ditam regras sobre a arquitetura.* O Master Briefing 5.1.1 (`KORTEXOS_5_1_1_MASTER_BRIEFING_CANONICO.md`) originou a Trilha E histórica, mas **não é autoridade de implementação** — o próprio documento (§1.3) exige evidência separada para qualquer afirmação de estado real. Também contém o asset de branding Hope OS (legado) e o bundle bruto de upload dos documentos 5.1.2 (redundante com a Trilha F, mantido só como cópia bruta).
+- **Regra de dupla verdade documental (Master 5.1.2 §0.4/§0.5):** a Trilha F é a visão de produto final vigente **e**, desde o encerramento do MVP (DEC-29), também a única trilha ativa de execução. O histórico arquivado em `legacy/mvp-tecnico/` não é retrospectivamente reclassificado como errado por isso — o Truth Map já fez essa ponte antes do encerramento, e continua sendo a leitura de realidade técnica válida.
