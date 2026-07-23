@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createApiClient } from './apiClient.js';
 import { useAuth } from './useAuth.js';
 import { OrganizationContext } from './useOrganization.js';
@@ -20,7 +20,7 @@ export function OrganizationProvider({ children }) {
     [accessToken],
   );
 
-  async function refresh() {
+  const refresh = useCallback(async function refresh() {
     setLoading(true);
     setError(null);
     try {
@@ -42,13 +42,13 @@ export function OrganizationProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [bootstrapClient]);
 
   useEffect(() => {
     if (!user) return;
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [user?.id, refresh]);
 
   useEffect(() => {
     if (!user) {
@@ -112,22 +112,26 @@ export function OrganizationProvider({ children }) {
     };
   }, [accessToken, organizationId, user?.id]);
 
-  function selectOrganization(id) {
+  const selectOrganization = useCallback((id) => {
     setOrganizationId(id);
     localStorage.setItem(STORAGE_KEY, id);
-  }
+  }, []);
 
   const current = organizations.find((org) => org.id === organizationId) ?? null;
+  const role = current?.role ?? null;
 
-  const value = {
-    organizations,
-    organizationId,
-    role: current?.role ?? null,
-    loading,
-    error,
-    selectOrganization,
-    refresh,
-  };
+  const value = useMemo(
+    () => ({
+      organizations,
+      organizationId,
+      role,
+      loading,
+      error,
+      selectOrganization,
+      refresh,
+    }),
+    [organizations, organizationId, role, loading, error, selectOrganization, refresh],
+  );
 
   return <OrganizationContext.Provider value={value}>{children}</OrganizationContext.Provider>;
 }
