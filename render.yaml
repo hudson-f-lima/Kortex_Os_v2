@@ -32,6 +32,11 @@ services:
       # Render e corrija aqui se um domínio customizado estiver configurado.
       - key: CORS_ORIGINS
         value: https://hudson-f-lima.github.io,https://kortex-pwa.onrender.com
+      # SITE_URL: link de redirecionamento do convite de equipe por e-mail
+      # (ADR 0014/Fase 11, backend/src/config/env.js exige em runtime —
+      # achado em 2026-07-22 ao faltar essa var travar o deploy de staging).
+      - key: SITE_URL
+        value: https://hudson-f-lima.github.io/Kortex_Os_v2/
 
   - type: web
     name: kortex-pwa
@@ -48,3 +53,59 @@ services:
       # API BASE URL: Aponta para o backend hospedado no Render
       - key: VITE_API_BASE_URL
         value: https://kortex-os-v2.onrender.com/api/v1
+
+  # Ambiente de homologação (staging) — DEC-28(c). Cópia isolada de
+  # produção: projeto Supabase próprio (kortex-os-v2-staging) e serviços
+  # Render próprios. Passo manual necessário: criar estes dois serviços
+  # no painel do Render a partir deste blueprint, configurando a branch
+  # de deploy de cada um como `staging` (não `main`).
+  - type: web
+    name: kortex-api-staging
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: staging
+      - key: PORT
+        value: "3000"
+      - key: LOG_LEVEL
+        value: info
+      - key: SUPABASE_URL
+        value: https://hyzoocmmtmjlgdyifwhu.supabase.co
+      - key: SUPABASE_PUBLISHABLE_KEY
+        value: sb_publishable_0L4GjFgIqFMT9ZyZ7PuCVA_LTA7DFtd
+      - key: SUPABASE_JWKS_URL
+        value: https://hyzoocmmtmjlgdyifwhu.supabase.co/auth/v1/.well-known/jwks.json
+      # SEGREDO PROTEGIDO: O valor não deve ir para o Git. Configure no painel do Render.
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      # CORS: só o próprio frontend de staging precisa acessar esta API —
+      # sem GitHub Pages aqui, homologação não tem contrapartida no Pages.
+      - key: CORS_ORIGINS
+        value: https://kortex-pwa-staging.onrender.com
+      # SITE_URL: obrigatório em runtime (backend/src/config/env.js) — o
+      # primeiro deploy deste serviço falhou por faltar essa var (2026-07-22).
+      - key: SITE_URL
+        value: https://kortex-pwa-staging.onrender.com
+
+  - type: web
+    name: kortex-pwa-staging
+    runtime: static
+    plan: free
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_SUPABASE_URL
+        value: https://hyzoocmmtmjlgdyifwhu.supabase.co
+      - key: VITE_SUPABASE_PUBLISHABLE_KEY
+        value: sb_publishable_0L4GjFgIqFMT9ZyZ7PuCVA_LTA7DFtd
+      # API BASE URL: aponta para o backend de staging (acima), não o de produção
+      - key: VITE_API_BASE_URL
+        value: https://kortex-api-staging.onrender.com/api/v1

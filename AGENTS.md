@@ -33,6 +33,8 @@ O MVP entregue e em produção — ERP vertical multi-tenant mínimo para beleza
 
 Usar `$kortex-mvpt-orchestrator`. Delegar por domínio com ownership exclusivo de arquivos. Classificar evidência como `REAL`, `PARCIAL`, `MOCKADO`, `HARDCODED`, `CRÍTICO`, `BLOQUEADO`, `DESCONHECIDO`, `OBSOLETO` ou `CONTRADITÓRIO`.
 
+Toda promoção entre branches/ambientes (feature → `staging`, `staging` → `main`) passa por `$kortex-environment-guardian`, que confirma a origem/destino corretos e a ausência de cruzamento entre os valores de staging e produção. Ele aciona `$kortex-delivery-guardian` como gate final antes de qualquer merge em `main` — cujo veredito passa a significar "seguro para promover a produção", não apenas "seguro para publicar".
+
 ## Trilha ativa: KortexOS 5.1.2
 
 `docs/KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md` é a visão de produto final vigente **e**, desde o encerramento do MVP, a única trilha ativa de execução (Trilha F do `docs/INDEX.md`). Ela não substitui as Invariantes acima nem autoriza domínio, tabela ou endpoint novo por si só — `docs/KORTEXOS_5_1_2_TRUTH_MAP.md` audita a lacuna entre a fundação em produção e aquela visão, e a promoção segue etapas gated (Migration Map → Blueprint → SQL) que exigem aprovação explícita do Platform Owner em cada uma. Estado em 2026-07-20: Migration Map aprovado (v1.2); Blueprint (etapa 7) desbloqueado, ainda não iniciado — é o próximo passo.

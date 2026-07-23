@@ -28,12 +28,13 @@ description: Projeta, implementa e audita o Supabase/Postgres do KortexOS.
 - Proibir chaves compostas que permitam vazamento cross-tenant (usar FK compostas `(organization_id, id)`).
 - Não expor dados ou conceder grants à roles anônimas ou autenticadas padrão no backend API-only; usar `service_role` exclusivamente no servidor.
 - Fixar `search_path` e validar membership de forma rígida em funções `SECURITY DEFINER`.
+- Nunca declarar uma migration aplicada, um schema clonado ou um advisor scan concluído com base só no relato de um subagente delegado — reexecutar a verificação (`list_migrations`/`supabase migration list`, `list_tables`, `get_advisors`) pessoalmente, com chamada própria, antes de reportar como concluído. Incidente registrado: um subagente relatou 8 migrations aplicadas com sucesso em `kortex-os-v2-staging` que na verdade nunca rodaram — só a reverificação direta pegou o erro.
 
 ## 7. Arquivos que podem ser carregados
 - [references/greenfield-schema.md](file:///c:/Users/hudso/OneDrive/Documentos/Kortex%20Os%20v2/.agents/skills/kortex-supabase-guard/references/greenfield-schema.md)
 
 ## 8. Condição de parada
-- Migrations aplicadas localmente com sucesso, pgTAP passando (100% PASS), e advisors sem avisos de segurança ou performance.
+- Migrations aplicadas localmente com sucesso, pgTAP passando (100% PASS), e advisors sem avisos de segurança ou performance — cada um desses três itens confirmado por chamada direta e própria, nunca só por relatório de subagente.
 
 ## 9. Formato de saída
 - SQL da migration gerada e relatório pgTAP de testes executados:
