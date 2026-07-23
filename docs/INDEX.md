@@ -8,22 +8,25 @@ Bem-vindo à documentação oficial do KortexOS. Para garantir que as regras de 
 
 ## Trilha F: KortexOS 5.1.2 — Trilha Ativa (visão de produto final)
 
-**Estado: Migration Map (etapa 6) aprovado. Blueprint (etapa 7) desbloqueado, ainda não iniciado — é o próximo passo de execução.**
+**Estado: Migration Map (etapa 6) aprovado. Onda 0 (`units`) implementada, testada e comprometida em staging (DEC-31/DEC-32). Blueprint da Onda 1 (Payment Core) é o próximo passo de execução.**
 
 - [KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md](KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md) — fonte canônica vigente da visão de produto final: tese, domínios D00–D31, motores (KortexFlow, Wallet, Negative Guard, No-show, Autonomous Operations), RAGOV, Gates 00–25, ordem de construção, cadastros canônicos e regras de configuração/comanda/gorjeta/níveis.
-- [KORTEXOS_5_1_2_DECISION_LOG.md](KORTEXOS_5_1_2_DECISION_LOG.md) — histórico de decisões (DEC-01 a DEC-29, D-01 a D-09), padrão ADR, append-only. **Consulte aqui para saber o motivo/contexto de qualquer regra vigente do Master Briefing.**
+- [KORTEXOS_5_1_2_DECISION_LOG.md](KORTEXOS_5_1_2_DECISION_LOG.md) — histórico de decisões (DEC-01 a DEC-32, D-01 a D-09), padrão ADR, append-only. **Consulte aqui para saber o motivo/contexto de qualquer regra vigente do Master Briefing.**
 - [KORTEXOS_5_1_2_GLOBAL_BENCHMARK_MAP.md](KORTEXOS_5_1_2_GLOBAL_BENCHMARK_MAP.md) — benchmark rastreável por fonte dos módulos 01–06 (Booking, Waitlist, Checkout, Ledger, Compensation, No-show), incl. Rodada 4 (multi-unidade, calendário, Action Request, Reliability Score).
 - [KORTEXOS_5_1_2_COMPARATIVE_PROPOSAL.md](KORTEXOS_5_1_2_COMPARATIVE_PROPOSAL.md) — 42 achados do benchmark classificados em HERDAR/REFORÇAR/BACKLOG/DESCARTAR (DEC-22), com 4 itens REFORÇAR CRÍTICO.
 - [KORTEXOS_5_1_2_TRUTH_MAP.md](KORTEXOS_5_1_2_TRUTH_MAP.md) — **v1.0, APROVADO (DEC-23).** Classifica a realidade técnica atual (REAL/PARCIAL/MOCKADO/HARDCODED/CRÍTICO/AUSENTE) contra a visão do Master Briefing, módulos 01–06. Veredito: NO-GO para promoção direta ao produto final; GO para a Etapa 6.
 - [KORTEXOS_5_1_2_TRUTH_MAP_ADENDO_D02.md](KORTEXOS_5_1_2_TRUTH_MAP_ADENDO_D02.md) — **v1.0, APROVADO (DEC-25).** Cobertura complementar da Calendar Policy & Availability Layer (D02): `CRÍTICO`/`AUSENTE` confirmado em toda a extensão.
-- [KORTEXOS_5_1_2_MIGRATION_MAP.md](KORTEXOS_5_1_2_MIGRATION_MAP.md) — **v1.2, APROVADO (DEC-24; revisado por DEC-27/DEC-28).** Mapeia domínio, objeto, dependência e impacto de promoção para cada lacuna `CRÍTICO`/`AUSENTE`, em 7 ondas (Onda 0: `units` · Onda 1: Payment Core · Onda 2: KortexFlow Ledger/Wallet · Onda 3: Compensation/Sale Commission · Onda 4: Calendar Policy/Availability · Onda 5: Recurring/Group/Waitlist · Onda 6: versionamento de comanda). Não define coluna, tipo, índice ou SQL — isso é do Blueprint (Etapa 7, desbloqueada, **próximo passo**).
+- [KORTEXOS_5_1_2_MIGRATION_MAP.md](KORTEXOS_5_1_2_MIGRATION_MAP.md) — **v1.2, APROVADO (DEC-24; revisado por DEC-27/DEC-28).** Mapeia domínio, objeto, dependência e impacto de promoção para cada lacuna `CRÍTICO`/`AUSENTE`, em 7 ondas (Onda 0: `units` · Onda 1: Payment Core · Onda 2: KortexFlow Ledger/Wallet · Onda 3: Compensation/Sale Commission · Onda 4: Calendar Policy/Availability · Onda 5: Recurring/Group/Waitlist · Onda 6: versionamento de comanda). Não define coluna, tipo, índice ou SQL — isso é do Blueprint (Etapa 7).
 - [KORTEXOS_5_1_2_PONTOS_CEGOS_PRE_BLUEPRINT.md](KORTEXOS_5_1_2_PONTOS_CEGOS_PRE_BLUEPRINT.md) — **v1.0, APROVADO (DEC-26; item 1 reconsiderado por DEC-27).** 5 pontos cegos pré-Blueprint (o mais profundo: a camada "Unidade", resolvida na Onda 0 do Migration Map).
+- [KORTEXOS_5_1_2_BLUEPRINT_ONDA_0_DRAFT.md](KORTEXOS_5_1_2_BLUEPRINT_ONDA_0_DRAFT.md) — **APROVADO (DEC-31).** Desenho técnico da Onda 0 (`units`): schema, RLS, triggers de default-fill, backfill, split em 2 migrations.
+- [KORTEXOS_5_1_2_BLUEPRINT_ONDA_0_REDTEAM.md](KORTEXOS_5_1_2_BLUEPRINT_ONDA_0_REDTEAM.md) — QA Red Team da Onda 0: gates PASS, nenhuma vulnerabilidade de desenho. Veredito GO para Etapa 8 (DEC-32).
+- [KORTEXOS_5_1_2_ONDA_0_IMPLEMENTATION.md](KORTEXOS_5_1_2_ONDA_0_IMPLEMENTATION.md) — **IMPLEMENTADO.** Documento consolidado WHAT/WHY/HOW/NEXT da Onda 0: schema aplicado, 21 testes pgTAP, verificações cumpridas (reset, advisors, regressão), checklist de integridade, próximas ondas.
 - [KORTEXOS_5_1_2_INSTRUCAO_CLAUDE_CODE_TRUTH_MAP.md](KORTEXOS_5_1_2_INSTRUCAO_CLAUDE_CODE_TRUTH_MAP.md) — instrução de processo/auditoria que orientou a produção do Truth Map (Etapa 5); referência para a condução de etapas futuras equivalentes.
 - [kortex-5.1.2-design/](kortex-5.1.2-design/) — assets de design de referência (mockup de dashboard, Design System docx) para o produto final; não são especificação normativa.
 
 ### Próximo passo de execução
 
-**Blueprint (Etapa 7):** desenho técnico (domínio → objeto → coluna/tipo/índice/RLS) para as 7 ondas do Migration Map v1.2, começando pela Onda 0 (`units`) e Onda 1 (Payment Core). Exige aprovação própria do Platform Owner antes de autorizar SQL (Etapa 8).
+**Blueprint da Onda 1 (Payment Core, Etapa 7):** desenho técnico (domínio → objeto → coluna/tipo/índice/RLS) para métodos de pagamento sem dinheiro, herdando `unit_id` da Onda 0 já implementada. Exige aprovação própria do Platform Owner antes de autorizar SQL (Etapa 8).
 
 ---
 
@@ -58,6 +61,7 @@ Debates longos não devem se perder em chats. O *porquê* de escolhas técnicas 
 - [ADR 0013: Change Plan com Confirmação Explícita e Separação Booking × Settlement](adr/0013-change-plan-booking-settlement.md)
 - [ADR 0014: Fase 11 — Convite de Equipe por E-mail: Provedor SMTP e Expiração](adr/0014-fase11-convite-equipe-smtp.md)
 - [ADR 0015: Auditoria da Arquitetura Local-First / Sync Incremental do KortexOS](adr/0015-auditoria-arquitetura-sync-offline-first.md)
+- [ADR 0016: Onda 0 — Arquitetura de Unidades (Units)](adr/0016-onda0-units-architecture.md)
 
 Nota: decisões de processo/governança/sequenciamento do Platform Owner (escopo de benchmark, aprovação de etapas, encerramento de trilhas) são registradas como **DEC-NN** em `KORTEXOS_5_1_2_DECISION_LOG.md`, não como ADR — os dois registros são complementares, não concorrentes (ADR = decisão técnica/arquitetural; DEC = decisão de processo/produto do Platform Owner).
 
