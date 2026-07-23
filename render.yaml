@@ -32,6 +32,11 @@ services:
       # Render e corrija aqui se um domínio customizado estiver configurado.
       - key: CORS_ORIGINS
         value: https://hudson-f-lima.github.io,https://kortex-pwa.onrender.com
+      # SITE_URL: link de redirecionamento do convite de equipe por e-mail
+      # (ADR 0014/Fase 11, backend/src/config/env.js exige em runtime —
+      # achado em 2026-07-22 ao faltar essa var travar o deploy de staging).
+      - key: SITE_URL
+        value: https://hudson-f-lima.github.io/Kortex_Os_v2/
 
   - type: web
     name: kortex-pwa
@@ -83,6 +88,10 @@ services:
       # CORS: só o próprio frontend de staging precisa acessar esta API —
       # sem GitHub Pages aqui, homologação não tem contrapartida no Pages.
       - key: CORS_ORIGINS
+        value: https://kortex-pwa-staging.onrender.com
+      # SITE_URL: obrigatório em runtime (backend/src/config/env.js) — o
+      # primeiro deploy deste serviço falhou por faltar essa var (2026-07-22).
+      - key: SITE_URL
         value: https://kortex-pwa-staging.onrender.com
 
   - type: web
