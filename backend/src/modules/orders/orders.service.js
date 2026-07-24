@@ -3,46 +3,51 @@ import { mapPostgresError } from '../../shared/postgresError.js';
 import { mapRpcError } from '../../shared/rpcError.js';
 
 const ORDER_COLUMNS =
-  'id, client_id, status, subtotal_cents, discount_cents, tip_cents, total_cents, refund_reason, created_at, closed_at';
+  'id, unit_id, client_id, status, subtotal_cents, discount_cents, tip_cents, total_cents, refund_reason, created_at, closed_at';
 const ITEM_COLUMNS =
-  'id, kind, service_id, product_id, description, quantity, unit_price_cents, total_cents, ' +
+  'id, unit_id, kind, service_id, product_id, description, quantity, unit_price_cents, total_cents, ' +
   'professional_id, commission_type, commission_value, commission_cents';
-const PAYMENT_COLUMNS = 'id, method, amount_cents, created_at';
+const PAYMENT_COLUMNS = 'id, unit_id, method, amount_cents, created_at';
 
 export function createOrdersService(supabaseAdmin) {
   return {
-    async list({ organizationId }) {
-      const { data, error } = await supabaseAdmin
+    async list({ organizationId, unitId }) {
+      let query = supabaseAdmin
         .from('orders')
         .select(ORDER_COLUMNS)
-        .eq('organization_id', organizationId)
-        .order('created_at', { ascending: false });
+        .eq('organization_id', organizationId);
+      if (unitId !== undefined) query = query.eq('unit_id', unitId);
+      const { data, error } = await query.order('created_at', { ascending: false });
       if (error) throw mapPostgresError(error);
       return data;
     },
 
-    async get({ organizationId, orderId }) {
-      const { data: order, error } = await supabaseAdmin
+    async get({ organizationId, unitId, orderId }) {
+      let orderQuery = supabaseAdmin
         .from('orders')
         .select(ORDER_COLUMNS)
         .eq('organization_id', organizationId)
-        .eq('id', orderId)
-        .maybeSingle();
+        .eq('id', orderId);
+      if (unitId !== undefined) orderQuery = orderQuery.eq('unit_id', unitId);
+      const { data: order, error } = await orderQuery.maybeSingle();
       if (error) throw mapPostgresError(error);
       if (!order) throw HttpError.notFound('order_not_found', 'order not found');
 
-      const [itemsResult, paymentsResult] = await Promise.all([
-        supabaseAdmin
+      let itemsQuery = supabaseAdmin
           .from('order_items')
           .select(ITEM_COLUMNS)
           .eq('organization_id', organizationId)
-          .eq('order_id', orderId),
-        supabaseAdmin
+          .eq('order_id', orderId);
+      let paymentsQuery = supabaseAdmin
           .from('payments')
           .select(PAYMENT_COLUMNS)
           .eq('organization_id', organizationId)
-          .eq('order_id', orderId),
-      ]);
+          .eq('order_id', orderId);
+      if (unitId !== undefined) {
+        itemsQuery = itemsQuery.eq('unit_id', unitId);
+        paymentsQuery = paymentsQuery.eq('unit_id', unitId);
+      }
+      const [itemsResult, paymentsResult] = await Promise.all([itemsQuery, paymentsQuery]);
       if (itemsResult.error) throw mapPostgresError(itemsResult.error);
       if (paymentsResult.error) throw mapPostgresError(paymentsResult.error);
 

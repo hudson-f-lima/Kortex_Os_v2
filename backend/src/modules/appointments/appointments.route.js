@@ -39,9 +39,15 @@ export function appointmentsRouter({ supabaseAdmin, organizationContext }) {
 
   router.get('/appointments', async (req, res, next) => {
     try {
+      const requestedProfessionalId = parseOptionalUuidQuery(req.query.professional_id, 'professional_id');
+      const canViewAllSchedules = req.auth.permissions.includes('schedule:view_all');
       const appointments = await service.list({
         organizationId: req.auth.organizationId,
-        professionalId: parseOptionalUuidQuery(req.query.professional_id, 'professional_id'),
+        unitId: req.auth.unitId,
+        professionalId:
+          req.auth.role === 'professional' && !canViewAllSchedules
+            ? (req.auth.professionalId ?? null)
+            : requestedProfessionalId,
         clientId: parseOptionalUuidQuery(req.query.client_id, 'client_id'),
         status: parseOptionalStatusQuery(req.query.status),
         from: req.query.from,
@@ -56,7 +62,15 @@ export function appointmentsRouter({ supabaseAdmin, organizationContext }) {
   router.get('/appointments/:id', async (req, res, next) => {
     try {
       const appointmentId = validateAppointmentId(req.params.id);
-      const appointment = await service.get({ organizationId: req.auth.organizationId, appointmentId });
+      const appointment = await service.get({
+        organizationId: req.auth.organizationId,
+        unitId: req.auth.unitId,
+        professionalId:
+          req.auth.role === 'professional' && !req.auth.permissions.includes('schedule:view_all')
+            ? (req.auth.professionalId ?? null)
+            : undefined,
+        appointmentId,
+      });
       res.status(200).json({ appointment });
     } catch (err) {
       next(err);
@@ -69,6 +83,7 @@ export function appointmentsRouter({ supabaseAdmin, organizationContext }) {
       const patch = validateAppointmentPayload(req.body, { requireAll: true });
       const appointment = await service.create({
         organizationId: req.auth.organizationId,
+        unitId: req.auth.unitId,
         actorUserId: req.auth.userId,
         idempotencyKey,
         patch,
@@ -86,6 +101,7 @@ export function appointmentsRouter({ supabaseAdmin, organizationContext }) {
       const patch = validateAppointmentPayload(req.body, { requireAll: false });
       const appointment = await service.update({
         organizationId: req.auth.organizationId,
+        unitId: req.auth.unitId,
         actorUserId: req.auth.userId,
         appointmentId,
         idempotencyKey,
@@ -100,7 +116,11 @@ export function appointmentsRouter({ supabaseAdmin, organizationContext }) {
   router.delete('/appointments/:id', requireRole(...DELETE_ROLES), async (req, res, next) => {
     try {
       const appointmentId = validateAppointmentId(req.params.id);
-      await service.remove({ organizationId: req.auth.organizationId, appointmentId });
+      await service.remove({
+        organizationId: req.auth.organizationId,
+        unitId: req.auth.unitId,
+        appointmentId,
+      });
       res.status(204).send();
     } catch (err) {
       next(err);

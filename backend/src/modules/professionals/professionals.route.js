@@ -20,6 +20,8 @@ export function professionalsRouter({ supabaseAdmin, organizationContext }) {
       const { active } = req.query;
       const professionals = await service.list({
         organizationId: req.auth.organizationId,
+        scopeProfessionalId:
+          req.auth.role === 'professional' ? (req.auth.professionalId ?? null) : undefined,
         active: active === undefined ? undefined : active === 'true',
       });
       res.status(200).json({ professionals });
@@ -31,7 +33,12 @@ export function professionalsRouter({ supabaseAdmin, organizationContext }) {
   router.get('/professionals/:id', async (req, res, next) => {
     try {
       const professionalId = validateProfessionalId(req.params.id);
-      const professional = await service.get({ organizationId: req.auth.organizationId, professionalId });
+      const professional = await service.get({
+        organizationId: req.auth.organizationId,
+        scopeProfessionalId:
+          req.auth.role === 'professional' ? (req.auth.professionalId ?? null) : undefined,
+        professionalId,
+      });
       res.status(200).json({ professional });
     } catch (err) {
       next(err);
@@ -54,6 +61,7 @@ export function professionalsRouter({ supabaseAdmin, organizationContext }) {
       const patch = validateProfessionalPayload(req.body, { requireName: false });
       const professional = await service.update({
         organizationId: req.auth.organizationId,
+        actorUserId: req.auth.userId,
         professionalId,
         patch,
       });
@@ -66,7 +74,11 @@ export function professionalsRouter({ supabaseAdmin, organizationContext }) {
   router.delete('/professionals/:id', requireRole(...DELETE_ROLES), async (req, res, next) => {
     try {
       const professionalId = validateProfessionalId(req.params.id);
-      await service.remove({ organizationId: req.auth.organizationId, professionalId });
+      await service.remove({
+        organizationId: req.auth.organizationId,
+        actorUserId: req.auth.userId,
+        professionalId,
+      });
       res.status(204).send();
     } catch (err) {
       next(err);

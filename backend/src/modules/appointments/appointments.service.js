@@ -3,16 +3,70 @@ import { mapPostgresError } from '../../shared/postgresError.js';
 import { mapRpcError } from '../../shared/rpcError.js';
 
 const COLUMNS =
-  'id, organization_id, client_id, professional_id, service_id, starts_at, ends_at, status, version, resolved_duration_minutes, resolved_eligibility_source, resolved_at, created_at, updated_at';
+  'id, organization_id, unit_id, client_id, professional_id, service_id, starts_at, ends_at, status, version, resolved_duration_minutes, resolved_eligibility_source, resolved_at, created_at, updated_at';
+
+async function resolveAppointmentWriteUnit(supabaseAdmin, organizationId, membershipUnitId) {
+  const { data: defaultUnit, error } = await supabaseAdmin
+    .from('units')
+    .select('id')
+    .eq('organization_id', organizationId)
+    .eq('is_default', true)
+    .eq('active', true)
+    .maybeSingle();
+  if (error) throw mapPostgresError(error);
+  if (!defaultUnit) {
+    throw HttpError.conflict('active_default_unit_required', 'organization has no active default unit');
+  }
+  if (membershipUnitId !== undefined && membershipUnitId !== defaultUnit.id) {
+    throw HttpError.conflict(
+      'unit_write_not_supported',
+      'this command cannot target a non-default unit until its server-side unit contract is promoted',
+    );
+  }
+  return defaultUnit.id;
+}
+
+async function assertProfessionalAvailableInUnit(supabaseAdmin, organizationId, unitId, professionalId) {
+  const { data, error } = await supabaseAdmin
+    .from('professional_units')
+    .select('professional_id')
+    .eq('organization_id', organizationId)
+    .eq('unit_id', unitId)
+    .eq('professional_id', professionalId)
+    .eq('active', true)
+    .maybeSingle();
+  if (error) throw mapPostgresError(error);
+  if (!data) {
+    const { data: professional, error: professionalError } = await supabaseAdmin
+      .from('professionals')
+      .select('id')
+      .eq('organization_id', organizationId)
+      .eq('id', professionalId)
+      .maybeSingle();
+    if (professionalError) throw mapPostgresError(professionalError);
+    if (!professional) {
+      throw HttpError.badRequest(
+        'reference_not_found',
+        'one or more referenced records do not exist in this organization',
+      );
+    }
+    throw HttpError.badRequest(
+      'professional_not_available_in_unit',
+      'professional must have an active link to the appointment unit',
+    );
+  }
+}
 
 export function createAppointmentsService(supabaseAdmin) {
   return {
-    async list({ organizationId, professionalId, clientId, status, from, to }) {
+    async list({ organizationId, unitId, professionalId, clientId, status, from, to }) {
+      if (professionalId === null) return [];
       let query = supabaseAdmin
         .from('appointments')
         .select(COLUMNS)
         .eq('organization_id', organizationId)
         .order('starts_at', { ascending: true });
+      if (unitId !== undefined) query = query.eq('unit_id', unitId);
       if (professionalId !== undefined) query = query.eq('professional_id', professionalId);
       if (clientId !== undefined) query = query.eq('client_id', clientId);
       if (status !== undefined) query = query.eq('status', status);
@@ -23,13 +77,18 @@ export function createAppointmentsService(supabaseAdmin) {
       return data;
     },
 
-    async get({ organizationId, appointmentId }) {
-      const { data, error } = await supabaseAdmin
+    async get({ organizationId, unitId, professionalId, appointmentId }) {
+      if (professionalId === null) {
+        throw HttpError.notFound('appointment_not_found', 'appointment not found');
+      }
+      let query = supabaseAdmin
         .from('appointments')
         .select(COLUMNS)
         .eq('organization_id', organizationId)
-        .eq('id', appointmentId)
-        .maybeSingle();
+        .eq('id', appointmentId);
+      if (unitId !== undefined) query = query.eq('unit_id', unitId);
+      if (professionalId !== undefined) query = query.eq('professional_id', professionalId);
+      const { data, error } = await query.maybeSingle();
       if (error) throw mapPostgresError(error);
       if (!data) throw HttpError.notFound('appointment_not_found', 'appointment not found');
       return data;
@@ -38,7 +97,14 @@ export function createAppointmentsService(supabaseAdmin) {
     // Rota B (ADR 0012): absorve elegibilidade (ADR 0010), snapshot (ADR 0011)
     // e idempotência atômica dentro de create_appointment — mesma arquitetura
     // de checkout_close, não mais um insert direto do Express.
-    async create({ organizationId, actorUserId, idempotencyKey, patch }) {
+    async create({ organizationId, unitId, actorUserId, idempotencyKey, patch }) {
+      const writeUnitId = await resolveAppointmentWriteUnit(supabaseAdmin, organizationId, unitId);
+      await assertProfessionalAvailableInUnit(
+        supabaseAdmin,
+        organizationId,
+        writeUnitId,
+        patch.professional_id,
+      );
       const { data, error } = await supabaseAdmin.rpc('create_appointment', {
         p_organization_id: organizationId,
         p_actor_user_id: actorUserId,
@@ -52,7 +118,25 @@ export function createAppointmentsService(supabaseAdmin) {
     // update_appointment pode responder com status='confirmation_required'
     // (ADR 0013 change plan) em vez de aplicar — nesse caso não houve
     // mutação nenhuma, e o 409 carrega o diff para o cliente decidir.
-    async update({ organizationId, actorUserId, appointmentId, idempotencyKey, patch }) {
+    async update({ organizationId, unitId, actorUserId, appointmentId, idempotencyKey, patch }) {
+      let scopeQuery = supabaseAdmin
+        .from('appointments')
+        .select('id, unit_id')
+        .eq('organization_id', organizationId)
+        .eq('id', appointmentId);
+      if (unitId !== undefined) scopeQuery = scopeQuery.eq('unit_id', unitId);
+      const { data: scopedAppointment, error: scopeError } = await scopeQuery.maybeSingle();
+      if (scopeError) throw mapPostgresError(scopeError);
+      if (!scopedAppointment) throw HttpError.notFound('appointment_not_found', 'appointment not found');
+      if (patch.professional_id !== undefined) {
+        await assertProfessionalAvailableInUnit(
+          supabaseAdmin,
+          organizationId,
+          scopedAppointment.unit_id,
+          patch.professional_id,
+        );
+      }
+
       const { data, error } = await supabaseAdmin.rpc('update_appointment', {
         p_organization_id: organizationId,
         p_actor_user_id: actorUserId,
@@ -71,14 +155,14 @@ export function createAppointmentsService(supabaseAdmin) {
       return data.appointment;
     },
 
-    async remove({ organizationId, appointmentId }) {
-      const { data, error } = await supabaseAdmin
+    async remove({ organizationId, unitId, appointmentId }) {
+      let query = supabaseAdmin
         .from('appointments')
         .delete()
         .eq('organization_id', organizationId)
-        .eq('id', appointmentId)
-        .select('id')
-        .maybeSingle();
+        .eq('id', appointmentId);
+      if (unitId !== undefined) query = query.eq('unit_id', unitId);
+      const { data, error } = await query.select('id').maybeSingle();
       if (error) throw mapPostgresError(error);
       if (!data) throw HttpError.notFound('appointment_not_found', 'appointment not found');
     },
