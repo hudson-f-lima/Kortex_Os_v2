@@ -36,11 +36,18 @@ test('catalog combines services, products and packages with a polymorphic kind, 
     });
 
   const reception = await setUpOrgWithRole('reception');
-  await supabaseAdmin.rpc('membership_set', {
-    p_organization_id: owner.organizationId,
-    p_actor_user_id: owner.ownerUserId,
-    p_target_user_id: reception.userId,
-    p_role: 'reception',
+  const { data: defaultUnit } = await supabaseAdmin
+    .from('units')
+    .select('id')
+    .eq('organization_id', owner.organizationId)
+    .eq('is_default', true)
+    .single();
+  await supabaseAdmin.from('memberships').upsert({
+    organization_id: owner.organizationId,
+    user_id: reception.userId,
+    role: 'reception',
+    unit_id: defaultUnit.id,
+    active: true,
   });
 
   const listed = await request(app)

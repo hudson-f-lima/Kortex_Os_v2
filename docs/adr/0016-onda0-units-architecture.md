@@ -75,7 +75,7 @@ unit_access_audit_events (append-only)
 **Decisão:** default-fill via `BEFORE INSERT` trigger + `AFTER INSERT` trigger em organizations para criar unit padrão. Estratégia:
 - Trigger `BEFORE INSERT` em memberships, appointments, orders, etc. — se `unit_id` é null, preenche com unit padrão da organização
 - Trigger `AFTER INSERT` em organizations — cria automaticamente uma unit padrão com timezone fixo
-- RPC `membership_set` continua sem parâmetro `unit_id` — trigger faz o resto
+- Decisão original: `membership_set` sem `unit_id` dependia do trigger; o addendum de 2026-07-24 substitui esse caminho por `membership_scope_set`
 - RPCs de fato (agenda, checkout, estoque) continuam inalteradas — trigger preenche antes da inserção
 
 ### Backfill
@@ -144,15 +144,15 @@ Tabela `unit_access_audit_events` (append-only):
 
 ### Aplicação
 
-- **Imediato:** 21 testes pgTAP validam schema, RLS, triggers, imutabilidade
+- **Imediato (evidência original):** 21 testes pgTAP validavam o primeiro recorte; evidência substituída pelo addendum de 2026-07-24
 - **Deployment:** M1 + M2 devem ser aplicadas juntas (M2 depende de M1 ter backfill completo)
 - **Rollback:** reverter M2 deixa banco com unit_id nullable (degradado, mas funcional); reverter M1 não é possível (backfill irreversível — use restore de backup)
 
 ### Código
 
-- **RPC signatures:** nenhuma muda (backward-compatible)
+- **RPCs:** comandos canônicos novos recebem organização, ator e escopo explícitos; `membership_set` legado perde `EXECUTE` de `service_role`
 - **Frontend:** nenhuma UI nova para Onda 0 (timezone é fixo, não há seletor de unit nesta onda)
-- **Backend:** nenhum endpoint novo; RPC de organização auto-cria unit padrão
+- **Backend:** endpoints existentes passam a derivar e aplicar unidade/permissões; organização continua auto-criando a unidade padrão
 
 ### Futuro
 
@@ -170,11 +170,36 @@ Tabela `unit_access_audit_events` (append-only):
 
 ## Verification
 
-✅ pgTAP: 17 testes RLS + 4 novos em create_organization (21 total, todos passando)  
+⚠️ Evidência original: 17 testes RLS + 4 em create_organization; substituída pela revalidação do addendum
 ✅ db reset + ambas migrations aplicadas localmente  
 ✅ Advisors rodados (sem alertas críticos)  
 ✅ Backend regression tests: nenhuma quebra  
 ✅ Frontend regression tests: nenhuma quebra  
 ✅ Cross-tenant/cross-unit attacks: bloqueados por RLS  
 
-Próximas verificações (fora desta sessão): Red Team de implementação antes de promoção a staging.
+## Addendum de implementação — 2026-07-24
+
+A validação executável revelou que a implementação original não completava todas as consequências deste ADR: o backfill não vinculava profissionais criados posteriormente, o `appointments_select` permanecia org-wide e o backend/sync não derivava todo o escopo de unidade da membership autenticada. A afirmação anterior de conclusão foi, portanto, reclassificada como **CONTRADITÓRIA**.
+
+A correção preserva as migrations publicadas e adiciona `20260724115722_onda0_units_security_forward_fix.sql`, forward-only, com:
+
+- vínculo automático e auditado de novos profissionais à unidade default;
+- cascade apenas do vínculo associativo `professional_units` no ciclo de exclusão do profissional;
+- validação fail-closed de `appointment × professional × unit`;
+- RLS unit-aware para unidades, vínculos, agenda e fatos transacionais;
+- enforcement equivalente no Express e na projeção de sync REST/SSE;
+- comandos auditáveis/idempotentes de topologia, vínculo, membership e permissões;
+- trigger que preserva exatamente uma unidade default ativa por organização;
+- exclusão de profissional via RPC, preservando o ator humano no cascade;
+- atualização de profissional via RPC, preservando o ator humano na inativação ou unlink;
+- invalidação de membership/permissões no delete, inativação ou unlink do perfil, com defesa equivalente no middleware.
+
+### Evidência revalidada
+
+- `supabase db reset --local`: 15 migrations aplicadas do zero;
+- pgTAP: 346/346, incluindo 99 testes em `rls_units_test.sql` e 10 em `rpc_create_organization_test.sql`;
+- Supabase advisors: nenhum achado;
+- backend: 255/255; frontend: 106/106; build de produção passou;
+- Red Team de implementação: GO **local**, sem autorizar promoção remota.
+
+O ADR continua `Accepted`. A arquitetura não foi substituída; o addendum fecha lacunas de enforcement descobertas entre o desenho aprovado e sua primeira materialização.

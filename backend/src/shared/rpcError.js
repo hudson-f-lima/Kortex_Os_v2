@@ -2,7 +2,7 @@ import { HttpError } from './httpError.js';
 import { mapPostgresError } from './postgresError.js';
 
 // Maps the errcodes raised by the business RPCs (checkout_close,
-// inventory_adjust, create_organization, membership_set). Their messages are
+// inventory_adjust, create_organization, membership_scope_set). Their messages are
 // already safe, user-facing text (no SQL/stack/secrets), set deliberately in
 // the migration, so they are passed through as-is.
 export function mapRpcError(error) {

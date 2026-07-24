@@ -8,7 +8,7 @@ Bem-vindo à documentação oficial do KortexOS. Para garantir que as regras de 
 
 ## Trilha F: KortexOS 5.1.2 — Trilha Ativa (visão de produto final)
 
-**Estado: Migration Map (etapa 6) aprovado. Onda 0 (`units`) implementada, testada e comprometida em staging (DEC-31/DEC-32). Blueprint da Onda 1 (Payment Core) é o próximo passo de execução.**
+**Estado: Migration Map (etapa 6) aprovado. Onda 0 (`units`) corrigida e validada localmente em 2026-07-24; branch `codex/fix-onda0-local-gates` preparada para publicação via PR em `staging`, com promoção remota ainda sujeita aos gates próprios. O handoff operacional está em [KORTEXOS_5_1_2_ONDA_0_CONTINUATION_HANDOFF.md](KORTEXOS_5_1_2_ONDA_0_CONTINUATION_HANDOFF.md). Blueprint da Onda 1 (Payment Core) é o próximo passo de execução.**
 
 - [KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md](KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md) — fonte canônica vigente da visão de produto final: tese, domínios D00–D31, motores (KortexFlow, Wallet, Negative Guard, No-show, Autonomous Operations), RAGOV, Gates 00–25, ordem de construção, cadastros canônicos e regras de configuração/comanda/gorjeta/níveis.
 - [KORTEXOS_5_1_2_DECISION_LOG.md](KORTEXOS_5_1_2_DECISION_LOG.md) — histórico de decisões (DEC-01 a DEC-32, D-01 a D-09), padrão ADR, append-only. **Consulte aqui para saber o motivo/contexto de qualquer regra vigente do Master Briefing.**
@@ -20,7 +20,9 @@ Bem-vindo à documentação oficial do KortexOS. Para garantir que as regras de 
 - [KORTEXOS_5_1_2_PONTOS_CEGOS_PRE_BLUEPRINT.md](KORTEXOS_5_1_2_PONTOS_CEGOS_PRE_BLUEPRINT.md) — **v1.0, APROVADO (DEC-26; item 1 reconsiderado por DEC-27).** 5 pontos cegos pré-Blueprint (o mais profundo: a camada "Unidade", resolvida na Onda 0 do Migration Map).
 - [KORTEXOS_5_1_2_BLUEPRINT_ONDA_0_DRAFT.md](KORTEXOS_5_1_2_BLUEPRINT_ONDA_0_DRAFT.md) — **APROVADO (DEC-31).** Desenho técnico da Onda 0 (`units`): schema, RLS, triggers de default-fill, backfill, split em 2 migrations.
 - [KORTEXOS_5_1_2_BLUEPRINT_ONDA_0_REDTEAM.md](KORTEXOS_5_1_2_BLUEPRINT_ONDA_0_REDTEAM.md) — QA Red Team da Onda 0: gates PASS, nenhuma vulnerabilidade de desenho. Veredito GO para Etapa 8 (DEC-32).
-- [KORTEXOS_5_1_2_ONDA_0_IMPLEMENTATION.md](KORTEXOS_5_1_2_ONDA_0_IMPLEMENTATION.md) — **IMPLEMENTADO.** Documento consolidado WHAT/WHY/HOW/NEXT da Onda 0: schema aplicado, 21 testes pgTAP, verificações cumpridas (reset, advisors, regressão), checklist de integridade, próximas ondas.
+- [KORTEXOS_5_1_2_ONDA_0_IMPLEMENTATION.md](KORTEXOS_5_1_2_ONDA_0_IMPLEMENTATION.md) — **CORRIGIDO E VALIDADO LOCALMENTE.** Documento consolidado WHAT/WHY/HOW/NEXT da Onda 0: migration forward-only, enforcement unit-aware, 109 testes pgTAP específicos e regressões integrais.
+- [KORTEXOS_5_1_2_ONDA_0_IMPLEMENTATION_REDTEAM.md](KORTEXOS_5_1_2_ONDA_0_IMPLEMENTATION_REDTEAM.md) — QA Red Team executável da implementação em 2026-07-24: matriz de gates, vulnerabilidades corrigidas, evidências locais e limite de promoção.
+- [KORTEXOS_5_1_2_ONDA_0_CONTINUATION_HANDOFF.md](KORTEXOS_5_1_2_ONDA_0_CONTINUATION_HANDOFF.md) — handoff operacional para outra inteligência: leitura canônica, estado, comandos, invariantes, bloqueadores e próximo passo.
 - [KORTEXOS_5_1_2_INSTRUCAO_CLAUDE_CODE_TRUTH_MAP.md](KORTEXOS_5_1_2_INSTRUCAO_CLAUDE_CODE_TRUTH_MAP.md) — instrução de processo/auditoria que orientou a produção do Truth Map (Etapa 5); referência para a condução de etapas futuras equivalentes.
 - [kortex-5.1.2-design/](kortex-5.1.2-design/) — assets de design de referência (mockup de dashboard, Design System docx) para o produto final; não são especificação normativa.
 

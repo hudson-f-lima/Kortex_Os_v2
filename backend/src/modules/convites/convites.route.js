@@ -3,9 +3,8 @@ import { requireRole } from '../../middleware/requireRole.js';
 import { createConvitesService } from './convites.service.js';
 import { validateInvitePayload } from './convites.validation.js';
 
-// Mirrors membership_set's actor_has_role check (private.actor_has_role
-// requires 'owner') — a convite sempre termina em membership_set, então
-// gatear a rota em qualquer outro papel só adiaria o 403 para o RPC.
+// The invitation flow ends in membership_scope_set; owner-only at the route
+// keeps the public API stricter than the owner/admin RPC contract.
 const INVITE_ROLES = ['owner'];
 
 export function convitesRouter({ supabaseAdmin, organizationContext, env }) {

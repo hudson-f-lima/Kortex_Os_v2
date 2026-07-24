@@ -1,10 +1,25 @@
 # Onda 0 — Implementação: Units (Unidades)
 
-**Data de conclusão:** 2026-07-23 (staging commit `b389a86`)  
+**Implementação original:** 2026-07-23 (commits locais de `staging` `b389a86`–`4adf8ea`)
+
+**Correção e validação local:** 2026-07-24 (`codex/fix-onda0-local-gates`, pronta para PR em `staging`)
+
 **Decisões gateadas:** DEC-31 (Blueprint aprovado), DEC-32 (Etapa 8 SQL autorizada)  
-**Referência técnica:** [ADR 0016 — Arquitetura de Unidades](adr/0016-onda0-units-architecture.md) · [Blueprint Onda 0 (Draft)](KORTEXOS_5_1_2_BLUEPRINT_ONDA_0_DRAFT.md) · [Red Team Report](KORTEXOS_5_1_2_BLUEPRINT_ONDA_0_REDTEAM.md)
+**Referência técnica:** [ADR 0016 — Arquitetura de Unidades](adr/0016-onda0-units-architecture.md) · [Blueprint Onda 0 (Draft)](KORTEXOS_5_1_2_BLUEPRINT_ONDA_0_DRAFT.md) · [Red Team de desenho](KORTEXOS_5_1_2_BLUEPRINT_ONDA_0_REDTEAM.md) · [Red Team de implementação](KORTEXOS_5_1_2_ONDA_0_IMPLEMENTATION_REDTEAM.md)
 
 ---
+
+## Retificação de estado — 2026-07-24
+
+A declaração anterior de “100% implementada” foi auditada e estava **CONTRADITÓRIA** com o repositório local: o teste focado de unidades falhava, profissionais criados após o backfill não recebiam vínculo em `professional_units`, as políticas dos fatos continuavam org-wide e o backend/sync não aplicava o escopo de unidade. O commit `4adf8ea` permanece como registro histórico; esta seção o substitui como verdade operacional.
+
+A correção é forward-only e adiciona enforcement em três camadas:
+
+1. migration corretiva para vínculo automático/auditado de profissionais, integridade `appointment × professional × unit`, ciclo de exclusão e RLS unit-aware;
+2. contexto e filtros fail-closed no Express para agenda, pedidos, checkout, clientes e sync REST/SSE;
+3. testes adversariais de cross-tenant, cross-unit, permissões profissionais e escrita não-default.
+
+O estado corrigido está **REAL e verde no ambiente local**. A publicação deve seguir o PR desta branch para `staging`; isso não autoriza merge, deploy ou promoção para produção.
 
 ## WHAT — Esquema e Estrutura
 
@@ -23,19 +38,25 @@ units
 
 professional_units  -- N:N vínculo profissional ↔ unidade
 ├── organization_id, professional_id, unit_id (PK composta)
-├── created_at (timestamp)
+├── active (boolean)
+├── created_by, updated_by (uuid)
+├── created_at, updated_at (timestamps)
 
 membership_permissions  -- allowlist de permissões per-membership
-├── membership_id (FK)
-├── permission_type (enum: 'schedule:view_all' | 'clients:view_all')
+├── id (uuid PK)
+├── organization_id, user_id (FK tenant-safe para memberships)
+├── permission_code ('schedule:view_all' | 'clients:view_all')
+├── granted_by, granted_at
+├── revoked_by, revoked_at
 
 unit_access_audit_events  -- append-only log
 ├── id (uuid PK, ordenado por created_at desc)
 ├── organization_id, unit_id (FK)
 ├── event_type (text: 'unit_created', ...)
 ├── actor_kind (enum: 'user' | 'system')
-├── actor_user_id (uuid nullable)
-├── created_at (timestamp, imutable)
+├── actor_user_id, target_user_id, professional_id (uuid nullable)
+├── before_state, after_state (jsonb)
+├── created_at (timestamp, imutável)
 ```
 
 ### Alterações a tabelas existentes
@@ -82,7 +103,7 @@ Veja [DEC-24 (Migration Map), DEC-26 (Pontos Cegos), DEC-27 (Reconsideração hi
 
 **Decisão:** BEFORE INSERT trigger em memberships, 6 fatos — se `unit_id` é null, preenche com unit padrão da organização.
 
-**Benefício:** RPC signatures não mudam → backward-compatible. Chamadores existentes funcionam sem modificação.
+**Benefício preservado:** as RPCs financeiras extensas não mudam. O fluxo de membership foi migrado deliberadamente para `membership_scope_set`, pois o comando legado não representava unidade nem auditoria.
 
 ### Por que timezone fixo?
 
@@ -90,7 +111,7 @@ Onda 0 assume timezone única global `America/Sao_Paulo` (realidade: Salão Espe
 
 **Futuro:** se multinacional for necessário, timezone por organização é uma migration trivial (coluna DEFAULT muda, input de usuário é adicionado). Simplicidade agora > flexibilidade não-necessária.
 
-### Por que duas migrations?
+### Por que o desenho original tinha duas migrations?
 
 **Migration 1** (aditiva + backfill): cria schema, backfill de dados, triggers de default-fill.  
 **Migration 2** (hardening): valida constraints, SET NOT NULL nos 6 fatos, imutability triggers.
@@ -99,6 +120,8 @@ Onda 0 assume timezone única global `America/Sao_Paulo` (realidade: Salão Espe
 - Se M1 falha durante backfill, banco fica num estado válido (colunas nullable, sem constraints non-validated).
 - M2 só roda se M1 passou.
 - Reverter M2 deixa dados íntegros (apenas degrada para unit_id nullable); reverter M1 não é possível (use restore de backup).
+
+Em 2026-07-24 foi necessária uma terceira migration forward-only para corrigir lacunas de segurança descobertas após a materialização original. Ela não altera o split aprovado M1/M2 nem reescreve migrations já registradas.
 
 ---
 
@@ -112,29 +135,24 @@ supabase/migrations/20260723025006_onda0_units_schema_backfill.sql
      
 supabase/migrations/20260723025439_onda0_units_hardening.sql
   └─ 3 seções: VALIDATE CONSTRAINT, SET NOT NULL, imutability triggers
+
+supabase/migrations/20260724115722_onda0_units_security_forward_fix.sql
+  └─ correção forward-only: lifecycle/auditoria, comandos canônicos, permissões, RLS unit-aware e gates de backend/sync
 ```
 
 ### Testes (pgTAP)
 
-**Arquivo:** `supabase/tests/rls_units_test.sql` (17 testes)
+**Arquivo:** `supabase/tests/rls_units_test.sql` (99 testes)
 
-| Teste | Categoria | O que valida |
-|---|---|---|
-| membership_set default-fill | Default-fill | RPC sem `unit_id` → preenchido com org default |
-| authenticated grant (3) | Layer 1: Grants | `authenticated` não tem SELECT/INSERT direto em units, audit_events |
-| owner1 sees org1 units | Layer 2: RLS | Owner1 vê units de org1, não org2 (isolamento cross-tenant) |
-| owner1 cannot see org2 units | Layer 2: RLS | Comprovação de isolamento |
-| owner1 can insert unit | Layer 2: RLS | Owner (role owner) pode inserir unit em sua org |
-| reception1 cannot insert audit | Layer 2: RLS | Append-only: insert bloqueado (no policy) |
-| reception1 can see units | Layer 2: RLS | Qualquer membro ativo vê units da org |
-| reception1 cannot insert unit | Layer 2: RLS | Roles insuficientes não podem criar units |
-| outsider sees nothing | Layer 2: RLS | Sem membership, sem acesso |
-| professional_units backfill | Backfill | Vínculo profissional ↔ unit criado automaticamente |
-| appointments default-fill | Default-fill | Appointment inserted sem unit_id → preenchido com org default |
-| orders default-fill | Default-fill | Order inserted sem unit_id → preenchido com org default |
-| unit_id immutable | Immutability | UPDATE de unit_id após inserção lança erro 23514 |
+| Categoria | O que valida |
+|---|---|
+| Grants e RLS | isolamento cross-tenant/cross-unit e ausência de acesso direto a superfícies sensíveis |
+| Topologia | timezone fixo, exatamente uma unidade default, comandos serializados e escrita direta inválida bloqueada por trigger |
+| Profissionais | vínculo automático, assign/revoke idempotentes e delete com cascade atribuído ao ator humano |
+| Memberships e permissões | `membership_scope_set`, revogação sem ressurreição, lifecycle delete/inativação/unlink fail-closed e RPC legado sem `EXECUTE` |
+| Fatos e sync | consistência de `unit_id`, imutabilidade e leitura unit-aware |
 
-**Arquivo adicional:** `supabase/tests/rpc_create_organization_test.sql` (+4 testes)
+**Arquivo adicional:** `supabase/tests/rpc_create_organization_test.sql` (10 testes)
 
 | Teste | O que valida |
 |---|---|
@@ -143,22 +161,28 @@ supabase/migrations/20260723025439_onda0_units_hardening.sql
 | unit_created audit event | Trigger AFTER INSERT registra system-attributed audit event |
 | owner membership stays org-wide | Owner membership não tem unit_id (continua org-wide) |
 
-**Total: 21 testes, todos passando.**
+**Cobertura específica da Onda 0: 109 testes, todos passando. Suíte pgTAP integral: 346/346.**
 
 ### Verificações cumpridas
 
-✅ **db reset + migrations:** Ambas migrations aplicadas com sucesso local  
-✅ **pgTAP:** 21 testes passando (RLS, default-fill, immutability, backfill)  
-✅ **Advisors:** Sem alertas críticos  
-✅ **Backend regression:** Nenhuma quebra de RPCs existentes  
-✅ **Frontend regression:** Nenhuma quebra de UI (nenhuma mudança nesta onda)  
-✅ **Cross-tenant attacks:** Bloqueados por RLS (owner1 não vê org2)  
-✅ **Cross-unit attacks:** Bloqueados por RLS (professional1 isolado por unit)  
+✅ **db reset + migrations:** 15 migrations aplicadas com sucesso local
+
+✅ **pgTAP:** 346/346 testes passando; 109 diretamente ligados à Onda 0
+
+✅ **Advisors:** `No issues found`
+
+✅ **Backend regression:** 255/255; lint com 0 erros e 1 warning preexistente
+
+✅ **Frontend regression:** 106/106; build de produção passou; lint com 0 erros e 1 warning preexistente
+
+✅ **Cross-tenant attacks:** Bloqueados por RLS (owner1 não vê org2)
+
+✅ **Cross-unit attacks:** Bloqueados no banco e no Express (reception/professional isolados por unit)
 
 ### Bloqueadores para produção
 
-- ⛔ **Não executar em produção até:** Red Team de implementação passar (fora desta sessão)
-- ⛔ **Restrição local:** DEC-32 autoriza apenas ambiente local (supabase db reset) — push a staging/prod bloqueado até validação completa
+- ✅ **Red Team de implementação local:** executado em 2026-07-24; ver relatório próprio
+- ⛔ **Promoção remota:** não autorizada por esta correção. Exige fluxo `feature → staging → main`, gates do environment/delivery guardian e decisão explícita do Platform Owner
 
 ---
 
@@ -209,9 +233,9 @@ supabase/migrations/20260723025439_onda0_units_hardening.sql
 | RLS policies | ✅ | Blueprint §6.1; tests layer 2 |
 | Append-only audit | ✅ | `20260723025006_onda0_units_schema_backfill.sql` §4; no INSERT grant |
 | Immutability | ✅ | `20260723025439_onda0_units_hardening.sql` §3; test 23514 |
-| pgTAP coverage | ✅ | 21 testes, 100% pass rate |
-| Backward-compatibility | ✅ | Nenhuma RPC signature muda |
-| Regression tests | ✅ | Backend/frontend regression: nenhuma quebra |
+| pgTAP coverage | ✅ | 109 testes específicos; suíte integral 346/346 |
+| RPC migration | ✅ | APIs usam `membership_scope_set`; `membership_set` legado não é executável por `service_role` |
+| Regression tests | ✅ | Backend 255/255; frontend 106/106; build passou |
 | Cross-tenant isolation | ✅ | RLS test: owner1 ↔ org2 bloqueado |
 | Cross-unit isolation | ✅ | RLS test: professional1 isolado por unit |
 
@@ -227,8 +251,11 @@ supabase/migrations/20260723025439_onda0_units_hardening.sql
 | [Decision Log DEC-31/32](KORTEXOS_5_1_2_DECISION_LOG.md) | Registro de aprovações e autorizações |
 | `supabase/migrations/20260723025006_*.sql` | Migration 1: schema + backfill + default-fill |
 | `supabase/migrations/20260723025439_*.sql` | Migration 2: hardening + immutability |
-| `supabase/tests/rls_units_test.sql` | 17 testes pgTAP (RLS, default-fill, immutability) |
-| `supabase/tests/rpc_create_organization_test.sql` | +4 testes: create_organization + unit default |
+| `supabase/migrations/20260724115722_*.sql` | Correção forward-only de segurança e contratos operacionais |
+| `supabase/tests/rls_units_test.sql` | 99 testes pgTAP (RLS, topologia, lifecycle, permissões, auditoria, idempotência e cross-unit) |
+| `supabase/tests/rpc_create_organization_test.sql` | 10 testes: create_organization + unit default |
+| [Red Team de implementação](KORTEXOS_5_1_2_ONDA_0_IMPLEMENTATION_REDTEAM.md) | Evidência executável e veredito local de 2026-07-24 |
+| [Handoff de continuidade](KORTEXOS_5_1_2_ONDA_0_CONTINUATION_HANDOFF.md) | Procedimento para outra inteligência retomar sem perder contexto ou violar gates |
 
 ---
 
@@ -246,6 +273,6 @@ supabase/migrations/20260723025439_onda0_units_hardening.sql
 
 ## Status Final
 
-**Onda 0 está 100% implementada, testada e comprometida em staging (commit `b389a86`).**
+**Onda 0 está corrigida e validada localmente; 346/346 pgTAP, 255/255 backend e 106/106 frontend.**
 
-Próxima etapa: Red Team de implementação (fora desta sessão) antes de qualquer push a produção. Onda 1 (Payment Core) pode iniciar design (Blueprint Etapa 7) sem bloqueio.
+Próxima etapa: concluir/publicar o PR da branch `codex/fix-onda0-local-gates` para `staging`, cumprir os gates de ambiente/entrega e só então iniciar o Blueprint da Onda 1 (Payment Core, Etapa 7). Produção continua fora do escopo desta branch.

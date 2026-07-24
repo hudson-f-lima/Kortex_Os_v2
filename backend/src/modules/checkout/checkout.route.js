@@ -19,6 +19,7 @@ export function checkoutRouter({ supabaseAdmin, organizationContext }) {
       const payload = validateCheckoutPayload(req.body);
       const result = await service.close({
         organizationId: req.auth.organizationId,
+        unitId: req.auth.unitId,
         actorUserId: req.auth.userId,
         idempotencyKey,
         payload,
