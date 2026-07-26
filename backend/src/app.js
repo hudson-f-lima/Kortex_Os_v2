@@ -26,6 +26,7 @@ import { cashEntriesRouter } from './modules/cashEntries/cashEntries.route.js';
 import { membershipsRouter } from './modules/memberships/memberships.route.js';
 import { convitesRouter } from './modules/convites/convites.route.js';
 import { syncRouter } from './modules/sync/sync.route.js';
+import { pspWebhookEventsRouter } from './modules/pspWebhookEvents/pspWebhookEvents.route.js';
 
 export function createApp(env, supabaseAdmin) {
   const app = express();
@@ -47,6 +48,7 @@ export function createApp(env, supabaseAdmin) {
   );
 
   app.use(healthRouter());
+  app.use('/api/v1', pspWebhookEventsRouter({ supabaseAdmin }));
 
   const auth = createAuthMiddleware(env);
   const organizationContext = createOrganizationContextMiddleware(supabaseAdmin);
