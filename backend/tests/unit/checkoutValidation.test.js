@@ -98,8 +98,11 @@ test('validateCheckoutPayload rejects a malformed appointment_id', () => {
   throwsCode(() => validateCheckoutPayload({ ...VALID, appointment_id: 'not-a-uuid' }), 'invalid_appointment_id');
 });
 
-test('validateCheckoutPayload allows an empty payments array when appointment_id is present (deposit may cover the whole order)', () => {
-  const result = validateCheckoutPayload({ items: VALID.items, payments: [], appointment_id: UUID });
+test('validateCheckoutPayload only allows an empty payments array for the server-owned appointment command', () => {
+  const result = validateCheckoutPayload(
+    { items: VALID.items, payments: [], appointment_id: UUID },
+    { allowEmptyPayments: true },
+  );
   assert.deepEqual(result.payments, []);
 });
 

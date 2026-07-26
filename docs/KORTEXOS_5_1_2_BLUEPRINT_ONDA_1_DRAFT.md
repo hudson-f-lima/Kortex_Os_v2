@@ -122,3 +122,62 @@ Cada fatia segue `$tdd` (teste antes do código) e passa por `$kortex-qa-redteam
 | Criação de hold (agendamento) | Mesma regra de quem já pode criar/confirmar `appointment` | Unidade do agendamento |
 
 **Confirmado por leitura direta do código:** `checkout_close` (`supabase/migrations/20260713060000_professional_commissions_checkout.sql:200-230`) resolve comissão via `private.resolve_commission()` e persiste em `order_items` — a reconciliação de depósito (§3.1) é uma adição a essa função, não uma reescrita; a liquidação de no-show (§3.2) deliberadamente não chama `checkout_close` nem `resolve_commission()`, evitando qualquer risco de regressão na função financeira mais crítica do sistema.
+
+---
+
+# Adendo corretivo — integridade do vínculo depósito↔agendamento↔comanda
+
+**Data:** 2026-07-26
+
+**Status:** aprovado pelo Platform Owner em DEC-38 para execução forward-only em local/`staging`; implementação, evidência e promoção permanecem pendentes.
+**Relação com o texto anterior:** este adendo não reescreve o registro do Blueprint nem DEC-34–DEC-37. Ele substitui, para o trabalho corretivo futuro, o desenho permissivo de reconciliação descrito nas seções 3.1, 3.3, 3.5, 4 e 6 onde houver conflito. Ver ADR 0018.
+
+## A. Contrato de identidade financeira
+
+Um `deposit_hold` ativo deve congelar a identidade que autoriza sua captura:
+
+| Dimensão | Fonte de verdade no momento da criação | Regra posterior |
+|---|---|---|
+| Tenant e unidade | `organization_id` e `unit_id` do agendamento bloqueado | Nunca alteráveis no hold; FKs tenant-safe em todo vínculo |
+| Ocorrência | `appointment_id` | Um hold ativo por ocorrência; a comanda registra a ocorrência consumida |
+| Cliente, serviço e profissional | snapshot do agendamento bloqueado | Nunca inferidos do estado atual; troca no agendamento é bloqueada enquanto o hold está ativo |
+| Dinheiro e política | mecânica, valor, comissão de no-show e expiração aplicáveis | Mantidos como snapshot, sem recálculo por catálogo mutável |
+
+O comando de criação do hold lê o agendamento com lock. Trigger ou proteção equivalente impede alteração direta dos snapshots. Preflight de migration deve abortar perante dados existentes ambíguos; é proibido inventar backfill por inferência.
+
+## B. Checkout de agendamento separado de walk-in
+
+O novo contrato externo é `POST /appointments/:id/checkout`. O backend, depois de validar JWT e membership, carrega sob lock o agendamento e o hold. Ele deriva cliente, unidade, profissional e relação financeira; nenhum destes limites é aceito como verdade de um payload.
+
+O checkout walk-in continua como fluxo separado e não pode passar `appointment_id` para acionar reconciliação. A comanda de agendamento persiste `appointment_id` e `deposit_hold_id` com vínculos tenant-safe e unicidade que impedem duas comandas financeiras para a mesma ocorrência. A transação deve falhar fechada se qualquer dimensão do snapshot, do agendamento ou dos itens não corresponder.
+
+Estados elegíveis: somente `in_service` e `completed`. A tentativa sobre `scheduled`, `cancelled`, ocorrência futura ou qualquer outro estado não cria pedido, pagamento nem transição de hold.
+
+Ordem mínima de locks:
+
+```text
+idempotency_key → appointment FOR UPDATE → active deposit_hold FOR UPDATE/CAS → payment_intent
+```
+
+## C. Lifecycle do hold
+
+Os estados terminais são exclusivos e só podem ser alcançados por comandos transacionais:
+
+| Comando | Transição autorizada | Regra fail-closed |
+|---|---|---|
+| checkout de agendamento | `active → captured_checkout` | somente após validar o vínculo imutável e a elegibilidade |
+| liquidação de no-show | `active → captured_no_show` | usa os snapshots, não campos atuais mutáveis |
+| cancelamento/reagendamento elegível | `active → released` | `immediate_charge` que exija devolução é bloqueado sem estorno real |
+| webhook de expiração ou captura inviável | `active → expired` | não cria efeito financeiro; tentativa posterior é rejeitada |
+
+Todos usam CAS sobre `status = 'active'`. Corridas cancelamento×checkout, no-show×checkout e expiração×captura devem ter exatamente um vencedor e rollback integral para o perdedor.
+
+## D. Webhook e dead-letter
+
+O identificador do evento mantém deduplicação, mas não pode encerrar prematuramente uma tentativa de reprocessar dead-letter. Evento com `processed_at` nulo deve tentar resolver novamente um intent por identidade externa não ambígua na fronteira organização+provedor. Falha conserva o evento disponível, incrementa tentativas e registra erro; evento já processado é o único no-op. O reprocessamento manual explícito faz parte do contrato; nenhum scheduler é introduzido.
+
+## E. Fatias e gates
+
+O trabalho corretivo está fatiado em `issues/006` a `issues/011`. Cada fatia exige RED→GREEN, testes de comportamento e Red Team antes de integrar. O gate final exige reset limpo, testes de banco/backend/frontend, lint/build, testes concorrentes reais, reexecução dos exploits e homologação em `staging`.
+
+Este adendo não autoriza PSP real, captura financeira real, Onda 2/ledger, `main` ou produção.

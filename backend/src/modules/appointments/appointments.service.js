@@ -167,24 +167,72 @@ export function createAppointmentsService(supabaseAdmin) {
         );
       }
 
-      // no_show_settlement_create (issues/005-no-show-settlement-rpc.md) is a
-      // separate, additive RPC — update_appointment itself is untouched. It
-      // no-ops (status: 'skipped') when there's no active deposit_hold.
+      // The lifecycle trigger settles an active hold in the *same* transaction
+      // as the status transition. Read its durable order back for the existing
+      // HTTP contract; never call the former second-step settlement RPC here.
       let noShowSettlement = null;
       if (patch.status === 'no_show') {
-        const { data: settlementResult, error: settlementError } = await supabaseAdmin.rpc(
-          'no_show_settlement_create',
-          {
-            p_organization_id: organizationId,
-            p_actor_user_id: actorUserId,
-            p_appointment_id: appointmentId,
-          },
-        );
-        if (settlementError) throw mapRpcError(settlementError);
-        noShowSettlement = settlementResult.status === 'settled' ? settlementResult : null;
+        const { data: order, error: orderError } = await supabaseAdmin
+          .from('orders')
+          .select('id, total_cents')
+          .eq('organization_id', organizationId)
+          .eq('appointment_id', appointmentId)
+          .eq('status', 'closed')
+          .maybeSingle();
+        if (orderError) throw mapPostgresError(orderError);
+        if (order) {
+          const { data: item, error: itemError } = await supabaseAdmin
+            .from('order_items')
+            .select('commission_cents')
+            .eq('organization_id', organizationId)
+            .eq('order_id', order.id)
+            .maybeSingle();
+          if (itemError) throw mapPostgresError(itemError);
+          noShowSettlement = {
+            status: 'settled',
+            order_id: order.id,
+            amount_cents: order.total_cents,
+            commission_cents: item?.commission_cents ?? 0,
+          };
+        }
       }
 
       return { appointment: data.appointment, noShowSettlement };
+    },
+
+    async replan({ organizationId, unitId, actorUserId, appointmentId, idempotencyKey, patch }) {
+      let scopeQuery = supabaseAdmin
+        .from('appointments')
+        .select('id, unit_id')
+        .eq('organization_id', organizationId)
+        .eq('id', appointmentId);
+      if (unitId !== undefined) scopeQuery = scopeQuery.eq('unit_id', unitId);
+      const { data: scopedAppointment, error: scopeError } = await scopeQuery.maybeSingle();
+      if (scopeError) throw mapPostgresError(scopeError);
+      if (!scopedAppointment) throw HttpError.notFound('appointment_not_found', 'appointment not found');
+
+      if (patch.professional_id !== undefined) {
+        await assertProfessionalAvailableInUnit(
+          supabaseAdmin,
+          organizationId,
+          scopedAppointment.unit_id,
+          patch.professional_id,
+        );
+      }
+
+      const { data, error } = await supabaseAdmin.rpc('appointment_replan_with_hold', {
+        p_organization_id: organizationId,
+        p_actor_user_id: actorUserId,
+        p_idempotency_key: idempotencyKey,
+        p_appointment_id: appointmentId,
+        p_payload: patch,
+      });
+      if (error) throw mapRpcError(error);
+      return {
+        appointment: data.appointment,
+        releasedHoldId: data.released_hold_id,
+        depositHold: data.deposit_hold,
+      };
     },
 
     async remove({ organizationId, unitId, appointmentId }) {

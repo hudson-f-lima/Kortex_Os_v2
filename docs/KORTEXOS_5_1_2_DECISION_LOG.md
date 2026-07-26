@@ -303,3 +303,21 @@ Nada deste anexo autoriza SQL, migration ou tela.
 ---
 
 *Fim do Decision Log. Para a regra vigente de qualquer tema aqui referenciado, consulte `KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md`.*
+
+---
+
+# SEÇÃO 9 — ADENDO APPEND-ONLY (2026-07-26)
+
+| # | Decisão | Conteúdo | Substitui |
+|---:|---|---|---|
+| DEC-38 | Regularização da Etapa 8 da Onda 1 e autorização do plano corretivo forward-only | **Aprovado pelo Platform Owner em 2026-07-26.** Regulariza formalmente a autorização da Etapa 8 da Onda 1 que faltou no registro de DEC-35/DEC-36: a autorização vale exclusivamente para projetar, criar e validar migrations, backend, frontend e testes **forward-only** em ambiente local/descartável e em `staging`, dentro do PRD corretivo e das fatias `issues/006` a `issues/011`. Não torna retroativa a ausência do registro, não edita migrations já aplicadas e não autoriza `main` nem produção. Correção factual: o reset limpo do commit `0f4a5d9` aplica **21 migrations**, não 23; DEC-37 registra a evidência então relatada, mas não representa fechamento do contrato completo de vínculo depósito↔agendamento↔comanda. A arquitetura aprovada exige: (1) checkout de agendamento por endpoint server-owned `POST /appointments/:id/checkout`, derivando a identidade do agendamento/hold e mantendo o checkout sem agendamento para walk-in; (2) `in_service` ou `completed` como únicos estados elegíveis; (3) identidade do hold imutável — organização, unidade, agendamento, cliente, serviço e profissional — e bloqueio de mutação de cliente/serviço/profissional enquanto houver hold ativo; (4) vínculo relacional persistido entre comanda, agendamento e hold, com locks e CAS fail-closed; (5) cancelamento/reagendamento/no-show atômicos, sendo cancelamento de `immediate_charge` bloqueado enquanto não houver estorno real; (6) evento PSP com identidade externa não ambígua e dead-letter reprocessável; e (7) expiração reativa/fail-closed sem scheduler novo. O adendo ao Blueprint e ADR 0018 registram o desenho; cada fatia requer `$tdd`, Red Team e evidência própria antes de integração. | Qualifica prospectivamente DEC-35/DEC-36/DEC-37 quanto ao escopo necessário para completar a Onda 1. Não invalida o histórico nem autoriza promoção. |
+
+**Continuação append-only do índice de status:** DEC-20 a DEC-38 cobrem agora as decisões de processo/auditoria; DEC-38 é a única autorização vigente para a implementação corretiva desta Onda 1 e não altera o `NO-GO` de promoção.
+
+---
+
+# SEÇÃO 10 — EVIDÊNCIA APPEND-ONLY (2026-07-26)
+
+| # | Registro | Conteúdo |
+|---:|---|---|
+| DEC-39 | Execução corretiva local da Onda 1 | As fatias autorizadas por DEC-38 foram implementadas e validadas em banco Supabase local descartável: identidade financeira imutável do hold; checkout de agendamento server-owned com vínculo persistido; transições `released`/`expired`; replanejamento idempotente; webhook dead-letter reprocessável; e testes de regressão. Evidência registrada em `KORTEXOS_5_1_2_ONDA_1_REMEDIATION_VERIFICATION_2026_07_26.md`. Este registro fecha os três blockers técnicos de DEC-36 no ambiente local, mas **não** muda o `NO-GO`: a migration falha fechada se houver holds legados sem identidade inferível e exige preflight/homologação em `staging`, seguida de Environment Guardian e Delivery Guardian, antes de qualquer promoção. |

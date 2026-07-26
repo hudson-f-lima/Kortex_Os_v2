@@ -7,6 +7,7 @@ import {
   APPOINTMENT_STATUSES,
   validateAppointmentId,
   validateAppointmentPayload,
+  validateAppointmentReplanPayload,
 } from './appointments.validation.js';
 
 // Mirrors RLS on public.appointments (defense in depth): appointments_select
@@ -108,6 +109,29 @@ export function appointmentsRouter({ supabaseAdmin, organizationContext }) {
         patch,
       });
       res.status(200).json({ appointment, no_show_settlement: noShowSettlement });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.post('/appointments/:id/replan', requireRole(...WRITE_ROLES), async (req, res, next) => {
+    try {
+      const idempotencyKey = validateIdempotencyKey(req.headers['idempotency-key']);
+      const appointmentId = validateAppointmentId(req.params.id);
+      const patch = validateAppointmentReplanPayload(req.body);
+      const { appointment, releasedHoldId, depositHold } = await service.replan({
+        organizationId: req.auth.organizationId,
+        unitId: req.auth.unitId,
+        actorUserId: req.auth.userId,
+        appointmentId,
+        idempotencyKey,
+        patch,
+      });
+      res.status(200).json({
+        appointment,
+        released_hold_id: releasedHoldId,
+        deposit_hold: depositHold,
+      });
     } catch (err) {
       next(err);
     }

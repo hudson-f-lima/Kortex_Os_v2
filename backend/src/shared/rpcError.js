@@ -26,6 +26,14 @@ export function mapRpcError(error) {
       return HttpError.notFound('appointment_not_found', error.message);
     case 'P0006':
       return HttpError.conflict('deposit_policy_incomplete', error.message);
+    case 'P0007':
+      return HttpError.conflict('appointment_replan_required', error.message);
+    case 'P0010':
+      return HttpError.conflict('appointment_checkout_mismatch', error.message);
+    case 'P0011':
+      return HttpError.conflict('appointment_checkout_unit_unsupported', error.message);
+    case 'P0012':
+      return HttpError.conflict('deposit_hold_expired', error.message);
     default:
       return mapPostgresError(error);
   }

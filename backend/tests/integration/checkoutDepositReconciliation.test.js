@@ -63,15 +63,19 @@ test('checkout of an appointment with an active deposit closes with the correct 
   assert.equal(appt.status, 201);
   assert.notEqual(appt.body.deposit_hold, null);
   const appointmentId = appt.body.appointment.id;
+  const { error: firstStatusError } = await supabaseAdmin
+    .from('appointments')
+    .update({ status: 'in_service' })
+    .eq('organization_id', organizationId)
+    .eq('id', appointmentId);
+  assert.equal(firstStatusError, null, firstStatusError?.message);
 
   const checkout = await request(app)
-    .post('/api/v1/checkout')
+    .post(`/api/v1/appointments/${appointmentId}/checkout`)
     .set('Authorization', `Bearer ${accessToken}`)
     .set('X-Organization-Id', organizationId)
     .set('Idempotency-Key', idemKey('ck'))
     .send({
-      client_id: clientId,
-      appointment_id: appointmentId,
       items: [{ kind: 'service', id: serviceId, quantity: 1, professional_id: professionalId }],
       payments: [{ method: 'cash', amount_cents: 15000 }],
     });
@@ -96,7 +100,7 @@ test('checkout of an appointment with an active deposit closes with the correct 
   assert.equal(total, 20000);
 });
 
-test('a checkout for an unrelated client/service cannot borrow another appointment\'s deposit (DEC-36)', async () => {
+test('appointment checkout rejects a client claim instead of borrowing another appointment\'s deposit', async () => {
   const { organizationId, accessToken, ownerUserId } = await setUpOrgWithRole('owner');
   const { clientId: clientA, professionalId, serviceId: serviceA } = await seedFixtures(organizationId, ownerUserId, {
     deposit_mechanic: 'hold',
@@ -132,19 +136,25 @@ test('a checkout for an unrelated client/service cannot borrow another appointme
   assert.equal(appt.status, 201);
   assert.notEqual(appt.body.deposit_hold, null);
   const appointmentId = appt.body.appointment.id;
+  const { error: secondStatusError } = await supabaseAdmin
+    .from('appointments')
+    .update({ status: 'in_service' })
+    .eq('organization_id', organizationId)
+    .eq('id', appointmentId);
+  assert.equal(secondStatusError, null, secondStatusError?.message);
 
   const exploit = await request(app)
-    .post('/api/v1/checkout')
+    .post(`/api/v1/appointments/${appointmentId}/checkout`)
     .set('Authorization', `Bearer ${accessToken}`)
     .set('X-Organization-Id', organizationId)
     .set('Idempotency-Key', idemKey('ck-exploit'))
     .send({
       client_id: clientB.id,
-      appointment_id: appointmentId,
       items: [{ kind: 'service', id: serviceB.id, quantity: 1, professional_id: professionalId }],
       payments: [],
     });
-  assert.equal(exploit.status, 400, 'the mismatched checkout fails to reconcile, it does not silently succeed');
+  assert.equal(exploit.status, 400, 'the client claim is rejected before the financial RPC');
+  assert.equal(exploit.body.code, 'unknown_fields');
 
   const { data: hold, error } = await supabaseAdmin
     .from('deposit_holds')

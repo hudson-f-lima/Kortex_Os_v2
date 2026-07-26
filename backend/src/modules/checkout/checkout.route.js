@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import { requireRole } from '../../middleware/requireRole.js';
 import { validateIdempotencyKey } from '../../shared/validation.js';
+import { validateAppointmentId } from '../appointments/appointments.validation.js';
 import { createCheckoutService } from './checkout.service.js';
-import { validateCheckoutPayload } from './checkout.validation.js';
+import { validateAppointmentCheckoutPayload, validateCheckoutPayload } from './checkout.validation.js';
 
 // Mirrors checkout_close's internal actor_has_role check.
 const CHECKOUT_ROLES = ['owner', 'admin', 'manager', 'reception'];
@@ -16,12 +17,31 @@ export function checkoutRouter({ supabaseAdmin, organizationContext }) {
   router.post('/checkout', requireRole(...CHECKOUT_ROLES), async (req, res, next) => {
     try {
       const idempotencyKey = validateIdempotencyKey(req.headers['idempotency-key']);
-      const payload = validateCheckoutPayload(req.body);
+      const payload = validateCheckoutPayload(req.body, { allowAppointmentId: false });
       const result = await service.close({
         organizationId: req.auth.organizationId,
         unitId: req.auth.unitId,
         actorUserId: req.auth.userId,
         idempotencyKey,
+        payload,
+      });
+      res.status(201).json(result);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.post('/appointments/:id/checkout', requireRole(...CHECKOUT_ROLES), async (req, res, next) => {
+    try {
+      const idempotencyKey = validateIdempotencyKey(req.headers['idempotency-key']);
+      const appointmentId = validateAppointmentId(req.params.id);
+      const payload = validateAppointmentCheckoutPayload(req.body);
+      const result = await service.closeAppointment({
+        organizationId: req.auth.organizationId,
+        unitId: req.auth.unitId,
+        actorUserId: req.auth.userId,
+        idempotencyKey,
+        appointmentId,
         payload,
       });
       res.status(201).json(result);

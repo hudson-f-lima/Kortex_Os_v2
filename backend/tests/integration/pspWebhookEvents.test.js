@@ -88,6 +88,41 @@ test('a webhook event with no matching payment_intent is stored as a dead-letter
   assert.equal(stored.processed_at, null);
 });
 
+test('redelivering an early dead-letter matches it after its payment_intent becomes available', async () => {
+  const { organizationId } = await setUpOrgWithRole(supabaseAdmin, 'owner');
+  const unitId = await getDefaultUnitId(organizationId);
+  const eventId = `evt_${randomUUID()}`;
+  const providerReference = `pi_ext_late_${randomUUID()}`;
+  const body = {
+    provider: 'stub_psp',
+    provider_event_id: eventId,
+    event_type: 'payment_intent.captured',
+    provider_reference: providerReference,
+    status: 'captured',
+  };
+
+  const early = await request(app).post('/api/v1/webhooks/psp').send(body);
+  assert.equal(early.status, 200);
+  assert.equal(early.body.matched, false);
+
+  const intent = await createPaymentIntent(organizationId, unitId, { providerReference });
+  const replay = await request(app).post('/api/v1/webhooks/psp').send(body);
+  assert.equal(replay.status, 200);
+  assert.equal(replay.body.duplicate, false);
+  assert.equal(replay.body.matched, true);
+  assert.equal(replay.body.processed, true);
+
+  const { data: stored, error } = await supabaseAdmin
+    .from('psp_webhook_events')
+    .select('payment_intent_id, processed_at')
+    .eq('provider', body.provider)
+    .eq('provider_event_id', eventId)
+    .single();
+  assert.equal(error, null, error?.message);
+  assert.equal(stored.payment_intent_id, intent.id);
+  assert.notEqual(stored.processed_at, null);
+});
+
 test('redelivering the same provider_event_id is idempotent end-to-end (at-least-once replay)', async () => {
   const { organizationId } = await setUpOrgWithRole(supabaseAdmin, 'owner');
   const unitId = await getDefaultUnitId(organizationId);
