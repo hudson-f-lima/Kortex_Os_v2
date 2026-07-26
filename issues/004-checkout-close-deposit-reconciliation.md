@@ -14,12 +14,12 @@ Inclui a trava de concorrência (CAS `UPDATE deposit_holds SET status = 'capture
 
 ## Acceptance criteria
 
-- [ ] `checkout_close` (`supabase/migrations/20260713060000_professional_commissions_checkout.sql:200-230`) recebe a chamada de reconciliação sem nenhuma outra linha alterada
-- [ ] Reconciliação usa CAS (`WHERE status = 'active'`) — se zero linhas afetadas (hold já capturado por outro caminho), a reconciliação não executa, sem erro fatal
-- [ ] Valor aplicado do depósito nunca excede `order_total` (`min(deposit_amount, order_total)`); excedente vira estorno pelo mecanismo existente (ADR 0006/0007), nunca saldo/crédito novo
-- [ ] **Toda a suíte pgTAP existente (346 testes) continua passando sem nenhuma regressão** — evidência obrigatória antes de integrar, comando real executado e conferido, não relato resumido
-- [ ] pgTAP novo: reconciliação aplica valor correto pras duas mecânicas (`hold`/`immediate_charge`); CAS bloqueia dupla captura simulando corrida com a fatia 005; overflow gera estorno, não saldo negativo
-- [ ] Teste de integração backend: checkout de agendamento com depósito ativo fecha com o valor correto; checkout de agendamento sem depósito continua idêntico ao comportamento atual
+- [x] `checkout_close` recebe a chamada de reconciliação sem nenhuma outra linha de lógica alterada — nota: a referência original de linha (`20260713060000_professional_commissions_checkout.sql:200-230`) estava desatualizada, superada por `20260715103200_fase9_foundation.sql` antes desta fatia começar; a base usada foi a versão vigente. Duas exceções deliberadas e documentadas: o guard `payments` (não-vazio → array), necessário porque um depósito pode cobrir o pedido inteiro, tanto em `checkout_close` quanto em `checkout.validation.js` (só quando `appointment_id` está presente)
+- [x] Reconciliação usa CAS (`WHERE status = 'active'`) — se zero linhas afetadas (hold já capturado por outro caminho), a reconciliação não executa, sem erro fatal
+- [x] Valor aplicado do depósito nunca excede `order_total` (`min(deposit_amount, order_total)`); excedente vira estorno pelo mecanismo existente (`cash_entries` kind `refund`, mesmo padrão de `order_refund`, ADR 0006/0007), nunca saldo/crédito novo
+- [x] **Toda a suíte pgTAP existente continua passando sem nenhuma regressão** — evidência obrigatória antes de integrar, comando real executado e conferido, não relato resumido: `supabase test db --local` rodado do zero após cada fatia, 434/434 ao final (baseline cresceu de 346 para 434 com os testes novos das 5 fatias, nenhuma regressão nos pré-existentes)
+- [x] pgTAP novo: reconciliação aplica valor correto pras duas mecânicas (`hold`/`immediate_charge`); CAS bloqueia dupla captura simulando corrida com a fatia 005; overflow gera estorno, não saldo negativo
+- [x] Teste de integração backend: checkout de agendamento com depósito ativo fecha com o valor correto; checkout de agendamento sem depósito continua idêntico ao comportamento atual
 
 ## Blocked by
 

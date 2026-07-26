@@ -10,13 +10,13 @@ Gera: um `order` mínimo, um `order_item` (`service_id` = o serviço original do
 
 ## Acceptance criteria
 
-- [ ] RPC nova não chama `checkout_close` nem `resolve_commission()` — caminho isolado, conforme decisão do Blueprint
-- [ ] `order`/`order_item`/`payment` sintéticos gerados respeitam as mesmas constraints das tabelas reais (nenhum afrouxamento de `NOT NULL` em `payments`/`order_items`)
-- [ ] Comissão do `order_item` vem de `services.no_show_commission_type`/`value` (snapshot já capturado no `deposit_hold` pela fatia 003), nunca da comissão de venda normal
-- [ ] CAS (`WHERE status = 'active'`) idêntico ao da fatia 004 — se o hold já foi capturado pelo checkout, a liquidação de no-show aborta sem duplicar
-- [ ] Autorização: mesmo papel/escopo de unidade que já governa mudança de status de `appointment` — owner/admin/manager (org-wide) ou reception/professional (unidade do agendamento); nenhuma superfície de autorização nova
-- [ ] pgTAP: comissão calculada corretamente; CAS bloqueia dupla captura simulando corrida com a fatia 004; autorização nega papel/unidade incorretos; visibilidade confirmada — comissão de no-show aparece na mesma consulta que já lista `order_items.commission_cents` do colaborador
-- [ ] Teste de integração backend: marcar agendamento com hold ativo como no-show gera pedido sintético completo e visível
+- [x] RPC nova não chama `checkout_close` nem `resolve_commission()` — caminho isolado, conforme decisão do Blueprint
+- [x] `order`/`order_item`/`payment` sintéticos gerados respeitam as mesmas constraints das tabelas reais (nenhum afrouxamento de `NOT NULL` em `payments`/`order_items`)
+- [x] Comissão do `order_item` vem do snapshot já congelado em `deposit_holds` pela fatia 003 (`no_show_commission_type`/`value`), nunca da comissão de venda normal — confirmado inclusive contra um override em `professional_service_commissions`, que é ignorado
+- [x] CAS (`WHERE status = 'active'`) idêntico ao da fatia 004 — se o hold já foi capturado pelo checkout, a liquidação de no-show aborta sem duplicar
+- [x] Autorização: mesma regra que hoje já governa `create_appointment`/`update_appointment` (owner/admin/manager/reception, org-wide) — nenhuma superfície de autorização nova. Mesmo achado de DEC-35/fatia 003: o §7.1 descreve escopo por unidade para reception/professional, mas essa não é a regra real implementada hoje
+- [x] pgTAP: comissão calculada corretamente; CAS bloqueia dupla captura simulando corrida com a fatia 004; autorização nega papel incorreto; visibilidade confirmada — comissão de no-show aparece na mesma consulta que já lista `order_items.commission_cents` do colaborador
+- [x] Teste de integração backend: marcar agendamento com hold ativo como no-show gera pedido sintético completo e visível
 
 ## Blocked by
 

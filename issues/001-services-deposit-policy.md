@@ -17,11 +17,11 @@ Colunas novas (todas nullable):
 
 ## Acceptance criteria
 
-- [ ] Migration aditiva cria as 5 colunas em `services`, todas nullable, sem alterar nenhuma constraint existente
-- [ ] `services.validation.js` aceita os 5 campos como opcionais no create e no update, validando os enums (`deposit_mechanic`, `deposit_type`, `no_show_commission_type`) e que `deposit_value`/`no_show_commission_value` sejam inteiros não-negativos quando o par tipo/valor correspondente for informado
-- [ ] Serviço criado sem os campos novos continua idêntico ao comportamento atual (nenhuma regressão nos testes existentes de `services`)
-- [ ] pgTAP: RLS herdada de `services` continua igual (nenhuma política nova); só `owner`/`admin` conseguem gravar as colunas novas (mesma regra atual de edição de catálogo)
-- [ ] Teste de integração backend: cria serviço com política de depósito completa, lê de volta, atualiza pra `NULL` (remove a política), confirma idempotência
+- [x] Migration aditiva cria as 5 colunas em `services`, todas nullable, sem alterar nenhuma constraint existente
+- [x] `services.validation.js` aceita os 5 campos como opcionais no create e no update, validando os enums (`deposit_mechanic`, `deposit_type`, `no_show_commission_type`) e que `deposit_value`/`no_show_commission_value` sejam inteiros não-negativos quando o par tipo/valor correspondente for informado
+- [x] Serviço criado sem os campos novos continua idêntico ao comportamento atual (nenhuma regressão nos testes existentes de `services`)
+- [x] pgTAP: RLS herdada de `services` continua igual (nenhuma política nova); a regra atual de edição de catálogo é owner/admin/manager (não só owner/admin — texto original impreciso), confirmada inalterada
+- [x] Teste de integração backend: cria serviço com política de depósito completa, lê de volta, atualiza pra `NULL` (remove a política), confirma idempotência
 
 ## Blocked by
 

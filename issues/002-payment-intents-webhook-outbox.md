@@ -14,12 +14,12 @@ Módulo backend novo com rota de ingestão de webhook: recebe o payload, resolve
 
 ## Acceptance criteria
 
-- [ ] Migration aditiva cria `payment_intents` e `psp_webhook_events` com as unicidades descritas em §3.5/§4
-- [ ] RLS: `payment_intents` — SELECT para owner/admin/manager (org-wide) e reception/professional (unidade); nenhum INSERT/UPDATE direto de `authenticated`/`anon`. `psp_webhook_events` — nenhum grant a `anon`/`authenticated`, escrita só via `service_role`
-- [ ] Reentrega do mesmo `provider_event_id` não duplica processamento — o outbox trata conflito de unicidade como sucesso idempotente, não como erro
-- [ ] Evento sem correspondência a nenhum `payment_intent` conhecido grava como dead-letter (não é descartado, não derruba a ingestão)
-- [ ] pgTAP: unicidade das duas tabelas, grants, dead-letter, isolamento cross-tenant/cross-unit
-- [ ] Teste de integração backend: dois envios do mesmo evento sintético produzem o mesmo estado final (idempotência ponta a ponta)
+- [x] Migration aditiva cria `payment_intents` e `psp_webhook_events` com as unicidades descritas em §3.5/§4
+- [x] RLS: `payment_intents` — SELECT para owner/admin/manager (org-wide) e reception/professional (unidade); nenhum INSERT/UPDATE direto de `authenticated`/`anon`. `psp_webhook_events` — nenhum grant a `anon`/`authenticated`, escrita só via `service_role`
+- [x] Reentrega do mesmo `provider_event_id` não duplica processamento — o outbox trata conflito de unicidade como sucesso idempotente, não como erro
+- [x] Evento sem correspondência a nenhum `payment_intent` conhecido grava como dead-letter (não é descartado, não derruba a ingestão)
+- [x] pgTAP: unicidade das duas tabelas, grants, dead-letter, isolamento cross-tenant/cross-unit
+- [x] Teste de integração backend: dois envios do mesmo evento sintético produzem o mesmo estado final (idempotência ponta a ponta)
 
 ## Blocked by
 
