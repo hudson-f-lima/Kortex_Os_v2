@@ -70,6 +70,7 @@ test('checkout of an appointment with an active deposit closes with the correct 
     .set('X-Organization-Id', organizationId)
     .set('Idempotency-Key', idemKey('ck'))
     .send({
+      client_id: clientId,
       appointment_id: appointmentId,
       items: [{ kind: 'service', id: serviceId, quantity: 1, professional_id: professionalId }],
       payments: [{ method: 'cash', amount_cents: 15000 }],
@@ -93,6 +94,65 @@ test('checkout of an appointment with an active deposit closes with the correct 
   assert.equal(payments.length, 2, 'a deposit payment plus the client cash payment');
   const total = payments.reduce((sum, p) => sum + p.amount_cents, 0);
   assert.equal(total, 20000);
+});
+
+test('a checkout for an unrelated client/service cannot borrow another appointment\'s deposit (DEC-36)', async () => {
+  const { organizationId, accessToken, ownerUserId } = await setUpOrgWithRole('owner');
+  const { clientId: clientA, professionalId, serviceId: serviceA } = await seedFixtures(organizationId, ownerUserId, {
+    deposit_mechanic: 'hold',
+    deposit_type: 'fixed',
+    deposit_value: 5000,
+  });
+  const { data: clientB, error: clientBError } = await supabaseAdmin
+    .from('clients')
+    .insert({ organization_id: organizationId, name: 'Cliente B', created_by: ownerUserId })
+    .select('id')
+    .single();
+  assert.equal(clientBError, null, clientBError?.message);
+  const serviceGroupB = await createServiceGroup(supabaseAdmin, organizationId);
+  const { data: serviceB, error: serviceBError } = await supabaseAdmin
+    .from('services')
+    .insert({
+      organization_id: organizationId,
+      name: 'Manicure',
+      price_cents: 3000,
+      duration_minutes: 20,
+      service_group_id: serviceGroupB,
+    })
+    .select('id')
+    .single();
+  assert.equal(serviceBError, null, serviceBError?.message);
+
+  const appt = await request(app)
+    .post('/api/v1/appointments')
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId)
+    .set('Idempotency-Key', idemKey('appt'))
+    .send({ client_id: clientA, professional_id: professionalId, service_id: serviceA, starts_at: '2026-08-21T10:00:00Z' });
+  assert.equal(appt.status, 201);
+  assert.notEqual(appt.body.deposit_hold, null);
+  const appointmentId = appt.body.appointment.id;
+
+  const exploit = await request(app)
+    .post('/api/v1/checkout')
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId)
+    .set('Idempotency-Key', idemKey('ck-exploit'))
+    .send({
+      client_id: clientB.id,
+      appointment_id: appointmentId,
+      items: [{ kind: 'service', id: serviceB.id, quantity: 1, professional_id: professionalId }],
+      payments: [],
+    });
+  assert.equal(exploit.status, 400, 'the mismatched checkout fails to reconcile, it does not silently succeed');
+
+  const { data: hold, error } = await supabaseAdmin
+    .from('deposit_holds')
+    .select('status')
+    .eq('appointment_id', appointmentId)
+    .single();
+  assert.equal(error, null, error?.message);
+  assert.equal(hold.status, 'active', 'the unrelated appointment\'s hold is untouched');
 });
 
 test('checkout without appointment_id (or without an active deposit) behaves exactly as before', async () => {

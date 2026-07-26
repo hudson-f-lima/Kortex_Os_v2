@@ -34,6 +34,7 @@ SELECT public.deposit_hold_create(:'org1'::uuid, :'owner1'::uuid, :'appt1'::uuid
 SELECT public.checkout_close(
   :'org1'::uuid, :'owner1'::uuid, 'checkout-deposit-hold-001',
   jsonb_build_object(
+    'client_id', :'client1',
     'appointment_id', :'appt1',
     'items', jsonb_build_array(jsonb_build_object('kind', 'service', 'id', :'service1', 'quantity', 1, 'professional_id', :'prof1')),
     'payments', jsonb_build_array(jsonb_build_object('method', 'cash', 'amount_cents', 15000))
@@ -109,6 +110,7 @@ SELECT public.deposit_hold_create(:'org1'::uuid, :'owner1'::uuid, :'appt_overflo
 SELECT public.checkout_close(
   :'org1'::uuid, :'owner1'::uuid, 'checkout-deposit-overflow-001',
   jsonb_build_object(
+    'client_id', :'client1',
     'appointment_id', :'appt_overflow',
     'items', jsonb_build_array(jsonb_build_object('kind', 'service', 'id', :'service_overflow', 'quantity', 1, 'professional_id', :'prof1')),
     'payments', jsonb_build_array()
@@ -150,6 +152,7 @@ UPDATE public.deposit_holds SET status = 'captured_no_show' WHERE id = :'hold_ra
 SELECT public.checkout_close(
   :'org1'::uuid, :'owner1'::uuid, 'checkout-deposit-race-001',
   jsonb_build_object(
+    'client_id', :'client1',
     'appointment_id', :'appt_race',
     'items', jsonb_build_array(jsonb_build_object('kind', 'service', 'id', :'service1', 'quantity', 1, 'professional_id', :'prof1')),
     'payments', jsonb_build_array(jsonb_build_object('method', 'cash', 'amount_cents', 20000))
