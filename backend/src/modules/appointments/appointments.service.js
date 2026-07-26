@@ -166,7 +166,25 @@ export function createAppointmentsService(supabaseAdmin) {
           data.diff,
         );
       }
-      return data.appointment;
+
+      // no_show_settlement_create (issues/005-no-show-settlement-rpc.md) is a
+      // separate, additive RPC — update_appointment itself is untouched. It
+      // no-ops (status: 'skipped') when there's no active deposit_hold.
+      let noShowSettlement = null;
+      if (patch.status === 'no_show') {
+        const { data: settlementResult, error: settlementError } = await supabaseAdmin.rpc(
+          'no_show_settlement_create',
+          {
+            p_organization_id: organizationId,
+            p_actor_user_id: actorUserId,
+            p_appointment_id: appointmentId,
+          },
+        );
+        if (settlementError) throw mapRpcError(settlementError);
+        noShowSettlement = settlementResult.status === 'settled' ? settlementResult : null;
+      }
+
+      return { appointment: data.appointment, noShowSettlement };
     },
 
     async remove({ organizationId, unitId, appointmentId }) {
