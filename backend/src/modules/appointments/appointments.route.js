@@ -81,14 +81,14 @@ export function appointmentsRouter({ supabaseAdmin, organizationContext }) {
     try {
       const idempotencyKey = validateIdempotencyKey(req.headers['idempotency-key']);
       const patch = validateAppointmentPayload(req.body, { requireAll: true });
-      const appointment = await service.create({
+      const { appointment, depositHold } = await service.create({
         organizationId: req.auth.organizationId,
         unitId: req.auth.unitId,
         actorUserId: req.auth.userId,
         idempotencyKey,
         patch,
       });
-      res.status(201).json({ appointment });
+      res.status(201).json({ appointment, deposit_hold: depositHold });
     } catch (err) {
       next(err);
     }

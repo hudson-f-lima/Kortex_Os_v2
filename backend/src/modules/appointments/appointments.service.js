@@ -112,7 +112,21 @@ export function createAppointmentsService(supabaseAdmin) {
         p_payload: patch,
       });
       if (error) throw mapRpcError(error);
-      return data.appointment;
+
+      // deposit_hold_create (issues/003-deposit-holds-creation.md) is a
+      // separate, additive RPC — create_appointment itself is untouched. It
+      // no-ops (status: 'skipped') when the service has no deposit policy.
+      const { data: holdResult, error: holdError } = await supabaseAdmin.rpc('deposit_hold_create', {
+        p_organization_id: organizationId,
+        p_actor_user_id: actorUserId,
+        p_appointment_id: data.appointment.id,
+      });
+      if (holdError) throw mapRpcError(holdError);
+
+      return {
+        appointment: data.appointment,
+        depositHold: holdResult.status === 'created' ? holdResult.deposit_hold : null,
+      };
     },
 
     // update_appointment pode responder com status='confirmation_required'

@@ -24,6 +24,8 @@ export function mapRpcError(error) {
       return HttpError.conflict('version_conflict', error.message);
     case 'P0005':
       return HttpError.notFound('appointment_not_found', error.message);
+    case 'P0006':
+      return HttpError.conflict('deposit_policy_incomplete', error.message);
     default:
       return mapPostgresError(error);
   }
