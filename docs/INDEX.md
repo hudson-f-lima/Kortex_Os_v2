@@ -8,10 +8,10 @@ Bem-vindo à documentação oficial do KortexOS. Para garantir que as regras de 
 
 ## Trilha F: KortexOS 5.1.2 — Trilha Ativa (visão de produto final)
 
-**Estado: Migration Map (etapa 6) aprovado. Onda 0 (`units`) corrigida e validada localmente em 2026-07-24; branch `codex/fix-onda0-local-gates` preparada para publicação via PR em `staging`, com promoção remota ainda sujeita aos gates próprios. O handoff operacional está em [KORTEXOS_5_1_2_ONDA_0_CONTINUATION_HANDOFF.md](KORTEXOS_5_1_2_ONDA_0_CONTINUATION_HANDOFF.md). Blueprint da Onda 1 (Payment Core) é o próximo passo de execução.**
+**Estado: Migration Map (etapa 6) aprovado. Onda 0 (`units`) corrigida, validada localmente e mesclada em `staging` (PR #15/#16). Blueprint da Onda 1 (Payment Core) aprovado em 2026-07-25 (DEC-34) — 2 rodadas de Red Team, GO de desenho. Fatiamento (`$prd-to-issues`) é o próximo passo de execução; Etapa 8 (SQL) segue exigindo autorização própria.**
 
 - [KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md](KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md) — fonte canônica vigente da visão de produto final: tese, domínios D00–D31, motores (KortexFlow, Wallet, Negative Guard, No-show, Autonomous Operations), RAGOV, Gates 00–25, ordem de construção, cadastros canônicos e regras de configuração/comanda/gorjeta/níveis.
-- [KORTEXOS_5_1_2_DECISION_LOG.md](KORTEXOS_5_1_2_DECISION_LOG.md) — histórico de decisões (DEC-01 a DEC-33, D-01 a D-09), padrão ADR, append-only. **Consulte aqui para saber o motivo/contexto de qualquer regra vigente do Master Briefing.**
+- [KORTEXOS_5_1_2_DECISION_LOG.md](KORTEXOS_5_1_2_DECISION_LOG.md) — histórico de decisões (DEC-01 a DEC-34, D-01 a D-09), padrão ADR, append-only. **Consulte aqui para saber o motivo/contexto de qualquer regra vigente do Master Briefing.**
 - [KORTEXOS_5_1_2_GLOBAL_BENCHMARK_MAP.md](KORTEXOS_5_1_2_GLOBAL_BENCHMARK_MAP.md) — benchmark rastreável por fonte dos módulos 01–06 (Booking, Waitlist, Checkout, Ledger, Compensation, No-show), incl. Rodada 4 (multi-unidade, calendário, Action Request, Reliability Score).
 - [KORTEXOS_5_1_2_COMPARATIVE_PROPOSAL.md](KORTEXOS_5_1_2_COMPARATIVE_PROPOSAL.md) — 42 achados do benchmark classificados em HERDAR/REFORÇAR/BACKLOG/DESCARTAR (DEC-22), com 4 itens REFORÇAR CRÍTICO.
 - [KORTEXOS_5_1_2_TRUTH_MAP.md](KORTEXOS_5_1_2_TRUTH_MAP.md) — **v1.0, APROVADO (DEC-23).** Classifica a realidade técnica atual (REAL/PARCIAL/MOCKADO/HARDCODED/CRÍTICO/AUSENTE) contra a visão do Master Briefing, módulos 01–06. Veredito: NO-GO para promoção direta ao produto final; GO para a Etapa 6.
@@ -23,12 +23,13 @@ Bem-vindo à documentação oficial do KortexOS. Para garantir que as regras de 
 - [KORTEXOS_5_1_2_ONDA_0_IMPLEMENTATION.md](KORTEXOS_5_1_2_ONDA_0_IMPLEMENTATION.md) — **CORRIGIDO E VALIDADO LOCALMENTE.** Documento consolidado WHAT/WHY/HOW/NEXT da Onda 0: migration forward-only, enforcement unit-aware, 109 testes pgTAP específicos e regressões integrais.
 - [KORTEXOS_5_1_2_ONDA_0_IMPLEMENTATION_REDTEAM.md](KORTEXOS_5_1_2_ONDA_0_IMPLEMENTATION_REDTEAM.md) — QA Red Team executável da implementação em 2026-07-24: matriz de gates, vulnerabilidades corrigidas, evidências locais e limite de promoção.
 - [KORTEXOS_5_1_2_ONDA_0_CONTINUATION_HANDOFF.md](KORTEXOS_5_1_2_ONDA_0_CONTINUATION_HANDOFF.md) — handoff operacional para outra inteligência: leitura canônica, estado, comandos, invariantes, bloqueadores e próximo passo.
+- [KORTEXOS_5_1_2_BLUEPRINT_ONDA_1_DRAFT.md](KORTEXOS_5_1_2_BLUEPRINT_ONDA_1_DRAFT.md) — **APROVADO (DEC-34).** Desenho técnico da Onda 1 (Payment Core): `payment_intents`, `psp_webhook_events`, `deposit_holds`, extensão de `services`. Depósito/no-show reconciliados sem tocar `payments`/`order_items.order_id` (NOT NULL); no-show vira pedido sintético real para preservar visibilidade de comissão. Fechado após 2 rodadas de Red Team (dedup de webhook, CAS de concorrência, autorização de RPC, overflow de reconciliação).
 - [KORTEXOS_5_1_2_INSTRUCAO_CLAUDE_CODE_TRUTH_MAP.md](KORTEXOS_5_1_2_INSTRUCAO_CLAUDE_CODE_TRUTH_MAP.md) — instrução de processo/auditoria que orientou a produção do Truth Map (Etapa 5); referência para a condução de etapas futuras equivalentes.
 - [kortex-5.1.2-design/](kortex-5.1.2-design/) — assets de design de referência (mockup de dashboard, Design System docx) para o produto final; não são especificação normativa.
 
 ### Próximo passo de execução
 
-**Blueprint da Onda 1 (Payment Core, Etapa 7):** desenho técnico (domínio → objeto → coluna/tipo/índice/RLS) para métodos de pagamento sem dinheiro, herdando `unit_id` da Onda 0 já implementada. Exige aprovação própria do Platform Owner antes de autorizar SQL (Etapa 8).
+**Fatiamento da Onda 1 (`$prd-to-issues`):** o Blueprint aprovado (DEC-34) já vem com 5 fatias verticais candidatas (§6) — extensão de `services`, `payment_intents`/`psp_webhook_events`, `deposit_holds`, reconciliação em `checkout_close`, RPC de liquidação de no-show. Cada fatia segue `$tdd` (teste antes do código) e `$kortex-qa-redteam` antes de integrar. Etapa 8 (SQL) exige autorização própria do Platform Owner, ainda não concedida.
 
 ---
 
@@ -64,6 +65,7 @@ Debates longos não devem se perder em chats. O *porquê* de escolhas técnicas 
 - [ADR 0014: Fase 11 — Convite de Equipe por E-mail: Provedor SMTP e Expiração](adr/0014-fase11-convite-equipe-smtp.md)
 - [ADR 0015: Auditoria da Arquitetura Local-First / Sync Incremental do KortexOS](adr/0015-auditoria-arquitetura-sync-offline-first.md)
 - [ADR 0016: Onda 0 — Arquitetura de Unidades (Units)](adr/0016-onda0-units-architecture.md)
+- [ADR 0017: Onda 1 — Arquitetura de Payment Core (Depósito, No-show e Reconciliação)](adr/0017-onda1-payment-core-arquitetura.md)
 
 Nota: decisões de processo/governança/sequenciamento do Platform Owner (escopo de benchmark, aprovação de etapas, encerramento de trilhas) são registradas como **DEC-NN** em `KORTEXOS_5_1_2_DECISION_LOG.md`, não como ADR — os dois registros são complementares, não concorrentes (ADR = decisão técnica/arquitetural; DEC = decisão de processo/produto do Platform Owner).
 
