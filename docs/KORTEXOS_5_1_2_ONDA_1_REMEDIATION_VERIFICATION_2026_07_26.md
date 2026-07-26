@@ -26,3 +26,12 @@ Escopo: blockers de DEC-36; implementação autorizada por DEC-38.
 ## Gate ainda necessário
 
 Este documento não autoriza deploy. Antes de `staging`, executar preflight de `deposit_holds`: a migration deliberadamente recusa registros legados cujo cliente, serviço ou profissional não possam ser demonstrados sem inferência. Depois, homologar em `staging` e submeter ao Environment Guardian e ao Delivery Guardian antes de qualquer promoção para `main`/produção.
+
+## Tentativa de homologação em staging — BLOQUEADA (2026-07-26)
+
+- A CI do commit `0803ac2` concluiu com sucesso: Security & Linting, Supabase & Backend Tests e Frontend Build & Test.
+- A PWA de staging respondeu `200`, porém o serviço `kortex-api-staging` está **suspenso por billing** no Render.
+- O último deploy live do backend é o commit `9abada1`; portanto, `0803ac2` não está implantado no backend de staging.
+- Não foram aplicadas migrations nem executados fluxos autenticados contra staging: fazê-lo sem API ativa não seria homologação válida.
+
+Condição para retomar: reativar o serviço `kortex-api-staging`, confirmar o deploy automático de `0803ac2`, executar o preflight de holds legados e então rodar os cenários funcionais de checkout, lifecycle, replanejamento e reprocessamento de webhook.
