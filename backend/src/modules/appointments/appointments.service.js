@@ -112,7 +112,21 @@ export function createAppointmentsService(supabaseAdmin) {
         p_payload: patch,
       });
       if (error) throw mapRpcError(error);
-      return data.appointment;
+
+      // deposit_hold_create (issues/003-deposit-holds-creation.md) is a
+      // separate, additive RPC — create_appointment itself is untouched. It
+      // no-ops (status: 'skipped') when the service has no deposit policy.
+      const { data: holdResult, error: holdError } = await supabaseAdmin.rpc('deposit_hold_create', {
+        p_organization_id: organizationId,
+        p_actor_user_id: actorUserId,
+        p_appointment_id: data.appointment.id,
+      });
+      if (holdError) throw mapRpcError(holdError);
+
+      return {
+        appointment: data.appointment,
+        depositHold: holdResult.status === 'created' ? holdResult.deposit_hold : null,
+      };
     },
 
     // update_appointment pode responder com status='confirmation_required'
@@ -152,7 +166,25 @@ export function createAppointmentsService(supabaseAdmin) {
           data.diff,
         );
       }
-      return data.appointment;
+
+      // no_show_settlement_create (issues/005-no-show-settlement-rpc.md) is a
+      // separate, additive RPC — update_appointment itself is untouched. It
+      // no-ops (status: 'skipped') when there's no active deposit_hold.
+      let noShowSettlement = null;
+      if (patch.status === 'no_show') {
+        const { data: settlementResult, error: settlementError } = await supabaseAdmin.rpc(
+          'no_show_settlement_create',
+          {
+            p_organization_id: organizationId,
+            p_actor_user_id: actorUserId,
+            p_appointment_id: appointmentId,
+          },
+        );
+        if (settlementError) throw mapRpcError(settlementError);
+        noShowSettlement = settlementResult.status === 'settled' ? settlementResult : null;
+      }
+
+      return { appointment: data.appointment, noShowSettlement };
     },
 
     async remove({ organizationId, unitId, appointmentId }) {

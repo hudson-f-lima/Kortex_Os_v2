@@ -81,14 +81,14 @@ export function appointmentsRouter({ supabaseAdmin, organizationContext }) {
     try {
       const idempotencyKey = validateIdempotencyKey(req.headers['idempotency-key']);
       const patch = validateAppointmentPayload(req.body, { requireAll: true });
-      const appointment = await service.create({
+      const { appointment, depositHold } = await service.create({
         organizationId: req.auth.organizationId,
         unitId: req.auth.unitId,
         actorUserId: req.auth.userId,
         idempotencyKey,
         patch,
       });
-      res.status(201).json({ appointment });
+      res.status(201).json({ appointment, deposit_hold: depositHold });
     } catch (err) {
       next(err);
     }
@@ -99,7 +99,7 @@ export function appointmentsRouter({ supabaseAdmin, organizationContext }) {
       const idempotencyKey = validateIdempotencyKey(req.headers['idempotency-key']);
       const appointmentId = validateAppointmentId(req.params.id);
       const patch = validateAppointmentPayload(req.body, { requireAll: false });
-      const appointment = await service.update({
+      const { appointment, noShowSettlement } = await service.update({
         organizationId: req.auth.organizationId,
         unitId: req.auth.unitId,
         actorUserId: req.auth.userId,
@@ -107,7 +107,7 @@ export function appointmentsRouter({ supabaseAdmin, organizationContext }) {
         idempotencyKey,
         patch,
       });
-      res.status(200).json({ appointment });
+      res.status(200).json({ appointment, no_show_settlement: noShowSettlement });
     } catch (err) {
       next(err);
     }
