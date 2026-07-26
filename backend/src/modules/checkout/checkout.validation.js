@@ -89,7 +89,7 @@ export function validateCheckoutPayload(body) {
     throw HttpError.badRequest('invalid_payload', 'payload must be a JSON object');
   }
 
-  const allowed = new Set(['client_id', 'items', 'payments', 'discount_cents', 'tip_cents']);
+  const allowed = new Set(['client_id', 'items', 'payments', 'discount_cents', 'tip_cents', 'appointment_id']);
   const unknown = Object.keys(body).filter((key) => !allowed.has(key));
   if (unknown.length > 0) {
     throw HttpError.badRequest('unknown_fields', 'payload has unsupported fields', { fields: unknown });
@@ -101,12 +101,27 @@ export function validateCheckoutPayload(body) {
     }
   }
 
+  // Optional: signals which appointment (and its deposit_hold, if any) this
+  // checkout reconciles (issues/004-checkout-close-deposit-reconciliation.md).
+  // Omitted entirely, behavior is identical to before this fatia.
+  if (body.appointment_id !== undefined && body.appointment_id !== null) {
+    if (typeof body.appointment_id !== 'string' || !UUID_RE.test(body.appointment_id)) {
+      throw HttpError.badRequest('invalid_appointment_id', 'appointment_id must be a uuid or null');
+    }
+  }
+
   if (!Array.isArray(body.items) || body.items.length === 0) {
     throw HttpError.badRequest('invalid_items', 'items must be a non-empty array');
   }
   const items = body.items.map(validateCheckoutItem);
 
-  if (!Array.isArray(body.payments) || body.payments.length === 0) {
+  if (!Array.isArray(body.payments)) {
+    throw HttpError.badRequest('invalid_payments', 'payments must be an array');
+  }
+  // An empty array is only legitimate when a deposit might cover the whole
+  // order (appointment_id present) — checkout_close's own v_paid <> v_total
+  // check is still the real source of truth either way.
+  if (body.payments.length === 0 && (body.appointment_id === undefined || body.appointment_id === null)) {
     throw HttpError.badRequest('invalid_payments', 'payments must be a non-empty array');
   }
   const payments = body.payments.map(validateCheckoutPayment);
@@ -121,5 +136,12 @@ export function validateCheckoutPayload(body) {
     throw HttpError.badRequest('invalid_tip_cents', 'tip_cents must be a non-negative integer');
   }
 
-  return { client_id: body.client_id ?? null, items, payments, discount_cents: discountCents, tip_cents: tipCents };
+  return {
+    client_id: body.client_id ?? null,
+    items,
+    payments,
+    discount_cents: discountCents,
+    tip_cents: tipCents,
+    appointment_id: body.appointment_id ?? null,
+  };
 }
