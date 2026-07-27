@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(27);
+SELECT plan(33);
 
 -- Helpers: simulate Supabase Auth JWT context inside this transaction only.
 CREATE FUNCTION pg_temp.mk_user(p_email text) RETURNS uuid
@@ -299,6 +299,51 @@ SELECT is(
   :'transactions_before_cross_unit'::integer,
   'the cross-unit attempt inserted no transaction at all'
 );
+
+-- === Post-audit hardening (DEC-42): service_role has no direct DML on the
+-- ledger either — the only door, even for the trusted backend credential, is
+-- kortex_ledger_post. Stricter than the rest of the schema (deposit_holds/
+-- payment_intents/cash_entries keep the platform-default service_role grant)
+-- — a deliberate, scoped exception for the double-entry ledger specifically. ===
+SELECT ok(
+  NOT has_table_privilege('service_role', 'public.kortex_ledger_transactions', 'INSERT'),
+  'service_role has no direct INSERT grant on kortex_ledger_transactions (write-lockdown, DEC-42)'
+);
+SELECT ok(
+  NOT has_table_privilege('service_role', 'public.kortex_ledger_entries', 'INSERT'),
+  'service_role has no direct INSERT grant on kortex_ledger_entries (write-lockdown, DEC-42)'
+);
+SELECT ok(
+  NOT has_table_privilege('service_role', 'public.kortex_account_balances', 'UPDATE'),
+  'service_role has no direct UPDATE grant on kortex_account_balances (write-lockdown, DEC-42)'
+);
+SELECT ok(
+  NOT has_table_privilege('service_role', 'public.kortex_ledger_entries', 'DELETE'),
+  'service_role has no direct DELETE grant on kortex_ledger_entries (write-lockdown, DEC-42)'
+);
+
+SET LOCAL role service_role;
+SELECT throws_ok(
+  format(
+    'insert into public.kortex_ledger_transactions (organization_id, unit_id) values (%L, %L)',
+    :'org1', :'unit1'
+  ),
+  '42501',
+  NULL,
+  'service_role cannot insert directly into kortex_ledger_transactions, even authenticated as itself'
+);
+SELECT lives_ok(
+  format(
+    'select public.kortex_ledger_post(%L, %L, %L, %L, %L::jsonb)',
+    :'org1', :'owner1', 'post-lockdown-001', :'unit1',
+    jsonb_build_array(
+      jsonb_build_object('account_id', :'cash1', 'direction', 'debit', 'amount_cents', 700),
+      jsonb_build_object('account_id', :'revenue1', 'direction', 'credit', 'amount_cents', 700)
+    )::text
+  ),
+  'kortex_ledger_post still works when called as service_role, even after the write-lockdown (SECURITY DEFINER bypasses via function owner, not caller)'
+);
+RESET role;
 
 SELECT * FROM finish();
 ROLLBACK;
