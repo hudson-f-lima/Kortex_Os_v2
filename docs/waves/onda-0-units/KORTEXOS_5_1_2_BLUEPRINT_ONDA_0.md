@@ -1,7 +1,7 @@
 # KortexOS 5.1.2 — Blueprint Onda 0: Units
 
-**Status:** Revisado e aprovado pelo Platform Owner em 2026-07-22 (DEC-31), substituindo integralmente a versão de 2026-07-21 que ficou presa numa branch nunca mesclada e carregava uma alegação de verificação operacional não confirmada. QA Red Team re-emitiu `GO` de desenho sobre esta versão. SQL, migration, endpoint, tela e deploy aguardam aprovação explícita da Etapa 8 (DEC-32).  
-**Etapa:** 7 (Blueprint), iniciada após Migration Map v1.2 aprovado (DEC-24/27/28).  
+**Status:** **APROVADO E IMPLEMENTADO.** Revisado e aprovado pelo Platform Owner em 2026-07-22 (DEC-31); a Etapa 8 foi autorizada localmente por DEC-32. A implementação forward-only foi validada e promovida para `staging` conforme os registros de execução e verificação desta pasta.  
+**Etapa:** 7 (Blueprint) concluída; Etapa 8 executada dentro da autorização de DEC-32.  
 **Escopo:** D01 Identity & Tenant; somente fronteira de unidade e compatibilidade do MVP existente.
 
 ## 1. Autoridade e limites

@@ -3,6 +3,8 @@
 ## Status
 Accepted (DEC-31, 2026-07-22)
 
+**Onda relacionada:** [Onda 0 — Units](../../waves/onda-0-units/KORTEXOS_5_1_2_BLUEPRINT_ONDA_0.md) · [Migration Map](../../waves/KORTEXOS_5_1_2_MIGRATION_MAP.md)
+
 ## Date
 2026-07-22
 

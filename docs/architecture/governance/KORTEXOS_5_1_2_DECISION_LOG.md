@@ -1,11 +1,27 @@
 # KORTEXOS™ — DECISION LOG
 
-**Arquivo:** `KORTEXOS_5_1_2_DECISION_LOG.md`
+**Arquivo:** `docs/architecture/governance/KORTEXOS_5_1_2_DECISION_LOG.md`
 **Produto:** KortexOS™
 **Natureza:** registro histórico de decisões (padrão ADR — Architecture Decision Record). Append-only: decisões aprovadas NUNCA são editadas ou apagadas — apenas marcadas com status (Accepted / Superseded by DEC-XX / Refinada por DEC-XX). O registro superado permanece como prova de como o pensamento evoluiu.
 **Companion doc:** `KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md` — a regra VIGENTE de cada decisão está especificada lá, sempre citando o(s) DEC(s)/D(s) que a fundamenta(m). Este arquivo é a prova/auditoria; o Master Briefing é a fonte de verdade operacional.
 **Motivo da separação (2026-07-19):** o Master Briefing havia acumulado três tabelas RAGOV, duas tabelas de Veredito Red Team e uma tabela inteira ("Decisões pendentes") em que 8 de 9 itens já haviam sido decididos alhures — risco real de leitura desatualizada. Esta separação segue a prática consolidada de ADR (Microsoft, AWS, indústria): nunca apagar decisão superada, mas tirá-la do caminho de quem só precisa saber a regra atual.
 **Como usar:** para saber a regra vigente de um tema, use o Master Briefing. Para entender POR QUE a regra é essa, ou o que ela substituiu, busque o ID (DEC-XX ou D-XX) aqui.
+
+## Matriz cruzada DEC ↔ ADR
+
+Esta matriz é um índice de rastreabilidade, não uma nova decisão. Ela registra apenas vínculos explícitos em documentos existentes; a ausência de vínculo não autoriza inferir aprovação ou supersessão.
+
+| DEC | ADR relacionado | Papel do vínculo |
+|---|---|---|
+| DEC-01 / DEC-02 | [ADR 0006](../adr/0006-gorjeta-fora-da-comissao-e-motivo-do-estorno.md) | Formaliza a regra de gorjeta fora da comissão e sua aplicação operacional. |
+| DEC-31 / DEC-32 | [ADR 0016](../adr/0016-onda0-units-architecture.md) | Aprovação do desenho de Units e autorização da Etapa 8 local da Onda 0. |
+| DEC-34 | [ADR 0017](../adr/0017-onda1-payment-core-arquitetura.md) | Aprovação da arquitetura original da Onda 1. |
+| DEC-38 | [ADR 0018](../adr/0018-onda1-integridade-financeira-imutavel.md) | Regularização da Etapa 8 corretiva e arquitetura forward-only de integridade financeira. |
+| DEC-41 | [ADR 0019](../adr/0019-onda2-kortexflow-ledger-fundacao.md) | Aprovação do Blueprint da fundação KortexFlow da Onda 2. |
+| DEC-42 | [ADR 0019](../adr/0019-onda2-kortexflow-ledger-fundacao.md) | Regulariza a Etapa 8 local e o hardening do ledger sem alterar o desenho de produto do ADR. |
+| DEC-03 a DEC-30, DEC-33, DEC-35 a DEC-37, DEC-39 e DEC-40 | — | Não há ADR dedicado ou vínculo explícito registrado; consultar a decisão primária neste log. |
+
+Os ADRs 0001–0015 preservam decisões e contexto técnico próprios; não recebem um vínculo DEC retroativo sem evidência documental explícita.
 
 ---
 
@@ -14,7 +30,7 @@
 | Prefixo | Escopo | Numeração |
 |---|---|---|
 | DEC-01 a DEC-19 | Decisões formais do Platform Owner, registradas em 2026-07-19, escopo: comanda, gorjeta, comissão, pacotes, planos, cadastros, configuração, dados sensíveis | Cronológica, imutável |
-| DEC-20 a DEC-41 | Decisões de processo/auditoria da ordem de construção (§22.1): escopo e formato do benchmark, estratégia de benchmark por Tier, aprovação do Comparative Proposal, aprovação do Truth Map, aprovação do Migration Map, aprovação do adendo de cobertura D02, aprovação dos pontos cegos pré-Blueprint (Rodada 4), reconsideração da hierarquia Empresa→Unidade (Onda 0), finalização do escopo de unidade + itens operacionais consolidados, encerramento formal do MVP técnico e transição para a Trilha F, fechamento do ambiente de homologação (DEC-28c), aprovação do Blueprint Onda 0 (DEC-31), autorização da Etapa 8 SQL local (DEC-32), reforma do processo MAS com fatiamento e evidência obrigatória (DEC-33), aprovação do Blueprint Onda 1 (DEC-34), implementação da Onda 1 mesclada em staging (DEC-35), Red Team pós-merge da Onda 1 — NO-GO para produção (DEC-36), correção do bug crítico de cruzamento depósito↔agendamento (DEC-37), regularização da Etapa 8 e plano corretivo da Onda 1 (DEC-38), execução corretiva local (DEC-39), homologação bloqueada por infraestrutura (DEC-40), aprovação do Blueprint Onda 2 (DEC-41), regularização da Etapa 8 e correção pós-auditoria do ledger da Onda 2 (DEC-42) | Cronológica, imutável |
+| DEC-20 a DEC-42 | Decisões de processo/auditoria da ordem de construção (§22.1): escopo e formato do benchmark, estratégia de benchmark por Tier, aprovação do Comparative Proposal, aprovação do Truth Map, aprovação do Migration Map, aprovação do adendo de cobertura D02, aprovação dos pontos cegos pré-Blueprint (Rodada 4), reconsideração da hierarquia Empresa→Unidade (Onda 0), finalização do escopo de unidade + itens operacionais consolidados, encerramento formal do MVP técnico e transição para a Trilha F, fechamento do ambiente de homologação (DEC-28c), aprovação do Blueprint Onda 0 (DEC-31), autorização da Etapa 8 SQL local (DEC-32), reforma do processo MAS com fatiamento e evidência obrigatória (DEC-33), aprovação do Blueprint Onda 1 (DEC-34), implementação da Onda 1 mesclada em staging (DEC-35), Red Team pós-merge da Onda 1 — NO-GO para produção (DEC-36), correção do bug crítico de cruzamento depósito↔agendamento (DEC-37), regularização da Etapa 8 e plano corretivo da Onda 1 (DEC-38), execução corretiva local (DEC-39), homologação bloqueada por infraestrutura (DEC-40), aprovação do Blueprint Onda 2 (DEC-41), regularização da Etapa 8 e correção pós-auditoria do ledger da Onda 2 (DEC-42) | Cronológica, imutável |
 | D-01 a D-09 | Decisões conceituais originais do anexo A1 (cadastros) — **todas as 9 resolvidas**, a última (D-07) por DEC-19 | Letrada, anterior às DEC |
 
 ---

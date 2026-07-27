@@ -1,7 +1,9 @@
 # ADR 0019: Onda 2 — Fundação do KortexFlow Ledger (Double-Entry, sem Ativação)
 
 ## Status
-Accepted (DEC-41, 2026-07-26)
+Accepted (DEC-41, 2026-07-26). Etapa 8 local regularizada por DEC-42; a fundação foi implementada e validada localmente, sem autorização de promoção para `staging` ou `main`.
+
+**Onda relacionada:** [Onda 2 — KortexFlow Ledger](../../waves/onda-2-kortexflow-ledger/KORTEXOS_5_1_2_BLUEPRINT_ONDA_2.md) · [Migration Map](../../waves/KORTEXOS_5_1_2_MIGRATION_MAP.md)
 
 ## Date
 2026-07-26

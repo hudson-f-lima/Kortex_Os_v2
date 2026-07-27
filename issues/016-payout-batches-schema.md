@@ -1,6 +1,6 @@
 ## Parent Blueprint
 
-`docs/KORTEXOS_5_1_2_BLUEPRINT_ONDA_2_DRAFT.md` (DEC-41), §2, §4.
+`docs/waves/onda-2-kortexflow-ledger/KORTEXOS_5_1_2_BLUEPRINT_ONDA_2.md` (DEC-41), §2, §4.
 
 ## What to build
 

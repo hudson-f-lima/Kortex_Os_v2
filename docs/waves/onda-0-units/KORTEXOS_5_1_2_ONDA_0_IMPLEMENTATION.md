@@ -5,7 +5,7 @@
 **Correção e validação local:** 2026-07-24 (`codex/fix-onda0-local-gates`, pronta para PR em `staging`)
 
 **Decisões gateadas:** DEC-31 (Blueprint aprovado), DEC-32 (Etapa 8 SQL autorizada)  
-**Referência técnica:** [ADR 0016 — Arquitetura de Unidades](adr/0016-onda0-units-architecture.md) · [Blueprint Onda 0 (Draft)](KORTEXOS_5_1_2_BLUEPRINT_ONDA_0_DRAFT.md) · [Red Team de desenho](KORTEXOS_5_1_2_BLUEPRINT_ONDA_0_REDTEAM.md) · [Red Team de implementação](KORTEXOS_5_1_2_ONDA_0_IMPLEMENTATION_REDTEAM.md)
+**Referência técnica:** [ADR 0016 — Arquitetura de Unidades](../../architecture/adr/0016-onda0-units-architecture.md) · [Blueprint Onda 0](KORTEXOS_5_1_2_BLUEPRINT_ONDA_0.md) · [Red Team de desenho](KORTEXOS_5_1_2_BLUEPRINT_ONDA_0_REDTEAM.md) · [Red Team de implementação](KORTEXOS_5_1_2_ONDA_0_IMPLEMENTATION_REDTEAM.md)
 
 ---
 
@@ -245,10 +245,10 @@ supabase/migrations/20260724115722_onda0_units_security_forward_fix.sql
 
 | Arquivo | Propósito |
 |---|---|
-| [ADR 0016](adr/0016-onda0-units-architecture.md) | Decisões arquiteturais (contexto, alternativas, consequências) |
-| [Blueprint Onda 0 Draft](KORTEXOS_5_1_2_BLUEPRINT_ONDA_0_DRAFT.md) | Especificação técnica (schema, constraints, RLS, triggers) |
+| [ADR 0016](../../architecture/adr/0016-onda0-units-architecture.md) | Decisões arquiteturais (contexto, alternativas, consequências) |
+| [Blueprint Onda 0](KORTEXOS_5_1_2_BLUEPRINT_ONDA_0.md) | Especificação técnica (schema, constraints, RLS, triggers) |
 | [Blueprint Onda 0 Red Team Report](KORTEXOS_5_1_2_BLUEPRINT_ONDA_0_REDTEAM.md) | Validação de design (gates, vulnerabilidades, evidências) |
-| [Decision Log DEC-31/32](KORTEXOS_5_1_2_DECISION_LOG.md) | Registro de aprovações e autorizações |
+| [Decision Log DEC-31/32](../../architecture/governance/KORTEXOS_5_1_2_DECISION_LOG.md) | Registro de aprovações e autorizações |
 | `supabase/migrations/20260723025006_*.sql` | Migration 1: schema + backfill + default-fill |
 | `supabase/migrations/20260723025439_*.sql` | Migration 2: hardening + immutability |
 | `supabase/migrations/20260724115722_*.sql` | Correção forward-only de segurança e contratos operacionais |

@@ -1,12 +1,12 @@
 # KortexOS 5.1.2 — Blueprint Onda 1: Payment Core
 
-**Status:** **Aprovado pelo Platform Owner em 2026-07-25 (DEC-34).** `$kortex-qa-redteam`: 1ª rodada NO-GO (5 achados: 2 críticos/altos de dinheiro e concorrência, 2 médios de autorização/overflow), 2ª rodada GO com 1 achado baixo residual, fechado nesta versão (§3.3, transição para `expired`). Decisões de desenho fechadas via `$grill-me` em 2026-07-25 (9 rodadas). Ver [ADR 0017](adr/0017-onda1-payment-core-arquitetura.md) para o detalhamento arquitetural. Próximo passo: Fatiamento (`$prd-to-issues`) — Etapa 8 (SQL) continua exigindo autorização própria, ainda não concedida.
-**Etapa:** 7 (Blueprint), iniciada após Migration Map v1.2 aprovado (DEC-24), item Onda 1 (D13 — Payment Core).
+**Status:** **APROVADO; REMEDIAÇÃO EM ANDAMENTO.** Blueprint aprovado pelo Platform Owner em 2026-07-25 (DEC-34). A autorização da Etapa 8 foi regularizada exclusivamente para a correção forward-only por DEC-38; a Onda permanece `PARCIAL` e `NO-GO` para `main`/produção até homologação e decisão formal de promoção. Ver [ADR 0017](../../architecture/adr/0017-onda1-payment-core-arquitetura.md) e [ADR 0018](../../architecture/adr/0018-onda1-integridade-financeira-imutavel.md).
+**Etapa:** 7 (Blueprint) concluída; Etapa 8 corretiva autorizada nos limites de DEC-38.
 **Escopo:** subconjunto de D13 — `payment_intents`, `psp_webhook_events`, `deposit_holds`, extensão de `services`. Exclui explicitamente `card_on_file_tokens` e `pix_automatico_mandates` (ver §1).
 
 ## 1. Autoridade e limites
 
-Este Blueprint materializa `docs/KORTEXOS_5_1_2_MIGRATION_MAP.md` (Onda 1, D13) e `docs/KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md` (D13 Payment Core, DEC-22 06.1–06.6). Nenhuma decisão de produto já fechada é reaberta aqui — só as lacunas que o Migration Map deixou em aberto para o Blueprint fechar.
+Este Blueprint materializa `docs/waves/KORTEXOS_5_1_2_MIGRATION_MAP.md` (Onda 1, D13) e `docs/KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md` (D13 Payment Core, DEC-22 06.1–06.6). Nenhuma decisão de produto já fechada é reaberta aqui — só as lacunas que o Migration Map deixou em aberto para o Blueprint fechar.
 
 **Exclusão deliberada de escopo:** `card_on_file_tokens` (exige consentimento LGPD/D26 registrado antes de qualquer linha; D26 não tem Migration Map nem código) e `pix_automatico_mandates` (depende de integração com Banco Central e do Subscription Engine/D18, sem Migration Map próprio) ficam **fora desta onda**, tratados como "adiado, reavaliar depois" — mesmo padrão que a Onda 4 já aplicou a `availability_slot_cache`. Não são abandonados: quando D26 e D18 existirem, entram como extensão aditiva deste Blueprint, não como redesenho.
 

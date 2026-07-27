@@ -16,19 +16,19 @@
 
 Leia nesta ordem antes de alterar código, SQL ou documentação:
 
-1. [`AGENTS.md`](../AGENTS.md) — invariantes, governança MAS e formato de handoff.
-2. [`docs/INDEX.md`](INDEX.md) — mapa da fonte única de verdade.
-3. [`KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md`](KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md) — visão vigente do produto.
-4. [`KORTEXOS_5_1_2_TRUTH_MAP.md`](KORTEXOS_5_1_2_TRUTH_MAP.md) e [`KORTEXOS_5_1_2_MIGRATION_MAP.md`](KORTEXOS_5_1_2_MIGRATION_MAP.md) — realidade técnica e lacunas aprovadas.
-5. [`KORTEXOS_5_1_2_BLUEPRINT_ONDA_0_DRAFT.md`](KORTEXOS_5_1_2_BLUEPRINT_ONDA_0_DRAFT.md) e [`KORTEXOS_5_1_2_BLUEPRINT_ONDA_0_REDTEAM.md`](KORTEXOS_5_1_2_BLUEPRINT_ONDA_0_REDTEAM.md) — desenho aprovado.
-6. [`KORTEXOS_5_1_2_ONDA_0_IMPLEMENTATION.md`](KORTEXOS_5_1_2_ONDA_0_IMPLEMENTATION.md), [`KORTEXOS_5_1_2_ONDA_0_IMPLEMENTATION_REDTEAM.md`](KORTEXOS_5_1_2_ONDA_0_IMPLEMENTATION_REDTEAM.md) e [`adr/0016-onda0-units-architecture.md`](adr/0016-onda0-units-architecture.md) — materialização, evidência e decisões.
+1. [`AGENTS.md`](../../../AGENTS.md) — invariantes, governança MAS e formato de handoff.
+2. [`docs/INDEX.md`](../../INDEX.md) — mapa da fonte única de verdade.
+3. [`KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md`](../../KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md) — visão vigente do produto.
+4. [`KORTEXOS_5_1_2_TRUTH_MAP.md`](../KORTEXOS_5_1_2_TRUTH_MAP.md) e [`KORTEXOS_5_1_2_MIGRATION_MAP.md`](../KORTEXOS_5_1_2_MIGRATION_MAP.md) — realidade técnica e lacunas aprovadas.
+5. [`KORTEXOS_5_1_2_BLUEPRINT_ONDA_0.md`](KORTEXOS_5_1_2_BLUEPRINT_ONDA_0.md) e [`KORTEXOS_5_1_2_BLUEPRINT_ONDA_0_REDTEAM.md`](KORTEXOS_5_1_2_BLUEPRINT_ONDA_0_REDTEAM.md) — desenho aprovado.
+6. [`KORTEXOS_5_1_2_ONDA_0_IMPLEMENTATION.md`](KORTEXOS_5_1_2_ONDA_0_IMPLEMENTATION.md), [`KORTEXOS_5_1_2_ONDA_0_IMPLEMENTATION_REDTEAM.md`](KORTEXOS_5_1_2_ONDA_0_IMPLEMENTATION_REDTEAM.md) e [`ADR 0016`](../../architecture/adr/0016-onda0-units-architecture.md) — materialização, evidência e decisões.
 7. `docs/legacy/mvp-tecnico/` somente para contexto histórico; não é fonte ativa de escopo.
 
 ## O que esta branch entrega
 
 ### Banco e segurança
 
-- Migration forward-only [`20260724115722_onda0_units_security_forward_fix.sql`](../supabase/migrations/20260724115722_onda0_units_security_forward_fix.sql).
+- Migration forward-only [`20260724115722_onda0_units_security_forward_fix.sql`](../../../supabase/migrations/20260724115722_onda0_units_security_forward_fix.sql).
 - RLS unit-aware para fatos transacionais, unidades e vínculos.
 - Comandos canônicos tenant-safe, `SECURITY DEFINER`, `search_path` fixo e `EXECUTE` somente para `service_role`.
 - `membership_set` legado sem execução pelo backend.
