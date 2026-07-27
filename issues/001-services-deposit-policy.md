@@ -1,6 +1,6 @@
 ## Parent Blueprint
 
-`docs/KORTEXOS_5_1_2_BLUEPRINT_ONDA_1_DRAFT.md` (DEC-34), §2.1 e §4 (`services` ALTER).
+`docs/waves/onda-1-payment-core/KORTEXOS_5_1_2_BLUEPRINT_ONDA_1.md` (DEC-34), §2.1 e §4 (`services` ALTER).
 
 ## What to build
 

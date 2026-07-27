@@ -4,6 +4,8 @@
 
 Implemented locally (DEC-38, 2026-07-26); homologation in `staging` and promotion authorization remain pending. There is no authorization for `main`/production.
 
+**Onda relacionada:** [Onda 1 — Payment Core](../../waves/onda-1-payment-core/KORTEXOS_5_1_2_BLUEPRINT_ONDA_1.md) · [Verification](../../waves/onda-1-payment-core/KORTEXOS_5_1_2_ONDA_1_REMEDIATION_VERIFICATION_2026_07_26.md)
+
 ## Date
 
 2026-07-26

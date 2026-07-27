@@ -12,7 +12,7 @@ We need to record the architectural decisions made on this project. Without a st
 
 ## Decision
 
-We will use Architecture Decision Records, as described by Michael Nygard. We will keep these records in the `docs/adr/` directory in the project repository. 
+We will use Architecture Decision Records, as described by Michael Nygard. We will keep these records in the `docs/architecture/adr/` directory in the project repository. 
 
 Each ADR will follow a simple, standardized format:
 - Title
