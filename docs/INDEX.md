@@ -24,6 +24,7 @@ Documentação de visão não autoriza schema, endpoint, tela, deploy ou promoç
 
 - [Parte I — Visão e Tese do Master Briefing](architecture/vision/KORTEXOS_5_1_2_MASTER_BRIEFING_VISAO_TESE.md)
 - [Decision Log](architecture/governance/KORTEXOS_5_1_2_DECISION_LOG.md) — DEC/D append-only e [matriz DEC ↔ ADR](architecture/governance/KORTEXOS_5_1_2_DECISION_LOG.md#matriz-cruzada-dec--adr).
+- [Protocolo de Automação Documental](architecture/governance/KORTEXOS_DOCUMENTATION_AUTOMATION_PROTOCOL.md) — regra prospectiva de Docs-as-Code para agentes (DEC-43).
 - [ADRs](architecture/adr/) — decisões técnicas e seus vínculos com ondas.
 - [Global Benchmark Map](architecture/vision/KORTEXOS_5_1_2_GLOBAL_BENCHMARK_MAP.md)
 - [Comparative Proposal](architecture/vision/KORTEXOS_5_1_2_COMPARATIVE_PROPOSAL.md)
@@ -50,7 +51,7 @@ Documentação de visão não autoriza schema, endpoint, tela, deploy ou promoç
 
 ## Issues executáveis
 
-- [Índice de issues](../issues/README.md) — rastreabilidade por onda, PRD e estado de execução. Os arquivos de issue permanecem no caminho estável `issues/` para não quebrar a cadeia DEC → Blueprint → Issue → código.
+- [Índice de issues](../issues/README.md) — rastreabilidade por onda, PRD e estado de execução. Issues concluídas passam por `issues/completed/` somente com atualização de todos os links de entrada; as demais permanecem no caminho estável `issues/`.
 
 ## Arquivo histórico
 

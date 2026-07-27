@@ -4,7 +4,7 @@ As issues são o elo entre Blueprint e implementação. Este índice organiza a 
 
 ## Ciclo de vida
 
-Uma issue só muda de estado por evidência física e decisão registrada. Checklist de aceite concluído não equivale a promoção de ambiente; promoção exige os gates definidos em `AGENTS.md`. Issues históricas não são apagadas nem arquivadas automaticamente.
+Uma issue só muda de estado por evidência física e decisão registrada. Checklist de aceite concluído não equivale a promoção de ambiente; promoção exige os gates definidos em `AGENTS.md`. Uma issue realmente concluída é movida para [`issues/completed/`](completed/README.md) somente no mesmo turno em que todos os seus links de entrada e o `docs/INDEX.md` forem atualizados; issues sem essa evidência permanecem no caminho estável atual.
 
 | Onda | Issues | Estado documental | Evidência / dependência |
 |---|---|---|---|

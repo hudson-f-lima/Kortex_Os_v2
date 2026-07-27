@@ -7,6 +7,7 @@
 3. `docs/KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md` (visão vigente)
 4. `docs/waves/KORTEXOS_5_1_2_TRUTH_MAP.md` + `docs/waves/KORTEXOS_5_1_2_MIGRATION_MAP.md` (realidade técnica atual + próximos objetos)
 5. habilidade aplicável em `.agents/skills/`
+6. Para qualquer mudança documental, `docs/architecture/governance/KORTEXOS_DOCUMENTATION_AUTOMATION_PROTOCOL.md`
 
 A construção do MVP técnico (Fases 1–11, Trilhas A–E) foi encerrada formalmente em 2026-07-20 (DEC-29). `docs/legacy/mvp-tecnico/PROJECT_STATE.md` e `docs/legacy/mvp-tecnico/KORTEX_MVP_TECNICO.md` continuam corretos sobre o que está em produção hoje, mas não são mais lidos como fonte ativa de escopo — consulte-os só para contexto histórico.
 
@@ -29,6 +30,15 @@ O MVP entregue e em produção — ERP vertical multi-tenant mínimo para beleza
 - Exemplos antigos podem inspirar testes, nunca definir a arquitetura.
 - A interface (PWA) DEVE usar exclusivamente os componentes primitivos do Kortex Design System (`<Button>`, `<Input>`, `<Badge>`, etc.) localizados em `ui/primitives`, nunca tags HTML nativas. A tela principal (Agenda) usa obrigatoriamente layout em Timeline Vertical.
 
+## Governança documental & Docs-as-Code
+
+- **Diátaxis obrigatório:** nenhum novo arquivo Markdown pode nascer solto na raiz de `docs/`. Classifique-o em `docs/architecture/` (visão, ADRs, decisões e governança), `docs/waves/` (Truth/Migration Map, Blueprints e evidências por onda), `docs/reference/` (dicionários, especificações e políticas) ou `docs/how-to/` (procedimentos operacionais e testes).
+- **Transição não destrutiva:** `docs/INDEX.md` e o entry point do Master na raiz de `docs/` são exceções de navegação. Conteúdo histórico só é movido por tarefa explícita, com todos os links de entrada atualizados no mesmo turno.
+- **Frontmatter para artefatos novos:** todo Markdown novo criado por agente em `docs/` (exceto `docs/legacy/`) ou `issues/` começa com YAML contendo `title`, `status`, `stage`, `governance_ref`, `upstream_doc` e `last_updated` (`YYYY-MM-DD`). Use `[]` ou `null` quando não houver referência real; nunca invente DEC/ADR. Arquivos de instrução (`AGENTS.md`) e `SKILL.md` seguem seus próprios frontmatters.
+- **Atualização em cadeia, no mesmo turno:** ao criar/alterar Blueprint, atualize a issue rastreável; ao registrar decisão técnica, crie/atualize a ADR e a matriz DEC↔ADR; ao criar documento novo ou alterar seu estado/navegação, atualize `docs/INDEX.md`. Issue realmente concluída só vai para `issues/completed/` após atualizar todas as referências de entrada no mesmo turno.
+- **Supersessão explícita:** quando uma regra for integralmente revogada, registre `STATUS: SUPERSEDED BY [DEC/ADR]` no cabeçalho do artefato anterior. Para alteração parcial, declare expressamente o escopo afetado e mantenha o restante como vigente; não falsifique uma supersessão total.
+- **Validação:** antes do handoff, valide links Markdown locais afetados e preencha `DOCUMENTATION_CHECK` conforme o protocolo canônico.
+
 ## Processo MAS
 
 Usar `$kortex-mvpt-orchestrator`. Delegar por domínio com ownership exclusivo de arquivos. Classificar evidência como `REAL`, `PARCIAL`, `MOCKADO`, `HARDCODED`, `CRÍTICO`, `BLOQUEADO`, `DESCONHECIDO`, `OBSOLETO` ou `CONTRADITÓRIO`.
@@ -48,4 +58,9 @@ BLOCKERS_REMAINING:
 - <pendências>
 VEREDITO:
 - <estado e próximo passo>
+DOCUMENTATION_CHECK:
+- [ ] O novo documento atende ao padrão Diátaxis (ou a exceção histórica foi registrada)?
+- [ ] O frontmatter YAML foi preenchido quando aplicável?
+- [ ] O `docs/INDEX.md` foi atualizado quando houve novo documento, estado ou navegação?
+- [ ] Alguma ADR ou DEC foi criada, afetada ou superada?
 ```

@@ -1,7 +1,7 @@
 # ADR 0017: Onda 1 — Arquitetura de Payment Core (Depósito, No-show e Reconciliação)
 
 ## Status
-Accepted (DEC-34, 2026-07-25). **Refinado por ADR 0018** para os contratos de integridade financeira, lifecycle de hold e homologação forward-only da Onda 1; este ADR continua sendo o registro da arquitetura-base de Payment Core.
+Accepted (DEC-34, 2026-07-25). **STATUS: SUPERSEDED BY [ADR 0018](0018-onda1-integridade-financeira-imutavel.md) somente para a identidade financeira do depósito, o vínculo depósito↔agendamento↔comanda, o checkout de agendamento e o lifecycle do hold.** O restante deste ADR continua sendo o registro aceito da arquitetura-base de Payment Core.
 
 **Onda relacionada:** [Onda 1 — Payment Core](../../waves/onda-1-payment-core/KORTEXOS_5_1_2_BLUEPRINT_ONDA_1.md) · [Migration Map](../../waves/KORTEXOS_5_1_2_MIGRATION_MAP.md)
 
