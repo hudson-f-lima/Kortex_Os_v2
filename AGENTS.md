@@ -38,12 +38,23 @@ O MVP entregue e em produção — ERP vertical multi-tenant mínimo para beleza
 - **Atualização em cadeia, no mesmo turno:** ao criar/alterar Blueprint, atualize a issue rastreável; ao registrar decisão técnica, crie/atualize a ADR e a matriz DEC↔ADR; ao criar documento novo ou alterar seu estado/navegação, atualize `docs/INDEX.md`. Issue realmente concluída só vai para `issues/completed/` após atualizar todas as referências de entrada no mesmo turno.
 - **Supersessão explícita:** quando uma regra for integralmente revogada, registre `STATUS: SUPERSEDED BY [DEC/ADR]` no cabeçalho do artefato anterior. Para alteração parcial, declare expressamente o escopo afetado e mantenha o restante como vigente; não falsifique uma supersessão total.
 - **Validação:** antes do handoff, valide links Markdown locais afetados e preencha `DOCUMENTATION_CHECK` conforme o protocolo canônico.
+- **Otimizações Obrigatórias de Código (DEC-44):** toda nova Onda do Migration Map (Onda 3 em diante) DEVE incorporar as 4 Otimizações de Pipeline: (1) Dark Launching via Feature Flags na chave `organizations.settings`; (2) Pre-flight Check SQL asserções em migrations; (3) TDD com Mocks de API + pgTAP no Express; (4) Rastreabilidade automática via Git Commit (`closes issues/NNN`).
 
 ## Processo MAS
 
 Usar `$kortex-mvpt-orchestrator`. Delegar por domínio com ownership exclusivo de arquivos. Classificar evidência como `REAL`, `PARCIAL`, `MOCKADO`, `HARDCODED`, `CRÍTICO`, `BLOQUEADO`, `DESCONHECIDO`, `OBSOLETO` ou `CONTRADITÓRIO`.
 
 Toda promoção entre branches/ambientes (feature → `staging`, `staging` → `main`) passa por `$kortex-environment-guardian`, que confirma a origem/destino corretos e a ausência de cruzamento entre os valores de staging e produção. Ele aciona `$kortex-delivery-guardian` como gate final antes de qualquer merge em `main` — cujo veredito passa a significar "seguro para promover a produção", não apenas "seguro para publicar".
+
+## Gatilho Direto de Execução de Ondas (Zero Fricção)
+
+Quando o usuário disser simplesmente **"iniciar onda N"** (ex.: "iniciar onda 3", "iniciar onda 4"):
+O agente DEVE reconhecer o comando de forma implícita e executar automaticamente todo o pipeline da Onda solicitada sem exigir que o usuário cole prompts técnicos:
+1. Consultar a lacuna da Onda no `docs/waves/KORTEXOS_5_1_2_MIGRATION_MAP.md` e a visão no `docs/KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md`.
+2. Apresentar uma breve entrevista de alinhamento simples se houver alguma decisão de produto em aberto.
+3. Criar o Blueprint em `docs/waves/onda-N/BLUEPRINT_ONDA_N.md` com YAML Frontmatter, Feature Flag (`organizations.settings`) e Pre-flight Check (DEC-44).
+4. Gerar o fatiamento vertical em `issues/NNN-titulo.md` para desenvolvimento TDD com pgTAP/Jest.
+
 
 ## Trilha ativa: KortexOS 5.1.2
 
