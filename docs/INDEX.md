@@ -19,6 +19,7 @@ Documentação de visão não autoriza schema, endpoint, tela, deploy ou promoç
 | Onda 0 — Units | **REAL**; blueprint aprovado, implementação validada e em `staging` | Não autoriza produção por si só | [Onda 0](waves/onda-0-units/) |
 | Onda 1 — Payment Core | **PARCIAL**; correção forward-only autorizada por DEC-38 | `NO-GO` para `main`/produção até homologação e decisão formal | [Onda 1](waves/onda-1-payment-core/) |
 | Onda 2 — KortexFlow Ledger | **REAL local**; fatias 012–016 e hardening de ledger regularizados por DEC-42 | `NO-GO` para `staging`/`main` até Environment Guardian, Delivery Guardian e homologação | [Onda 2](waves/onda-2-kortexflow-ledger/) |
+| Onda 3 — Compensation | **BLUEPRINT APROVADO**; rascunho e correções do Red Team em `staging` | Aguarda fatiamento TDD e execução | [Onda 3](waves/onda-3-compensation/) |
 
 ## Arquitetura e decisões
 
@@ -44,6 +45,7 @@ Documentação de visão não autoriza schema, endpoint, tela, deploy ou promoç
 - [Onda 0 — Units](waves/onda-0-units/) — blueprint, Red Team, implementação e handoff.
 - [Onda 1 — Payment Core](waves/onda-1-payment-core/) — blueprint e verificação corretiva.
 - [Onda 2 — KortexFlow Ledger](waves/onda-2-kortexflow-ledger/) — blueprint da fundação sem ativação.
+- [Onda 3 — Compensation](waves/onda-3-compensation/) — blueprint de Staff Levels & Comissão de Venda.
 
 ## Como fazer
 
