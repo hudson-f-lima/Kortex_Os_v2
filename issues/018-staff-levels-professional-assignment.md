@@ -12,13 +12,13 @@ Nenhuma cascata de resolução nasce nesta fatia — isso é a 019.
 
 ## Acceptance criteria
 
-- [ ] Migration aditiva cria `staff_levels` (`id`, `organization_id`, `name`, `rank`, `active`, `created_at`/`updated_at`) com unicidade `(organization_id, id)`, `(organization_id, name)`, `(organization_id, rank)`
-- [ ] Migration aditiva adiciona `professionals.staff_level_id` nullable, FK composta `(organization_id, staff_level_id) references staff_levels(organization_id, id) on delete restrict`
-- [ ] Pre-flight check (DEC-44): confere `to_regclass('public.professionals') is not null` antes de criar a FK nova
-- [ ] RLS `staff_levels`: SELECT `is_member`; INSERT/UPDATE `owner`/`admin`/`manager`; DELETE `owner`/`admin`
-- [ ] `staff_level_id` aceita `null` (profissional sem nível atribuído continua funcionando normalmente, nenhum `CHECK`/trigger força preenchimento)
-- [ ] Tentar apontar `staff_level_id` para um nível de outra organização falha por violação de FK composta (teste de cruzamento de tenant)
-- [ ] pgTAP: CRUD básico de `staff_levels` respeitando RLS por papel; `professionals.staff_level_id` aceita null e aceita nível válido da mesma org; rejeita nível de outra org; `DELETE` de nível referenciado por profissional é bloqueado (`on delete restrict`)
+- [x] Migration aditiva cria `staff_levels` (`id`, `organization_id`, `name`, `rank`, `active`, `created_at`/`updated_at`) com unicidade `(organization_id, id)`, `(organization_id, name)`, `(organization_id, rank)`. `supabase/migrations/20260728010000_onda3_staff_levels_professional_assignment.sql`
+- [x] Migration aditiva adiciona `professionals.staff_level_id` nullable, FK composta `(organization_id, staff_level_id) references staff_levels(organization_id, id) on delete restrict`. Mesma migration
+- [x] Pre-flight check (DEC-44): confere `to_regclass('public.professionals') is not null` (e `organizations`, e que `staff_levels`/`staff_level_id` ainda não existem) antes de criar a FK nova
+- [x] RLS `staff_levels`: SELECT `is_member`; INSERT/UPDATE `owner`/`admin`/`manager`; DELETE `owner`/`admin`
+- [x] `staff_level_id` aceita `null` (profissional sem nível atribuído continua funcionando normalmente, nenhum `CHECK`/trigger força preenchimento)
+- [x] Tentar apontar `staff_level_id` para um nível de outra organização falha por violação de FK composta (teste de cruzamento de tenant)
+- [x] pgTAP: CRUD básico de `staff_levels` respeitando RLS por papel; `professionals.staff_level_id` aceita null e aceita nível válido da mesma org; rejeita nível de outra org; `DELETE` de nível referenciado por profissional é bloqueado (`on delete restrict`). `supabase/tests/rls_staff_levels_test.sql` — 19/19 assertions, suíte completa 598/598 (`supabase test db`, evidência bruta: `Result: PASS`), sem regressão nos 35 arquivos pré-existentes
 
 ## Blocked by
 

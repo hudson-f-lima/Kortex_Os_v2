@@ -2,8 +2,13 @@
 -- Blueprint §2/§3.4/§3.5/§3.6/§3.8/§4, DEC-46):
 -- packages.sale_commission_*, private.resolve_sale_commission(),
 -- commission_sale_records, commission_sale_record_create().
+-- Estendido pela fatia 021 (issues/021-order-items-package-linkage.md,
+-- DEC-48): commission_sale_record_create() agora exige que o pacote
+-- esteja de fato entre os order_items do pedido e calcula a comissão
+-- sobre o valor cobrado (sum(order_items.total_cents)), não o preço de
+-- tabela do pacote.
 BEGIN;
-SELECT plan(27);
+SELECT plan(29);
 
 CREATE FUNCTION pg_temp.mk_user(p_email text) RETURNS uuid
 LANGUAGE sql AS $$
@@ -167,6 +172,36 @@ SELECT is(
   'a package with sale_commission configured resolves to the exact stored value (flat field, no cascade)'
 );
 
+-- === fatia 021 (DEC-48): fixtures do vínculo pacote↔pedido ===
+-- commission_sale_record_create agora exige que o package_id apareça em
+-- order_items daquele order_id — sem isso, checkout_close nunca teria
+-- gravado essa venda. As chamadas de RPC abaixo que esperam sucesso
+-- (package_with_commission/package_no_commission em order1) precisam desse
+-- vínculo; package_not_sold fica deliberadamente sem order_items para
+-- provar a rejeição.
+INSERT INTO public.service_groups (organization_id, name, default_commission_type, default_commission_value)
+  VALUES (:'org1'::uuid, 'Grupo Venda Pacote', 'percentage', 1000)
+  RETURNING id AS group_sale \gset
+INSERT INTO public.services (organization_id, name, price_cents, duration_minutes, service_group_id)
+  VALUES (:'org1'::uuid, 'Servico do Pacote', 10000, 60, :'group_sale'::uuid)
+  RETURNING id AS service_pkg \gset
+INSERT INTO public.order_items (organization_id, order_id, kind, service_id, description, quantity, unit_price_cents, total_cents, professional_id, package_id)
+  VALUES
+    (:'org1'::uuid, :'order1'::uuid, 'service', :'service_pkg'::uuid, 'Servico do Pacote Com Comissao', 1, 10000, 10000, :'seller1'::uuid, :'package_with_commission'::uuid),
+    (:'org1'::uuid, :'order1'::uuid, 'service', :'service_pkg'::uuid, 'Servico do Pacote Sem Comissao', 1, 8000, 8000, :'seller1'::uuid, :'package_no_commission'::uuid);
+
+INSERT INTO public.packages (organization_id, name, price_cents, sale_commission_type, sale_commission_value)
+  VALUES (:'org1'::uuid, 'Pacote Nao Vendido', 5000, 'percentage', 1000)
+  RETURNING id AS package_not_sold \gset
+
+INSERT INTO public.packages (organization_id, name, price_cents, sale_commission_type, sale_commission_value)
+  VALUES (:'org1'::uuid, 'Pacote Com Desconto', 10000, 'percentage', 1000)
+  RETURNING id AS package_discounted \gset
+INSERT INTO public.orders (organization_id, subtotal_cents, total_cents, created_by)
+  VALUES (:'org1'::uuid, 8000, 8000, :'owner1'::uuid) RETURNING id AS order_discounted \gset
+INSERT INTO public.order_items (organization_id, order_id, kind, service_id, description, quantity, unit_price_cents, total_cents, professional_id, package_id)
+  VALUES (:'org1'::uuid, :'order_discounted'::uuid, 'service', :'service_pkg'::uuid, 'Servico do Pacote Com Desconto', 1, 8000, 8000, :'seller1'::uuid, :'package_discounted'::uuid);
+
 -- === commission_sale_record_create() ===
 SELECT throws_ok(
   format(
@@ -176,6 +211,15 @@ SELECT throws_ok(
   '42501',
   NULL,
   'an actor without owner/admin/manager/reception role is rejected'
+);
+SELECT throws_ok(
+  format(
+    $sql$select public.commission_sale_record_create(%L, %L, 'k-not-sold-001', %L, %L, %L)$sql$,
+    :'org1', :'owner1', :'order1', :'package_not_sold', :'seller1'
+  ),
+  'P0002',
+  NULL,
+  'a package not present among order_items of that order is rejected (fatia 021, DEC-48 — fixes P1)'
 );
 
 SELECT throws_ok(
@@ -239,7 +283,12 @@ SELECT is(
 SELECT is(
   (public.commission_sale_record_create(:'org1'::uuid, :'owner1'::uuid, 'k-sell-001', :'order1'::uuid, :'package_with_commission'::uuid, :'seller1'::uuid) ->> 'commission_cents')::bigint,
   1500::bigint,
-  'commission_cents is computed with the same percentage formula as checkout_close (round(package price_cents * commission_value / 10000))'
+  'commission_cents uses the same percentage formula as checkout_close, over the value charged in this order (here order_items.total_cents = 10000, same as list price, so both bases agree)'
+);
+SELECT is(
+  (public.commission_sale_record_create(:'org1'::uuid, :'owner1'::uuid, 'k-discount-001', :'order_discounted'::uuid, :'package_discounted'::uuid, :'seller1'::uuid) ->> 'commission_cents')::bigint,
+  800::bigint,
+  'commission_cents is computed on the value actually charged (order_items.total_cents = 8000), not packages.price_cents (10000) — proves the fatia 021 fix, not a coincidence'
 );
 SELECT is(
   (
