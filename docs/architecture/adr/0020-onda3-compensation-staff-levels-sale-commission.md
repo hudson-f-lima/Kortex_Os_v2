@@ -1,7 +1,7 @@
 # ADR 0020: Onda 3 — Compensation: Staff Levels & Comissão de Venda (Fundação sem Ativação)
 
 ## Status
-Proposed (rascunho, 2026-07-27). Aguarda `$kortex-qa-redteam` (gate de desenho) e aprovação explícita do Platform Owner (DEC própria) antes de virar Accepted.
+Proposed (rascunho, 2026-07-27). 1ª rodada `$kortex-qa-redteam` (agente independente): `NO-GO`, 1 achado crítico (`staff_level_id` nullable contradizendo "Obrigatório" do Master §6.1 sem desvio registrado) + 6 achados menores (ver Blueprint Onda 3 §0/§3.1/§3.4/§4/§8 para a lista completa e a correção de cada um). Todos corrigidos nesta revisão da ADR. Aguarda 2ª rodada de red team e aprovação explícita do Platform Owner (DEC própria) antes de virar Accepted.
 
 **Onda relacionada:** [Onda 3 — Compensation](../../waves/onda-3-compensation/KORTEXOS_5_1_2_BLUEPRINT_ONDA_3.md) · [Migration Map](../../waves/KORTEXOS_5_1_2_MIGRATION_MAP.md)
 
@@ -19,7 +19,7 @@ A DEC-29 (encerramento do MVP) descreve Sessões de Caixa/Void (ADR 0007, Accept
 ### Motivações
 
 1. **Sequenciamento já decidido (Migration Map §4):** `resolve_commission()` fica intocada; comissão de venda é função própria e independente (decisão 2). Nenhum objeto desta Onda tem dependência estrutural que force tocar `checkout_close`.
-2. **Achado de código real:** `checkout_close` (`supabase/migrations/20260713060000_professional_commissions_checkout.sql:203-206,268-271`) resolve preço lendo `services.price_cents` direto — nunca consulta `professional_service_capabilities`, apesar dela existir desde a Fase 10. O override de preço/tempo por profissional já não tem efeito real hoje; é um gap pré-existente, não desta Onda.
+2. **Achado de código real (revisado após red team — a alegação original sobre duração estava errada):** `checkout_close` (definição vigente: `supabase/migrations/20260726190000_onda1_checkout_close_deposit_appointment_guard.sql`) resolve preço lendo `services.price_cents` direto — nunca consulta `professional_service_capabilities.price_override_cents`. Esse gap é real só para PREÇO. Para DURAÇÃO, `create_appointment`/`update_appointment` (`supabase/migrations/20260716150000_fase_opcao_c_elegibilidade_snapshot.sql:245-251,376-382`) já consultam `professional_service_capabilities.duration_override_minutes` via `coalesce`, ativo em produção — só o nível 2 (staff level) seria integração nova ali.
 3. **Precedente de risco (DEC-36):** a fatia 004 da Onda 1 (tocar `checkout_close`) produziu o único bug crítico pós-merge do projeto até agora. Qualquer ativação de cascata de preço ou de comissão de venda dentro de `checkout_close` é, por construção, da mesma classe de risco.
 4. **Ledger ainda não ativado (ADR 0019):** a Onda 2 é fundação sem produtor real, `NO-GO` para `staging`/`main`. Empilhar o primeiro produtor real do ledger em cima de uma fundação não promovida amplia o raio de explosão sem necessidade.
 
@@ -44,6 +44,8 @@ Como a Onda 2, esta Onda constrói schema e funções de resolução (`resolve_s
 
 **Alternativa rejeitada:** tabela `professional_level_history` com `valid_from`/`valid_to`. Rejeitada — nenhum consumidor real precisa de "qual era o nível numa data passada"; complexidade temporal paga sem necessidade comprovada.
 
+**Achado crítico do red team, corrigido com desvio registrado:** o Master §6.1 declara nível "Obrigatório", mas `staff_level_id` nasce `nullable`. Resolução: a obrigatoriedade é regra de **ativação** (aplicada pelo backend quando a organização liga `staff_levels_enabled` e tenta usar a feature), não de **fundação** (banco). Forçar `not null` nesta Onda travaria `INSERT`/`UPDATE` de `professionals` em toda organização existente, já que `staff_levels` nasce vazia por org — não há nível nenhum para apontar até o owner cadastrar um. Ver Blueprint Onda 3 §3.1 para o texto completo do desvio.
+
 ### `staff_level_service_overrides`: uma tabela, 3 eixos, só 2 com função de resolução
 
 A tabela carrega preço/duração/comissão por nível×serviço (bate com a regra de negócio do Master §6.1). Mas só preço/duração ganham função de resolução (`resolve_service_pricing`) nesta Onda — comissão fica gravada, não consumida, porque `resolve_commission()` está marcada "Intocada, decidido" no Migration Map.
@@ -61,6 +63,12 @@ A tabela carrega preço/duração/comissão por nível×serviço (bate com a reg
 **Alternativa rejeitada:** assumir vendedor = profissional do primeiro item do pacote. Rejeitada — contradiz o texto literal da DEC-15; um default plausível que resolve a pergunta errada é pior que deixar a pergunta em aberto e registrada.
 
 **Alternativa rejeitada:** adicionar `seller_professional_id` ao payload de `checkout_close` nesta Onda. Rejeitada — exigiria alterar a RPC financeira mais crítica do sistema para um campo que hoje não tem nenhuma superfície de UI que o colete; a mudança de UI (perguntar "quem vendeu" no checkout) é uma decisão de produto pequena mas real, fora do escopo que este Blueprint assume por conta própria.
+
+**Precedente citado corrigido após red team:** a redação original citava `no_show_settlement_create` (Onda 1, fatia 005) como modelo de "RPC pronta esperando ativação limpa" — achado do red team mostrou que essa RPC foi ativada, depois substituída por um trigger, e hoje não tem nenhum chamador (abandonada, não "aguardando"). O precedente correto é `deposit_hold_create` (Onda 1, fatia 003): RPC nova chamada pelo backend Express logo após `create_appointment`, sem alterar seu corpo, e **ativa em produção hoje** (`backend/src/modules/appointments/appointments.service.js`) — precedente real de "RPC isolada, ativada por chamada externa, sem tocar a RPC principal".
+
+**Achado menor do red team, corrigido — unicidade de negócio removida.** A redação original propunha `unique (organization_id, order_id, package_id, professional_id)` em `commission_sale_records`. Errado: `checkout_close` não deduplica entradas repetidas de `kind='package'` no payload — vender o mesmo pacote 2× no mesmo pedido pelo mesmo vendedor é cenário legítimo, e essa constraint bloquearia a 2ª comissão. Corrigido: sem unicidade de chave de negócio (mesmo padrão de `order_items`, só `id` como PK); exclusividade fica 100% a cargo de `p_idempotency_key`, com o chamador compondo uma chave distinta por unidade de pacote vendida.
+
+**Achados menores adicionais do red team, corrigidos sem alternativa a documentar (consistência, não trade-off):** FK de `order_id` em `commission_sale_records` ampliada para o padrão de 3 colunas `(organization_id, order_id, unit_id) references orders(organization_id, id, unit_id)` já usado por `order_items`/`payments`/`inventory_movements`; `on delete restrict` explícito em todas as FKs de `commission_sale_records`; `set search_path = pg_catalog, public, private` adicionado a `resolve_sale_commission()`/`commission_sale_record_create()` (presente em toda outra função `security definer` do projeto, ausente na primeira redação); índice `staff_level_service_overrides_service_idx on (organization_id, service_id)` adicionado, espelhando `professional_service_capabilities_service_idx`.
 
 ### Sem postagem no ledger — `commission_sale_records` sozinha, `kortex_ledger_transaction_id` nullable reservado
 

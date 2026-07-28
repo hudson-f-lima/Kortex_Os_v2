@@ -175,11 +175,17 @@ Nenhum caller existente quebra: confirmado por leitura de `backend/src/` e das m
 
 ## 8. Riscos registrados para follow-up (não resolvidos por este Blueprint)
 
-1. **Achado §0 (pré-existente):** `professional_service_capabilities` (Fase 10) nunca foi ligada a `checkout_close` — preço/duração override não tem efeito real hoje. Esta Onda não corrige; só evita empilhar mais uma camada não-ativada sem registrar o fato.
+1. **Achado §0 (pré-existente, revisado):** `professional_service_capabilities.price_override_cents` nunca foi ligada a `checkout_close` — override de preço não tem efeito real hoje. `duration_override_minutes` **já está ativa** em `create_appointment`/`update_appointment` (correção do red team — não é o mesmo gap para os dois eixos). Esta Onda não ativa nenhum dos dois para o nível 2 (staff level); só evita empilhar mais uma camada não-ativada sem registrar o fato.
 2. **"Quem vendeu" não existe no payload de checkout (§3.4):** `commission_sale_record_create` está pronta, mas sem call site até uma decisão de UI capturar o vendedor do pacote, distinto de quem executa.
 3. **Divergência temporária Master §6.2 vs. implementação (§3.3):** nível pode, por regra de negócio, afetar comissão — `resolve_commission()` não considera isso ainda.
 4. **Ativação do ledger para comissão de venda (§3.5):** `commission_sale_records` não posta em `kortex_ledger_entries` — depende de uma Onda de ativação do ledger que ainda não existe (nem para Onda 2, que segue `NO-GO`).
+5. **"Obrigatório" vs. `nullable` (§3.1, achado crítico do red team, corrigido com desvio registrado):** `staff_level_id` fica nullable nesta Onda; a obrigatoriedade do Master §6.1 vira regra de validação de aplicação quando a organização ativar a feature, não `CHECK` de banco nesta fundação.
+6. **Contrato de idempotência de `commission_sale_record_create` (§4, achado do red team, corrigido removendo unicidade de negócio):** o backend precisa compor `p_idempotency_key` distinto por unidade de pacote vendida no mesmo pedido (não existe mais constraint de banco pegando esse caso) — responsabilidade explícita do call site quando ele for construído.
+
+## 9. Evidência do red team de desenho (1ª rodada)
+
+Revisão adversarial independente (agente dedicado, sem acesso às minhas próprias conclusões) confrontou este Blueprint linha a linha contra `checkout_close`, `create_appointment`, `professional_service_capabilities`, `professional_service_commissions`, a ADR 0019 e o Decision Log. Veredito: `NO-GO`, 1 achado crítico + 6 menores, todos listados e corrigidos em §0/§3.1/§3.4/§4/§8 acima — nenhum achado foi descartado sem correção ou justificativa explícita. Gates avaliados: Tenant Isolation (`PASS COM RISCO ACEITO` → corrigido para `PASS` ao adotar a FK composta de 3 colunas em `commission_sale_records.order_id`), Staff Privacy/Gate 02 (`PASS`), Commission Accuracy/Gate 14 (`FAIL` → achados corrigidos), decisões de produto fechadas (`FAIL` → desvio de "Obrigatório" registrado explicitamente), dinheiro/`_cents` (`PASS` desde a 1ª redação).
 
 ---
 
-Depois de redigido, este documento segue para `$kortex-qa-redteam` (gate de desenho) antes de qualquer pedido de aprovação ao Platform Owner.
+Depois de redigido, este documento segue para uma 2ª rodada de `$kortex-qa-redteam` (confirmando os 7 achados fechados) antes de qualquer pedido de aprovação ao Platform Owner.
