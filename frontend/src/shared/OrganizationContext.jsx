@@ -122,6 +122,8 @@ export function OrganizationProvider({ children }) {
   const value = {
     organizations,
     organizationId,
+    organization: current,
+    settings: current?.settings || {},
     role: current?.role ?? null,
     loading,
     error,

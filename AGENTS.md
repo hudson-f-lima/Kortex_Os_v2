@@ -28,7 +28,7 @@ O MVP entregue e em produção — ERP vertical multi-tenant mínimo para beleza
 - Dinheiro usa centavos inteiros; checkout é atômico e idempotente.
 - Migrations são criadas pela Supabase CLI e testadas em ambiente local/descartável antes de produção.
 - Exemplos antigos podem inspirar testes, nunca definir a arquitetura.
-- A interface (PWA) DEVE usar exclusivamente os componentes primitivos do Kortex Design System (`<Button>`, `<Input>`, `<Badge>`, etc.) localizados em `ui/primitives`, nunca tags HTML nativas. A tela principal (Agenda) usa obrigatoriamente layout em Timeline Vertical.
+- A interface (PWA) DEVE usar exclusivamente os componentes primitivos do Kortex Design System (`<Button>`, `<Input>`, `<Badge>`, `<ActionRequestModal>`, etc.) localizados em `ui/primitives`, nunca tags HTML nativas. A tela principal (Agenda) usa obrigatoriamente layout em Timeline Vertical. Todo novo modal DEVE usar a casca compartilhada `<Modal size="sm"|"md"|"lg"|"xl">` com rolagem interna (`max-height: 90vh`) e comportamento de Bottom-Sheet em telas móveis (`< 640px`). Legendagem deve seguir o contraste mínimo WCAG AAA com fonte mínimo de `0.75rem`. Novas capacidades de Ondas DEVEM usar o hook `useFeatureFlag('flag_name')` para respeitar o Dark Launching (DEC-44/DEC-45).
 
 ## Governança documental & Docs-as-Code
 
