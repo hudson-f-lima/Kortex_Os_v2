@@ -12,14 +12,14 @@ Comissão por nível fica gravada na tabela mas **não** é consultada por `priv
 
 ## Acceptance criteria
 
-- [ ] Migration aditiva cria `staff_level_service_overrides` (`id`, `organization_id`, `staff_level_id`, `service_id`, `duration_override_minutes` nullable `check between 5 and 1440`, `price_override_cents` nullable `check >= 0`, `commission_type`/`commission_value` nullable com par obrigatório e teto de 10000 basis points, `created_at`/`updated_at`)
-- [ ] Unicidade `(organization_id, staff_level_id, service_id)`; FKs compostas para `staff_levels` e `services`, ambas `on delete restrict`
-- [ ] Índice `staff_level_service_overrides_service_idx on (organization_id, service_id)` (achado do red team de desenho — espelha `professional_service_capabilities_service_idx`)
-- [ ] Pre-flight check (DEC-44): confere `to_regclass('public.staff_levels') is not null` antes de criar a FK composta
-- [ ] `private.resolve_service_pricing()` criada, `stable security definer set search_path = pg_catalog, public, private`, `revoke all from public, anon, authenticated`
-- [ ] pgTAP de `resolve_service_pricing`: sem nenhum override, retorna preço/duração base do serviço; com só override de nível, usa o do nível; com override profissional×serviço E de nível, o profissional×serviço vence (mais específico); profissional sem `staff_level_id` cai direto no nível 3 (base)
-- [ ] RLS `staff_level_service_overrides`: SELECT `owner`/`admin`/`manager` (sem `reception` — carrega comissão, tratamento mais estrito que `professional_service_capabilities`); INSERT/UPDATE `owner`/`admin`/`manager`; DELETE `owner`/`admin`
-- [ ] Confirmar por leitura direta (teste de regressão, não só leitura): `checkout_close`/`create_appointment` continuam funcionando exatamente como hoje — nenhuma chamada nova a `resolve_service_pricing` foi introduzida em nenhum dos dois
+- [x] Migration aditiva cria `staff_level_service_overrides` (`id`, `organization_id`, `staff_level_id`, `service_id`, `duration_override_minutes` nullable `check between 5 and 1440`, `price_override_cents` nullable `check >= 0`, `commission_type`/`commission_value` nullable com par obrigatório e teto de 10000 basis points, `created_at`/`updated_at`). `supabase/migrations/20260728020000_onda3_staff_level_service_overrides_pricing_resolution.sql`
+- [x] Unicidade `(organization_id, staff_level_id, service_id)`; FKs compostas para `staff_levels` e `services`, ambas `on delete restrict`
+- [x] Índice `staff_level_service_overrides_service_idx on (organization_id, service_id)` (achado do red team de desenho — espelha `professional_service_capabilities_service_idx` em forma; sem `where active`, já que esta tabela não tem coluna `active`, ver comentário na migration)
+- [x] Pre-flight check (DEC-44): confere `to_regclass('public.staff_levels') is not null` (e `services`, `professional_service_capabilities`) antes de criar a FK composta
+- [x] `private.resolve_service_pricing()` criada, `stable security definer set search_path = pg_catalog, public, private`, `revoke all from public, anon, authenticated`
+- [x] pgTAP de `resolve_service_pricing`: sem nenhum override, retorna preço/duração base do serviço; com só override de nível, usa o do nível; com override profissional×serviço E de nível, o profissional×serviço vence (mais específico); profissional sem `staff_level_id` cai direto no nível 3 (base)
+- [x] RLS `staff_level_service_overrides`: SELECT `owner`/`admin`/`manager` (sem `reception` — carrega comissão, tratamento mais estrito que `professional_service_capabilities`); INSERT/UPDATE `owner`/`admin`/`manager`; DELETE `owner`/`admin`
+- [x] Confirmar por leitura direta (teste de regressão, não só leitura): `checkout_close`/`create_appointment` continuam funcionando exatamente como hoje — nenhuma chamada nova a `resolve_service_pricing` foi introduzida em nenhum dos dois. `supabase/tests/rpc_resolve_service_pricing_test.sql` — 22/22 assertions, suíte completa 620/620 (`supabase test db`, evidência bruta: `Result: PASS`), `rpc_checkout_close_test.sql`/`rpc_appointments_test.sql` inalterados e verdes
 
 ## Blocked by
 
