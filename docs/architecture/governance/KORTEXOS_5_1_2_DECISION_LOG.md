@@ -10,6 +10,18 @@
 ## Matriz cruzada DEC ↔ ADR
 
 Esta matriz é um índice de rastreabilidade, não uma nova decisão. Ela registra apenas vínculos explícitos em documentos existentes; a ausência de vínculo não autoriza inferir aprovação ou supersessão.
+# KORTEXOS™ — DECISION LOG
+
+**Arquivo:** `docs/architecture/governance/KORTEXOS_5_1_2_DECISION_LOG.md`
+**Produto:** KortexOS™
+**Natureza:** registro histórico de decisões (padrão ADR — Architecture Decision Record). Append-only: decisões aprovadas NUNCA são editadas ou apagadas — apenas marcadas com status (Accepted / Superseded by DEC-XX / Refinada por DEC-XX). O registro superado permanece como prova de como o pensamento evoluiu.
+**Companion doc:** `KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md` — a regra VIGENTE de cada decisão está especificada lá, sempre citando o(s) DEC(s)/D(s) que a fundamenta(m). Este arquivo é a prova/auditoria; o Master Briefing é a fonte de verdade operacional.
+**Motivo da separação (2026-07-19):** o Master Briefing havia acumulado três tabelas RAGOV, duas tabelas de Veredito Red Team e uma tabela inteira ("Decisões pendentes") em que 8 de 9 itens já haviam sido decididos alhures — risco real de leitura desatualizada. Esta separação segue a prática consolidada de ADR (Microsoft, AWS, indústria): nunca apagar decisão superada, mas tirá-la do caminho de quem só precisa saber a regra atual.
+**Como usar:** para saber a regra vigente de um tema, use o Master Briefing. Para entender POR QUE a regra é essa, ou o que ela substituiu, busque o ID (DEC-XX ou D-XX) aqui.
+
+## Matriz cruzada DEC ↔ ADR
+
+Esta matriz é um índice de rastreabilidade, não uma nova decisão. Ela registra apenas vínculos explícitos em documentos existentes; a ausência de vínculo não autoriza inferir aprovação ou supersessão.
 
 | DEC | ADR relacionado | Papel do vínculo |
 |---|---|---|
@@ -19,13 +31,10 @@ Esta matriz é um índice de rastreabilidade, não uma nova decisão. Ela regist
 | DEC-38 | [ADR 0018](../adr/0018-onda1-integridade-financeira-imutavel.md) | Regularização da Etapa 8 corretiva e arquitetura forward-only de integridade financeira. |
 | DEC-41 | [ADR 0019](../adr/0019-onda2-kortexflow-ledger-fundacao.md) | Aprovação do Blueprint da fundação KortexFlow da Onda 2. |
 | DEC-42 | [ADR 0019](../adr/0019-onda2-kortexflow-ledger-fundacao.md) | Regulariza a Etapa 8 local e o hardening do ledger sem alterar o desenho de produto do ADR. |
-| DEC-43 | — | Governança documental de processo; não altera arquitetura de produto. |
+| DEC-43 | [Protocolo de Automação Documental](KORTEXOS_DOCUMENTATION_AUTOMATION_PROTOCOL.md) | Governança documental de processo; não altera arquitetura de produto. |
+| DEC-44 | [ADR 0020](../adr/0020-onda3-compensation-staff-levels-sale-commission.md) | Protocolo de otimização de código: Dark Launching via Feature Flags, Pre-flight Checks SQL, TDD e Git commit. |
+| DEC-45 | [ADR 0021](../adr/0021-frontend-ux-responsiveness-and-adaptive-modals.md) | Refatoração de UI/UX, Modais Adaptativos sm/md/lg/xl, Bottom-Sheet Mobile, WCAG AAA e Governança IA. |
 | DEC-03 a DEC-30, DEC-33, DEC-35 a DEC-37, DEC-39 e DEC-40 | — | Não há ADR dedicado ou vínculo explícito registrado; consultar a decisão primária neste log. |
-
-Os ADRs 0001–0015 preservam decisões e contexto técnico próprios; não recebem um vínculo DEC retroativo sem evidência documental explícita.
-
----
-
 ## Índice de status
 
 | Prefixo | Escopo | Numeração |
@@ -324,20 +333,6 @@ Nada deste anexo autoriza SQL, migration ou tela.
 *Fim do Decision Log. Para a regra vigente de qualquer tema aqui referenciado, consulte `KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md`.*
 
 ---
-
-# SEÇÃO 9 — ADENDO APPEND-ONLY (2026-07-26)
-
-| # | Decisão | Conteúdo | Substitui |
-|---:|---|---|---|
-| DEC-38 | Regularização da Etapa 8 da Onda 1 e autorização do plano corretivo forward-only | **Aprovado pelo Platform Owner em 2026-07-26.** Regulariza formalmente a autorização da Etapa 8 da Onda 1 que faltou no registro de DEC-35/DEC-36: a autorização vale exclusivamente para projetar, criar e validar migrations, backend, frontend e testes **forward-only** em ambiente local/descartável e em `staging`, dentro do PRD corretivo e das fatias `issues/006` a `issues/011`. Não torna retroativa a ausência do registro, não edita migrations já aplicadas e não autoriza `main` nem produção. Correção factual: o reset limpo do commit `0f4a5d9` aplica **21 migrations**, não 23; DEC-37 registra a evidência então relatada, mas não representa fechamento do contrato completo de vínculo depósito↔agendamento↔comanda. A arquitetura aprovada exige: (1) checkout de agendamento por endpoint server-owned `POST /appointments/:id/checkout`, derivando a identidade do agendamento/hold e mantendo o checkout sem agendamento para walk-in; (2) `in_service` ou `completed` como únicos estados elegíveis; (3) identidade do hold imutável — organização, unidade, agendamento, cliente, serviço e profissional — e bloqueio de mutação de cliente/serviço/profissional enquanto houver hold ativo; (4) vínculo relacional persistido entre comanda, agendamento e hold, com locks e CAS fail-closed; (5) cancelamento/reagendamento/no-show atômicos, sendo cancelamento de `immediate_charge` bloqueado enquanto não houver estorno real; (6) evento PSP com identidade externa não ambígua e dead-letter reprocessável; e (7) expiração reativa/fail-closed sem scheduler novo. O adendo ao Blueprint e ADR 0018 registram o desenho; cada fatia requer `$tdd`, Red Team e evidência própria antes de integração. | Qualifica prospectivamente DEC-35/DEC-36/DEC-37 quanto ao escopo necessário para completar a Onda 1. Não invalida o histórico nem autoriza promoção. |
-
-**Continuação append-only do índice de status:** DEC-20 a DEC-38 cobrem agora as decisões de processo/auditoria; DEC-38 é a única autorização vigente para a implementação corretiva desta Onda 1 e não altera o `NO-GO` de promoção.
-
----
-
-# SEÇÃO 10 — EVIDÊNCIA APPEND-ONLY (2026-07-26)
-
-| # | Registro | Conteúdo |
 |---:|---|---|
 | DEC-39 | Execução corretiva local da Onda 1 | As fatias autorizadas por DEC-38 foram implementadas e validadas em banco Supabase local descartável: identidade financeira imutável do hold; checkout de agendamento server-owned com vínculo persistido; transições `released`/`expired`; replanejamento idempotente; webhook dead-letter reprocessável; e testes de regressão. Evidência registrada em `KORTEXOS_5_1_2_ONDA_1_REMEDIATION_VERIFICATION_2026_07_26.md`. Este registro fecha os três blockers técnicos de DEC-36 no ambiente local, mas **não** muda o `NO-GO`: a migration falha fechada se houver holds legados sem identidade inferível e exige preflight/homologação em `staging`, seguida de Environment Guardian e Delivery Guardian, antes de qualquer promoção. |
 | DEC-40 | Homologação da Onda 1 bloqueada por infraestrutura de staging | Em 2026-07-26, a CI do commit `0803ac2` concluiu com sucesso nos três jobs obrigatórios. A separação de ambiente foi conferida: `staging` aponta para serviços Render e projeto Supabase próprios. Entretanto, `kortex-api-staging` está suspenso por billing no Render e o último deploy live do backend é `9abada1`, anterior à correção. A PWA de staging respondeu, mas não se pode homologar checkout, lifecycle, migrations ou webhooks sem backend ativo. Nenhuma migration foi aplicada nem dado de staging foi alterado. A retomada exige reativar o backend, comprovar o deploy do commit, executar preflight dos holds legados e os cenários funcionais; o `NO-GO` para `main`/produção permanece. |

@@ -25,7 +25,7 @@ Documentação de visão não autoriza schema, endpoint, tela, deploy ou promoç
 - [Parte I — Visão e Tese do Master Briefing](architecture/vision/KORTEXOS_5_1_2_MASTER_BRIEFING_VISAO_TESE.md)
 - [Decision Log](architecture/governance/KORTEXOS_5_1_2_DECISION_LOG.md) — DEC/D append-only e [matriz DEC ↔ ADR](architecture/governance/KORTEXOS_5_1_2_DECISION_LOG.md#matriz-cruzada-dec--adr).
 - [Protocolo de Automação Documental](architecture/governance/KORTEXOS_DOCUMENTATION_AUTOMATION_PROTOCOL.md) — regra prospectiva de Docs-as-Code para agentes (DEC-43).
-- [ADRs](architecture/adr/) — decisões técnicas e seus vínculos com ondas.
+- [ADRs](architecture/adr/) — decisões técnicas e seus vínculos com ondas (ver [ADR 0021](architecture/adr/0021-frontend-ux-responsiveness-and-adaptive-modals.md) para o Design System e Modais Adaptativos).
 - [Global Benchmark Map](architecture/vision/KORTEXOS_5_1_2_GLOBAL_BENCHMARK_MAP.md)
 - [Comparative Proposal](architecture/vision/KORTEXOS_5_1_2_COMPARATIVE_PROPOSAL.md)
 - [Pontos Cegos Pré-Blueprint](architecture/vision/KORTEXOS_5_1_2_PONTOS_CEGOS_PRE_BLUEPRINT.md)
