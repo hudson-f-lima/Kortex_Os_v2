@@ -10,10 +10,10 @@ Escrita da chave restrita a `owner`/`admin` (mesma allowlist de configuração o
 
 ## Acceptance criteria
 
-- [ ] Migration aditiva adiciona `organizations.settings jsonb not null default '{}'::jsonb` — nenhuma organização existente quebra (default cobre todas as linhas atuais sem backfill explícito)
-- [ ] Pre-flight check (DEC-44): bloco `do $$ begin ... end $$` confere `to_regclass('public.organizations') is not null` e que a coluna `settings` ainda não existe antes do `ALTER TABLE`, com `raise exception` explícito se a pré-condição falhar
-- [ ] RLS/policy de `organizations` já existente cobre `settings` sem policy nova (é só uma coluna a mais na mesma linha) — confirmar por leitura direta que nenhuma policy referencia colunas específicas de `organizations` de um jeito que precise de ajuste
-- [ ] pgTAP: organização nova nasce com `settings = '{}'`; `owner`/`admin` conseguem `UPDATE settings`; papel sem essa allowlist recebe rejeição (mesmo padrão de teste já usado para `membership_set`)
+- [x] Migration aditiva adiciona `organizations.settings jsonb not null default '{}'::jsonb` — nenhuma organização existente quebra (default cobre todas as linhas atuais sem backfill explícito). `supabase/migrations/20260728000000_onda3_organizations_settings_feature_flag.sql`
+- [x] Pre-flight check (DEC-44): bloco `do $$ begin ... end $$` confere `to_regclass('public.organizations') is not null` e que a coluna `settings` ainda não existe antes do `ALTER TABLE`, com `raise exception` explícito se a pré-condição falhar
+- [x] RLS/policy de `organizations` já existente cobre `settings` sem policy nova (é só uma coluna a mais na mesma linha) — confirmado por leitura direta (`organizations_select`/`organizations_update`, `mvp_baseline.sql`, row-level, não column-level) e por teste
+- [x] pgTAP: organização nova nasce com `settings = '{}'`; `owner`/`admin` conseguem `UPDATE settings`; papel sem essa allowlist recebe rejeição (mesmo padrão de teste já usado para `membership_set`). `supabase/tests/rls_organizations_settings_test.sql` — 4/4 assertions, suíte completa 579/579 (`supabase test db`, evidência bruta: `Result: PASS`)
 
 ## Blocked by
 

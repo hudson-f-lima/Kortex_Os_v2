@@ -19,7 +19,7 @@ Documentação de visão não autoriza schema, endpoint, tela, deploy ou promoç
 | Onda 0 — Units | **REAL**; blueprint aprovado, implementação validada e em `staging` | Não autoriza produção por si só | [Onda 0](waves/onda-0-units/) |
 | Onda 1 — Payment Core | **PARCIAL**; correção forward-only autorizada por DEC-38 | `NO-GO` para `main`/produção até homologação e decisão formal | [Onda 1](waves/onda-1-payment-core/) |
 | Onda 2 — KortexFlow Ledger | **REAL local**; fatias 012–016 e hardening de ledger regularizados por DEC-42 | `NO-GO` para `staging`/`main` até Environment Guardian, Delivery Guardian e homologação | [Onda 2](waves/onda-2-kortexflow-ledger/) |
-| Onda 3 — Compensation | **BLUEPRINT APROVADO (DEC-46)**; staff levels + comissão de venda, fundação sem ativação, 2 rodadas de Red Team (`GO`) | Fatiamento liberado (issues 017-020); Etapa 8 (SQL) exige autorização própria | [Onda 3](waves/onda-3-compensation/) |
+| Onda 3 — Compensation | **BLUEPRINT APROVADO (DEC-46)**; fatia 017 (`organizations.settings`, Feature Flag) implementada e verificada localmente via `$tdd`; 018-020 pendentes | `NO-GO` para `staging`/`main` até as fatias restantes e os gates de ambiente/entrega/homologação | [Onda 3](waves/onda-3-compensation/) |
 
 ## Arquitetura e decisões
 
