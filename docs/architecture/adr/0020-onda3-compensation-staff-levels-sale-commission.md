@@ -1,7 +1,7 @@
 # ADR 0020: Onda 3 — Compensation: Staff Levels & Comissão de Venda (Fundação sem Ativação)
 
 ## Status
-Proposed (rascunho, 2026-07-27). 1ª rodada `$kortex-qa-redteam` (agente independente): `NO-GO`, 1 achado crítico (`staff_level_id` nullable contradizendo "Obrigatório" do Master §6.1 sem desvio registrado) + 6 achados menores (ver Blueprint Onda 3 §0/§3.1/§3.4/§4/§8 para a lista completa e a correção de cada um). Todos corrigidos nesta revisão da ADR. Aguarda 2ª rodada de red team e aprovação explícita do Platform Owner (DEC própria) antes de virar Accepted.
+**Accepted (DEC-46, 2026-07-27).** 1ª rodada `$kortex-qa-redteam` (agente independente): `NO-GO`, 1 achado crítico (`staff_level_id` nullable contradizendo "Obrigatório" do Master §6.1 sem desvio registrado) + 6 achados menores (ver Blueprint Onda 3 §0/§3.1/§3.4/§4/§8 para a lista completa e a correção de cada um). Todos corrigidos. 2ª rodada (segundo agente independente, verificação achado a achado contra o código real): `GO`. Aprovado pelo Platform Owner em 2026-07-27 — ver DEC-46 no Decision Log (SEÇÃO 12) para o registro formal.
 
 **Onda relacionada:** [Onda 3 — Compensation](../../waves/onda-3-compensation/KORTEXOS_5_1_2_BLUEPRINT_ONDA_3.md) · [Migration Map](../../waves/KORTEXOS_5_1_2_MIGRATION_MAP.md)
 
