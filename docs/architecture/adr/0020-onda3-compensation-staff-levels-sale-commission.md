@@ -112,9 +112,19 @@ Mesmo raciocínio de `benefit_obligations`/`payout_batches` na Onda 2: schema pr
 - **DEC-44 (primeira Onda sob o protocolo):** Feature Flag (`organizations.settings`), Pre-flight Check por migration (`to_regclass` antes de FK composta nova), TDD pgTAP/Jest, `closes issues/NNN` em cada commit de implementação
 
 ### Código
-- **`checkout_close`/`create_appointment`/`resolve_commission()`:** não são tocados nesta Onda — zero risco novo nas RPCs mais críticas do sistema
+- **`checkout_close`/`create_appointment`/`resolve_commission()`:** não são tocados nesta Onda — zero risco novo nas RPCs mais críticas do sistema. **Emendado por DEC-48 (ver seção "Emenda" abaixo) para `checkout_close` especificamente, escopo estrito de carimbar `package_id`** — `create_appointment` e `resolve_commission()` seguem intocados.
 - **`resolve_service_pricing`/`resolve_sale_commission`/`commission_sale_record_create`:** funções/RPC novas, sem rota Express nesta Onda — só pgTAP chama diretamente
 - **Frontend:** nenhuma UI nesta onda, mesma decisão já aplicada nas Ondas 0/1/2
+
+## Emenda (DEC-47/DEC-48, 2026-07-28)
+
+**Contexto:** uma auditoria independente do Platform Owner, conferida pessoalmente contra o código (disciplina DEC-33), confirmou que a Etapa 8 desta Onda nunca teve autorização formal (DEC-46 a exclui explicitamente) e que as fatias 017-020 chegaram a `staging` sem esse registro nem o de promoção — ultrapassando o limite que DEC-42 havia imposto à Onda 2. **DEC-47** (Decision Log, SEÇÃO 13) regulariza isso prospectivamente, no mesmo padrão de DEC-38/DEC-42, sem autorizar `main`/produção.
+
+A mesma auditoria confirmou um achado estrutural (P1) não coberto pelo desenho original: `commission_sale_record_create` não tinha como validar que o pacote vendido pertence ao pedido informado, porque **esse vínculo não existe no schema** — `checkout_close` dissolve cada pacote em linhas de `order_items` com `kind='service'` e descarta o `package_id` (linha já citada no achado §0 desta ADR, mas não como problema de integridade, só de preço). Consequência colateral: `commission_cents` era calculado sobre `packages.price_cents` (preço de tabela), não o valor efetivamente cobrado no pedido.
+
+**DEC-48** (Decision Log, SEÇÃO 14) emenda a constraint acima — "`checkout_close`/`create_appointment` não são tocados nesta Onda" — **exclusivamente** para `checkout_close`, exclusivamente para gravar `order_items.package_id` no INSERT do ramo de pacote já existente. Nenhuma lógica de preço, rateio por maior-resto, total ou reconciliação de depósito é alterada. `create_appointment` e `resolve_commission()` permanecem fora do escopo desta emenda, tão intocados quanto antes. Materializado como **fatia 021** (`issues/021-order-items-package-linkage.md`), sob o mesmo regime de Etapa 8 de DEC-47 (local/`staging`, não `main`).
+
+A fatia 022 (`issues/022-commission-sale-records-immutability.md`) fecha os achados P2 (mutação de `commission_sale_records` sem guard, `service_role` com DML herdado) e P3 (pre-flight incompleto da fatia 020) da mesma auditoria — sem alterar nenhuma decisão de desenho já fechada aqui, só endurecendo a implementação.
 
 ### Futuro
 - **Onda de ativação de preço/tempo:** liga `resolve_service_pricing` a `checkout_close`/`create_appointment` — Blueprint próprio, mesmo escrutínio da fatia 004 da Onda 1; também corrige o achado §0 (override de Fase 10 nunca ativado)
@@ -132,6 +142,8 @@ Mesmo raciocínio de `benefit_obligations`/`payout_batches` na Onda 2: schema pr
 - **DEC-33:** reforma de processo (fatiamento, TDD, evidência) sob a qual este Blueprint foi desenhado
 - **DEC-36:** achado crítico pós-merge da Onda 1 (tocar `checkout_close`) — precedente direto para a decisão de não ativar nada nesta Onda
 - **DEC-44:** Feature Flag, Pre-flight Check, TDD pgTAP/Jest, rastreabilidade — primeira Onda sob este protocolo
+- **DEC-47:** regulariza a Etapa 8 e a promoção a `staging` das fatias 017-020, a partir de achados de auditoria conferidos pessoalmente
+- **DEC-48:** emenda pontual da constraint "`checkout_close` intocado" para autorizar a fatia 021 (vínculo `order_items.package_id`) — ver seção "Emenda" acima
 - **ADR 0005:** comissão não reverte automaticamente em estornos — mesmo racional aplicado ao `status = 'clawed_back'` manual desta Onda
 - **ADR 0007:** `order_void` não reverte comissão automaticamente — precedente direto para não automatizar clawback aqui
 - **ADR 0011:** padrão de snapshot na confirmação — por que `staff_levels` não precisa de tabela de vigência própria
