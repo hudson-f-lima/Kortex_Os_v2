@@ -11,6 +11,10 @@
 
 A construção do MVP técnico (Fases 1–11, Trilhas A–E) foi encerrada formalmente em 2026-07-20 (DEC-29). `docs/legacy/mvp-tecnico/PROJECT_STATE.md` e `docs/legacy/mvp-tecnico/KORTEX_MVP_TECNICO.md` continuam corretos sobre o que está em produção hoje, mas não são mais lidos como fonte ativa de escopo — consulte-os só para contexto histórico.
 
+## Sincronização de estado local no início da sessão
+
+Antes de tirar qualquer conclusão sobre gates, aprovações ou estado de Onda (Blueprint aprovado, Etapa 8 autorizada, fatia implementada, PR mergeado), rode `git fetch` e compare a branch local com `origin/<branch>` (`git log <branch>..origin/<branch>`, ou ao menos observe o aviso "behind origin" do `git status`). Múltiplas sessões concorrentes no mesmo diretório de trabalho já produziram estado documental incorreto mais de uma vez — DEC-46 registra um PR que chegou a `staging` com Blueprint/ADR de uma versão intermediária por cruzamento entre sessões, e uma sessão subsequente quase repetiu uma rodada inteira de red team porque não sincronizou o local antes de avaliar se uma aprovação já existia. Local desatualizado não é evidência de que algo "ainda não aconteceu" — é só sinal de que outra sessão pode ter avançado. Se houver divergência, sincronize (`git pull --ff-only` ou no mínimo leia o log/diff remoto) antes de agir.
+
 ## Premissa
 
 O produto é greenfield. SQL, blueprints e código externos são referências não autoritativas. Não preservar numeração, nomes, tabelas, RPCs ou limitações desses exemplos sem justificativa técnica atual.
