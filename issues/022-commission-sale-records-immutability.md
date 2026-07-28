@@ -12,14 +12,14 @@ Fecha os achados P2 e P3 de uma auditoria pós-merge da Onda 3:
 
 ## Acceptance criteria
 
-- [ ] Migration nova (não edita `20260728030000` já aplicada) adiciona trigger `before update on public.commission_sale_records`, mesmo padrão de `guard_deposit_hold_financial_identity`: congela `organization_id`, `unit_id`, `order_id`, `package_id`, `professional_id`, `commission_type`, `commission_value`, `commission_cents`; libera apenas `status` e `updated_at`. Usa `is distinct from` (não `<>`) e `errcode = '55000'`, mesmo padrão do precedente
-- [ ] Mesma migration: `revoke insert, update, delete on public.commission_sale_records from service_role` (mesmo padrão de `20260727170000`) — `select` não é revogado
-- [ ] Confirma que `commission_sale_record_create` continua gravando normalmente (é `security definer`, roda com o privilégio do dono da função, não do chamador — mesmo racional já documentado para o ledger)
-- [ ] Mesma migration ou uma companion: completa o pre-flight check da fatia 020 (adiciona a checagem de `to_regclass('public.organizations')`/`to_regclass('public.professionals')`), sem editar `20260728030000`
-- [ ] pgTAP: impersonar `service_role` (`SET LOCAL role service_role`, mesmo padrão de `rpc_kortex_ledger_post_test.sql`) e confirmar `INSERT`/`UPDATE`/`DELETE` diretos rejeitados com `42501`
-- [ ] pgTAP: `UPDATE ... SET status = 'clawed_back'` (só a coluna liberada) funciona sem erro
-- [ ] pgTAP: `UPDATE ... SET status = 'clawed_back', commission_cents = 0` (coluna liberada + coluna congelada na mesma instrução) falha com `55000` — a tentativa de mudar o valor não passa escondida atrás de uma transição de status legítima
-- [ ] pgTAP: `DELETE` direto (mesmo via `service_role`) é rejeitado
+- [x] Migration nova (não edita `20260728030000` já aplicada) adiciona trigger `before update on public.commission_sale_records`, mesmo padrão de `guard_deposit_hold_financial_identity`: congela `organization_id`, `unit_id`, `order_id`, `package_id`, `professional_id`, `commission_type`, `commission_value`, `commission_cents`; libera apenas `status` e `updated_at`. Usa `is distinct from` e `errcode = '55000'`. `supabase/migrations/20260728060000_onda3_commission_sale_records_immutability.sql`
+- [x] Mesma migration: `revoke insert, update, delete on public.commission_sale_records from service_role` — `select` não é revogado
+- [x] Confirmado: `commission_sale_record_create` continua gravando normalmente como `service_role` (testado explicitamente)
+- [x] Mesma migration: completa o pre-flight check da fatia 020 (`to_regclass('public.organizations')`/`to_regclass('public.professionals')`), sem editar `20260728030000`
+- [x] pgTAP: impersonar `service_role` e confirmar `INSERT`/`UPDATE`/`DELETE` diretos rejeitados com `42501`, `SELECT` preservado
+- [x] pgTAP: `UPDATE ... SET status = 'clawed_back'` (só a coluna liberada) funciona sem erro
+- [x] pgTAP: `UPDATE ... SET status = 'accrued', commission_cents = 0` (coluna liberada + coluna congelada na mesma instrução) falha com `55000`
+- [x] pgTAP: `DELETE` direto (mesmo via `service_role`) é rejeitado. `supabase/tests/rls_commission_sale_records_immutability_test.sql` — 10/10 assertions, suíte completa 661/661 (`supabase test db`, evidência bruta: `Result: PASS`), sem regressão nos 38 arquivos pré-existentes
 
 ## Blocked by
 
