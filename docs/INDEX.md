@@ -20,6 +20,7 @@ Documentação de visão não autoriza schema, endpoint, tela, deploy ou promoç
 | Onda 1 — Payment Core | **PARCIAL**; correção forward-only autorizada por DEC-38 | `NO-GO` para `main`/produção até homologação e decisão formal | [Onda 1](waves/onda-1-payment-core/) |
 | Onda 2 — KortexFlow Ledger | **REAL local**; fatias 012–016 e hardening de ledger regularizados por DEC-42 | `NO-GO` para `staging`/`main` até Environment Guardian, Delivery Guardian e homologação | [Onda 2](waves/onda-2-kortexflow-ledger/) |
 | Onda 3 — Compensation | **REAL em `staging`** — as 6 fatias (017-022: Feature Flag, staff_levels, staff_level_service_overrides/resolve_service_pricing, comissão de venda, vínculo pacote↔pedido, imutabilidade) mescladas via PR #24 e PR #25, implementadas via `$tdd` (661/661 pgTAP, backend 301/301, PWA 108/108, todos verificados pessoalmente contra a aplicação real rodando localmente, não só pgTAP). Blueprint aprovado por DEC-46; Etapa 8 e a promoção a `staging` regularizadas por DEC-47; achados de auditoria pós-merge (P1/P2/P3) corrigidos pelas fatias 021-022 sob emenda DEC-48. Produção segue em Fase 11 — nenhuma migration da trilha 5.1.2 chegou lá | `NO-GO` para `main`/produção até os gates de ambiente/entrega/homologação (bloqueados por DEC-40, `kortex-api-staging` suspenso por billing) | [Onda 3](waves/onda-3-compensation/) |
+| Onda 4 — Calendar Policy, Availability Resolver & Resource Orchestration | **REAL local** — Blueprint aprovado (DEC-49), fundação sem ativação (`create_appointment`/`checkout_close` intocados). As 6 fatias (023-028) implementadas; Red Team de implementação pós-Etapa-8 e auditoria final de fix corrigiram os gaps reais conhecidos (unit scope, elegibilidade tri-state, isenção `exceptional_opening` removida, timezone, validação estrita de data, lint SQL, entre outros — ver ADR 0022). Evidência final: 764/764 pgTAP, 321/321 backend (`node --test`), `supabase db lint --local` sem erros, sem regressão | `NO-GO` para `staging`/`main` até os gates de ambiente/entrega/homologação — ainda não commitada | [Onda 4](waves/onda-4-calendar-availability/) |
 
 ## Arquitetura e decisões
 
@@ -46,6 +47,7 @@ Documentação de visão não autoriza schema, endpoint, tela, deploy ou promoç
 - [Onda 1 — Payment Core](waves/onda-1-payment-core/) — blueprint e verificação corretiva.
 - [Onda 2 — KortexFlow Ledger](waves/onda-2-kortexflow-ledger/) — blueprint da fundação sem ativação.
 - [Onda 3 — Compensation](waves/onda-3-compensation/) — blueprint de Staff Levels & Comissão de Venda.
+- [Onda 4 — Calendar Policy, Availability Resolver & Resource Orchestration](waves/onda-4-calendar-availability/) — blueprint aprovado, fundação sem ativação.
 
 ## Como fazer
 

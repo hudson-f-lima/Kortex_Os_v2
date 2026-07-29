@@ -1,20 +1,35 @@
 import { HttpError } from '../shared/httpError.js';
 
-/**
- * Middleware for Dark Launching via Feature Flags (DEC-44).
- * Checks if the specified feature flag is enabled in the organization's settings JSONB.
- *
- * @param {string} flagName - The key in organization.settings (e.g. 'enable_sale_commission')
- */
-export function requireFeatureFlag(flagName) {
-  return function requireFeatureFlagMiddleware(req, res, next) {
-    const settings = req.organizationContext?.organization?.settings || {};
-    const isEnabled = Boolean(settings[flagName]);
+// Dark Launching gate (DEC-44 item 1). Corrected during the Onda 4
+// implementation (2026-07-29): the original version read
+// `req.organizationContext.organization.settings`, a shape the real
+// middleware chain never produces — `organizationContext` (see
+// `middleware/organizationContext.js`) populates `req.auth.organizationId`,
+// not `req.organizationContext`. Because no route used this middleware yet
+// (Onda 3's flags were written without a route to guard — Blueprint Onda 3
+// §3.7), the bug was never exercised end-to-end; only its own unit test,
+// which mocked the same wrong shape, ever ran. Fixed to look up
+// `organizations.settings` from the database via the authenticated
+// membership's `organizationId`, matching how every other piece of
+// tenant-scoped state is resolved in this codebase.
+export function requireFeatureFlag(supabaseAdmin, flagKey) {
+  return async function requireFeatureFlagMiddleware(req, res, next) {
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('organizations')
+        .select('settings')
+        .eq('id', req.auth.organizationId)
+        .single();
+      if (error) throw error;
 
-    if (!isEnabled) {
-      next(HttpError.forbidden('feature_disabled', `Feature '${flagName}' is disabled for this organization`));
-      return;
+      const enabled = data?.settings?.[flagKey] === true;
+      if (!enabled) {
+        next(HttpError.forbidden('feature_disabled', `feature "${flagKey}" is not enabled for this organization`));
+        return;
+      }
+      next();
+    } catch (err) {
+      next(err);
     }
-    next();
   };
 }
