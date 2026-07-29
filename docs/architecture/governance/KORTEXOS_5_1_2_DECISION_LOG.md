@@ -321,7 +321,7 @@ Nada deste anexo autoriza SQL, migration ou tela.
 
 ---
 
-*Fim do Decision Log. Para a regra vigente de qualquer tema aqui referenciado, consulte `KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md`.*
+*Fim das SEÇÕES 1-8 (registro original). Para a regra vigente de qualquer tema aqui referenciado, consulte `KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md`. O registro append-only continua abaixo (SEÇÕES 9-14) — este marcador é histórico, não o fim real do arquivo; nota adicionada em 2026-07-28 para evitar leitura truncada.*
 
 ---
 

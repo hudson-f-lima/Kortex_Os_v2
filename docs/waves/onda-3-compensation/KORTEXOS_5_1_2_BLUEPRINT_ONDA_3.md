@@ -2,15 +2,15 @@
 title: "Blueprint Onda 3 — Compensation: Staff Levels & Comissão de Venda"
 status: "APROVADO"
 stage: "BLUEPRINT"
-governance_ref: ["DEC-24", "DEC-27", "DEC-28", "DEC-44", "DEC-46"]
+governance_ref: ["DEC-24", "DEC-27", "DEC-28", "DEC-44", "DEC-46", "DEC-47", "DEC-48"]
 upstream_doc: "docs/waves/KORTEXOS_5_1_2_MIGRATION_MAP.md"
-last_updated: "2026-07-27"
+last_updated: "2026-07-28"
 ---
 
 # KortexOS 5.1.2 — Blueprint Onda 3: Compensation — Staff Levels & Comissão de Venda
 
 **Status:** **APROVADO pelo Platform Owner em 2026-07-27 (DEC-46).** Red team de desenho concluído em 2 rodadas — 1ª `NO-GO` com 1 achado crítico (`staff_level_id` nullable vs. "Obrigatório" do Master §6.1, sem desvio registrado) e 6 achados menores (achado §0 com alegação de duração errada e citação de linha desatualizada; unicidade de `commission_sale_records` bloquearia venda repetida legítima do mesmo pacote; FKs sem `on delete`; `search_path` ausente em 2 funções `security definer`; índice secundário faltando em `staff_level_service_overrides`; precedente de `no_show_settlement_create` citado incorretamente). Todos os 7 corrigidos (ver §0, §3.1, §3.4, §4). 2ª rodada (agente independente, verificação achado a achado contra o código real): `GO`. Ver ADR 0020 (`Accepted`) para o detalhamento arquitetural completo. **Etapa 8 (SQL/migration) continua exigindo autorização própria do Platform Owner** — esta aprovação libera o Fatiamento (issues 017-020), não a implementação.
-**Etapa:** 7 (Blueprint) CONCLUÍDA — DEC-46. Fatiamento liberado como próximo passo.
+**Etapa:** 7 (Blueprint) CONCLUÍDA — DEC-46. **Etapa 8 (SQL) regularizada por DEC-47** (fatias 017-020) **e por DEC-48** (fatias 021-022, emenda pontual à fronteira `checkout_close` — ver §10). Onda completa e mesclada em `staging`; `NO-GO` para `main`/produção permanece.
 **Escopo:** subconjunto de D17/D05, exatamente a tabela da Onda 3 em `KORTEXOS_5_1_2_MIGRATION_MAP.md` §3 — `staff_levels`, `staff_level_service_overrides`, `private.resolve_sale_commission()`, `commission_sale_records`. `private.resolve_commission()` (execução) permanece intocada, decisão já fechada (Migration Map, §4 decisão 2). **Exclui deliberadamente** Cash Sessions/Void (ADR 0007) e Comissão Escalonada (ADR 0003) — ambos mencionados pela DEC-29 como "re-hospedados" em Onda 3 por tema, mas nenhum dos dois está listado como objeto na tabela aprovada do Migration Map §3, e a ADR 0003 nunca saiu do status `Proposed`. Confirmado com o Platform Owner: escopo desta Onda é estritamente o Migration Map; os dois temas ficam para onda própria futura, com adendo ao Migration Map antes de qualquer Blueprint — mesmo padrão usado para fechar o gap do D02 (DEC-25).
 
 ## 0. Achado pré-existente relevante para esta Onda
@@ -26,7 +26,7 @@ Isso muda a leitura de risco da Decisão 2 (§3.2): ativar a cascata de PREÇO e
 
 Este Blueprint materializa `docs/waves/KORTEXOS_5_1_2_MIGRATION_MAP.md` (Onda 3, D17/D05, DEC-24/27/28) e `docs/KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md` — Parte III §6 (Staff Levels & Pricing Resolution, DEC-04) e Parte I (D17 — Compensation & Payout Engine, Gate 14 Commission Accuracy, Gate 02 Staff Privacy). Nenhuma decisão de produto já fechada é reaberta aqui — DEC-04 (override triplo por nível), DEC-15 (comissão de venda independente da de execução, escopo pacotes) e DEC-18 (fórmula de reembolso/clawback) são consumidas como regra vigente, não redesenhadas.
 
-**Exclusão deliberada de escopo — fundação sem ativação em `checkout_close`/`create_appointment`.** Igual ao princípio já estabelecido pela Onda 2 (ADR 0019, "fundação sem ativação"): esta Onda constrói schema e funções de resolução testáveis isoladamente via pgTAP, mas **não modifica `checkout_close` nem `create_appointment`**. A cascata de preço/tempo por nível (§3.2) e a comissão de venda (§3.4) nascem como capability nova, sem produtor automático ligado ao caminho de venda real. Ativar qualquer uma delas dentro de `checkout_close` é, por si, um Blueprint/fatiamento próprio de risco equivalente à fatia 004 da Onda 1 (HITL, achado crítico em produção pós-merge — DEC-36) — decisão consciente de sequenciamento, não omissão.
+**Exclusão deliberada de escopo — fundação sem ativação em `checkout_close`/`create_appointment`.** Igual ao princípio já estabelecido pela Onda 2 (ADR 0019, "fundação sem ativação"): esta Onda constrói schema e funções de resolução testáveis isoladamente via pgTAP, mas **não modifica `checkout_close` nem `create_appointment`**. **Emendado por DEC-48 (§10) exclusivamente para `checkout_close`, escopo estrito de carimbar `order_items.package_id`** — `create_appointment` segue intocado. A cascata de preço/tempo por nível (§3.2) e a comissão de venda (§3.4) nascem como capability nova, sem produtor automático ligado ao caminho de venda real. Ativar qualquer uma delas dentro de `checkout_close` é, por si, um Blueprint/fatiamento próprio de risco equivalente à fatia 004 da Onda 1 (HITL, achado crítico em produção pós-merge — DEC-36) — decisão consciente de sequenciamento, não omissão.
 
 `organization_id` continua sendo a fronteira primária de tenant. `unit_id` (Onda 0/DEC-28) se aplica a `commission_sale_records` (transacional, herda de `orders.unit_id`) mas **não** a `staff_levels`/`staff_level_service_overrides` (org-wide — nível de carreira não varia por unidade física, classificação já fechada no Migration Map). Este Blueprint não cria UI nem RPC exposta em rota Express além da explicitamente descrita em §3.4.
 
@@ -149,16 +149,18 @@ Toda mudança é aditiva. `professionals.staff_level_id` nasce nullable — nenh
 
 ## 6. Plano de execução e rollback
 
-Toda a Onda é aditiva por construção — nenhuma tabela/RPC/função existente é alterada (`checkout_close`, `create_appointment`, `resolve_commission()` permanecem intocados). Rollback de qualquer migration desta Onda é reverter a migration inteira — zero dado existente é tocado.
+Toda a Onda é aditiva por construção — nenhuma tabela/RPC/função existente é alterada (`checkout_close`, `create_appointment`, `resolve_commission()` permanecem intocados; ver §10 para a emenda pontual de DEC-48 a `checkout_close`). Rollback de qualquer migration desta Onda é reverter a migration inteira — zero dado existente é tocado.
 
 **Pre-flight Check obrigatório por migration (DEC-44).** Cada migration desta Onda abre com um bloco `do $$ begin ... end $$` que confere pré-condição via `to_regclass`/`information_schema` antes de qualquer DDL — ex.: a migration de `staff_level_service_overrides` assert que `to_regclass('public.staff_levels') is not null` antes de criar a FK composta; a migration de `commission_sale_records` assert que `to_regclass('public.packages') is not null` e que a coluna `packages.sale_commission_type` já existe. Aborta com mensagem explícita (`raise exception`) se a pré-condição falhar, em vez de deixar o `CREATE TABLE ... REFERENCES` falhar com erro genérico do Postgres.
 
-Esta Onda **passa pelo Fatiamento** (`$prd-to-issues`, DEC-33), liberado por esta aprovação (DEC-46), antes de qualquer SQL. Fatias verticais (`issues/017`-`020`):
+Esta Onda **passa pelo Fatiamento** (`$prd-to-issues`, DEC-33), liberado por esta aprovação (DEC-46), antes de qualquer SQL. Fatias verticais (`issues/017`-`022`):
 
 1. `organizations.settings` (Feature Flag, DEC-44) — fundação reaproveitável, sem dependência de nada nesta Onda
 2. `staff_levels` + `professionals.staff_level_id` — cadastro de nível, sem dependência de override ainda
 3. `staff_level_service_overrides` + `private.resolve_service_pricing()` — cascata de preço/tempo, depende da fatia 2
 4. `packages.sale_commission_type/value` + `private.resolve_sale_commission()` + `commission_sale_records` + `commission_sale_record_create` — comissão de venda completa, independente das fatias 2-3
+5. **(DEC-48, fora do desenho original — ver §10)** `order_items.package_id` + `checkout_close` redefinida — vínculo pacote↔pedido, corrige achado P1 de auditoria pós-merge
+6. **(DEC-47, fora do desenho original — ver §10)** imutabilidade de `commission_sale_records` + preflight completo — corrige achados P2/P3 da mesma auditoria
 
 Cada fatia segue `$tdd` com pgTAP (SQL) e, onde houver rota Express futura, Jest com mocks de API (DEC-44, otimização 3) — nenhuma rota Express nasce nesta Onda (§3.4), então o componente Jest fica reservado para quando o call site existir. Cada fatia passa por `$kortex-qa-redteam` antes de integrar — mesmo processo das Ondas 1/2. Commits de implementação referenciam a issue correspondente (`closes issues/NNN`, DEC-44 otimização 4). **Etapa 8 (SQL) exige autorização própria do Platform Owner**, não incluída nesta aprovação — mesmo padrão de todas as Ondas anteriores.
 
@@ -187,6 +189,20 @@ Nenhum caller existente quebra: confirmado por leitura de `backend/src/` e das m
 **1ª rodada** (agente independente, sem acesso às minhas próprias conclusões): confrontou este Blueprint linha a linha contra `checkout_close`, `create_appointment`, `professional_service_capabilities`, `professional_service_commissions`, a ADR 0019 e o Decision Log. Veredito: `NO-GO`, 1 achado crítico + 6 menores. Gates: Tenant Isolation (`PASS COM RISCO ACEITO`), Staff Privacy/Gate 02 (`PASS`), Commission Accuracy/Gate 14 (`FAIL`), decisões de produto fechadas (`FAIL`), dinheiro/`_cents` (`PASS`).
 
 **2ª rodada** (segundo agente independente, verificação achado a achado contra o código real, não aceitou "corrigido" por afirmação): confirmou os 7 fechamentos como reais e tecnicamente corretos — inclusive validando que a proteção contra duplicação por retry continua garantida por `private.idempotency_keys` mesmo após a unicidade de negócio ter sido removida (achado 3), e que a nova FK de 3 colunas bate exatamente com o padrão de `order_items_org_order_unit_fk`. Único ponto levantado (não bloqueante): a FK de `order_id` não repetia `on delete restrict` explicitamente no texto original — corrigido nesta revisão. **Veredito: `GO`.**
+
+## 10. Emenda (DEC-47/DEC-48, 2026-07-28)
+
+Uma auditoria pós-merge das fatias 017-020 (já em `staging`) encontrou 3 achados reais, registrados em DEC-47 (Decision Log SEÇÃO 13):
+
+- **P1 (crítico):** o vínculo pacote↔pedido não existe no schema — `order_items.kind` só aceita `service`/`product`, e `checkout_close` dissolve cada pacote em N linhas de serviço, descartando o `package_id`. `commission_sale_record_create` aceitava qualquer pacote da organização contra qualquer pedido `closed`, e calculava a comissão sobre `packages.price_cents` (preço de tabela) em vez do valor cobrado.
+- **P2:** `commission_sale_records` sem proteção de mutação — `service_role` herda `INSERT`/`UPDATE`/`DELETE` completos por default da plataforma, sem guard de coluna nem revoke.
+- **P3:** o pre-flight da fatia 020 não confere `organizations`/`professionals`, inconsistente com o padrão das fatias 018/019.
+
+**DEC-48** emenda pontualmente a exclusão de escopo do §1/§3.2 acima ("`checkout_close`/`create_appointment` não são tocados nesta Onda"), exclusivamente para `checkout_close`, exclusivamente para gravar `order_items.package_id` no INSERT do ramo de pacote já existente — nenhuma lógica de preço, rateio, total ou reconciliação de depósito é alterada. `create_appointment` e `resolve_commission()` seguem intocados. Materializado como fatia 021.
+
+A fatia 022 fecha P2 (trigger guard + revoke de `service_role`, os dois padrões de imutabilidade do projeto aplicados juntos pela primeira vez numa mesma tabela) e P3 (pre-flight completo), sem emendar nenhuma fronteira de escopo — extensão aditiva direta do §3.6/§3.8.
+
+Detalhamento arquitetural completo, alternativas rejeitadas e rastreabilidade: seção "Emenda (DEC-47/DEC-48)" da [ADR 0020](../../architecture/adr/0020-onda3-compensation-staff-levels-sale-commission.md). As 6 fatias (017-022) foram implementadas, verificadas via `$tdd` (661/661 pgTAP) e confirmadas na aplicação real rodando localmente (checkout com pacote, rejeição de comissão indevida, guard de imutabilidade), e mescladas em `staging` (PR #24, PR #25). `NO-GO` para `main`/produção permanece — Onda completa aguarda os gates de ambiente/entrega/homologação (DEC-40).
 
 ---
 
