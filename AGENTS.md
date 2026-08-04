@@ -9,6 +9,10 @@
 5. habilidade aplicável em `.agents/skills/`
 6. Para qualquer mudança documental, `docs/architecture/governance/KORTEXOS_DOCUMENTATION_AUTOMATION_PROTOCOL.md`
 
+## Descoberta de skills customizados (`kortex-*`)
+
+`.agents/skills/` é a fonte canônica única de edição dos 10 agentes `kortex-*`. A descoberta nativa de skills do Claude Code carrega de `.claude/skills/`, não de `.agents/skills/` — por isso toda alteração futura em `.agents/skills/kortex-*` DEVE ser replicada (cópia de arquivo, nunca symlink) em `.claude/skills/kortex-*` no mesmo turno em que for feita.
+
 A construção do MVP técnico (Fases 1–11, Trilhas A–E) foi encerrada formalmente em 2026-07-20 (DEC-29). `docs/legacy/mvp-tecnico/PROJECT_STATE.md` e `docs/legacy/mvp-tecnico/KORTEX_MVP_TECNICO.md` continuam corretos sobre o que está em produção hoje, mas não são mais lidos como fonte ativa de escopo — consulte-os só para contexto histórico.
 
 ## Sincronização de estado local no início da sessão
