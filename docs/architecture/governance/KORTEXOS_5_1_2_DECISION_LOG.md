@@ -29,13 +29,14 @@ Esta matriz é um índice de rastreabilidade, não uma nova decisão. Ela regist
 | DEC-50 | [DEC-50](../../../AGENTS.md) | Hardening dos agentes KORTEX e hooks determinísticos; decisão de tooling e governança, não de domínio de produto. |
 | DEC-51 | [ADR 0023](../adr/0023-onda5-recurring-group-booking-waitlist.md) | Aprovação do Blueprint da Onda 5 (Recurring, Group Booking & Waitlist), com benchmark Booksy → players → cross-industry, waitlist sem hold persistente, grupo pai com appointments filhos e recorrência parcialmente materializada. |
 | DEC-52 | [ADR 0023](../adr/0023-onda5-recurring-group-booking-waitlist.md) | Autoriza a Etapa 8 local da Onda 5, por fatia e via TDD; não autoriza `staging`, `main`, produção ou ativação. |
+| DEC-53 | [DEC-53](../../../AGENTS.md) | Institui o Benchmark Gate nas skills de controle: Booksy → principais players → cross-industry, com fontes e separação `FATO`/`INFERÊNCIA`/`DECISÃO`; decisão de produto sem evidência fica `BLOQUEADO`. |
 | DEC-03 a DEC-30, DEC-33, DEC-35 a DEC-37, DEC-39 e DEC-40 | — | Não há ADR dedicado ou vínculo explícito registrado; consultar a decisão primária neste log. |
 ## Índice de status
 
 | Prefixo | Escopo | Numeração |
 |---|---|---|
 | DEC-01 a DEC-19 | Decisões formais do Platform Owner, registradas em 2026-07-19, escopo: comanda, gorjeta, comissão, pacotes, planos, cadastros, configuração, dados sensíveis | Cronológica, imutável |
-| DEC-20 a DEC-52 | Decisões de processo/auditoria da ordem de construção, incluindo aprovação de Blueprints, regularizações de Etapa 8, governança documental, hardening de agentes e aprovação do Blueprint e autorização local da Etapa 8 da Onda 5 (DEC-51/DEC-52). | Cronológica, imutável |
+| DEC-20 a DEC-53 | Decisões de processo/auditoria da ordem de construção, incluindo aprovação de Blueprints, regularizações de Etapa 8, governança documental, hardening de agentes, Onda 5 (DEC-51/DEC-52) e Benchmark Gate obrigatório (DEC-53). | Cronológica, imutável |
 | D-01 a D-09 | Decisões conceituais originais do anexo A1 (cadastros) — **todas as 9 resolvidas**, a última (D-07) por DEC-19 | Letrada, anterior às DEC |
 
 ---
@@ -413,3 +414,11 @@ Nada deste anexo autoriza SQL, migration ou tela.
 | # | Decisão | Conteúdo | Substitui |
 |---:|---|---|---|
 | DEC-52 | Autorização da Etapa 8 (SQL) da Onda 5 para ambiente local | **Aprovado pelo Platform Owner em 2026-08-04, decorrência de DEC-51.** Autoriza implementar e testar, uma fatia por vez, as issues 029–035 da Onda 5 em ambiente Supabase local/descartável e branch de trabalho, usando TDD (pgTAP e node --test), pre-flight por migration, feature flag desligada por padrão e Red Team de implementação antes de declarar a Onda concluída. A autorização cobre migrations novas, RPCs, backend e UI estritamente necessários ao Blueprint/ADR 0023; não autoriza editar migrations aplicadas, ativar a feature flag para clientes, promover para staging/main, fazer deploy ou alterar produção. | Desbloqueia somente a implementação local da Onda 5. Promoção continua dependente de Environment Guardian, Delivery Guardian, CI e homologação. |
+
+---
+
+# SEÇÃO 19 — DEC-53: BENCHMARK GATE NAS SKILLS DE CONTROLE (2026-08-04)
+
+| # | Decisão | Conteúdo | Substitui |
+|---:|---|---|---|
+| DEC-53 | Benchmark Gate obrigatório no fluxo agêntico de decisões de produto | **Aprovado pelo Platform Owner em 2026-08-04.** Para toda decisão nova ou refinamento de comportamento de produto, o fluxo exige confronto sequencial: Booksy primeiro; principais players do mercado em seguida; referências cross-industry quando aplicáveis. A evidência deve conter links e separar `FATO`, `INFERÊNCIA` e `DECISÃO`; inexistência de precedente no Booksy também é evidência e não permite pular as comparações seguintes. O mecanismo foi instalado nas skills que controlam o ciclo decisório: `kortex-mvpt-orchestrator` (entrada/delegação), `kortex-blueprint-architect` (decisão e Blueprint) e `kortex-qa-redteam` (gate). Cada edição em `.agents/skills/` foi espelhada no mesmo turno em `.claude/skills/`, conforme `AGENTS.md`. Sem Benchmark Gate aplicável, a decisão permanece `BLOQUEADO`; correção estritamente mecânica, sem mudança de comportamento, é isenta. | Torna executável a regra global já registrada em `AGENTS.md` e DEC-51; não muda nenhuma regra de produto, não autoriza implementação, ativação ou promoção. |

@@ -50,7 +50,7 @@ O MVP entregue e em produção — ERP vertical multi-tenant mínimo para beleza
 - **Validação:** antes do handoff, valide links Markdown locais afetados e preencha `DOCUMENTATION_CHECK` conforme o protocolo canônico.
 - **Otimizações Obrigatórias de Código (DEC-44):** toda nova Onda do Migration Map (Onda 3 em diante) DEVE incorporar as 4 Otimizações de Pipeline: (1) Dark Launching via Feature Flags na chave `organizations.settings`; (2) Pre-flight Check SQL asserções em migrations; (3) TDD com Mocks de API + pgTAP no Express; (4) Rastreabilidade automática via Git Commit (`closes issues/NNN`).
 
-- **Benchmark obrigatório para dúvidas de produto:** toda dúvida futura de desenho ou comportamento deve ser confrontada primeiro com o Booksy, depois com os principais players do mercado e, quando aplicável, com referências cross-industry. Registrar a evidência e separar claramente fato observado, inferência e decisão adotada.
+- **Benchmark obrigatório para dúvidas de produto (DEC-53):** toda dúvida futura de desenho ou comportamento deve ser confrontada primeiro com o Booksy, depois com os principais players do mercado e, quando aplicável, com referências cross-industry. Registrar a evidência e separar claramente fato observado, inferência e decisão adotada. O mecanismo é obrigatório em `kortex-mvpt-orchestrator`, `kortex-blueprint-architect` e `kortex-qa-redteam`; ausência de gate aplicável deixa a decisão `BLOQUEADO`.
 
 ## Processo MAS
 

@@ -28,6 +28,7 @@ Documentação de visão não autoriza schema, endpoint, tela, deploy ou promoç
 - [Parte I — Visão e Tese do Master Briefing](architecture/vision/KORTEXOS_5_1_2_MASTER_BRIEFING_VISAO_TESE.md)
 - [Decision Log](architecture/governance/KORTEXOS_5_1_2_DECISION_LOG.md) — DEC/D append-only e [matriz DEC ↔ ADR](architecture/governance/KORTEXOS_5_1_2_DECISION_LOG.md#matriz-cruzada-dec--adr).
 - Hardening dos agentes `kortex-*` (DEC-50): portabilidade de referências, guardrail de reverificação, subordinação dos vendor skills de UI ao Design System real, espelho em `.claude/skills/` e 5 hooks determinísticos em `.claude/hooks/` (`check-secret-commit.js`, `check-branch-protection.js`, `check-tenant-invariant.js`, `check-design-system.js`, `check-blueprint-gate.js`), registrados em `.claude/settings.json`.
+- Benchmark Gate (DEC-53): Booksy → principais players → cross-industry, com evidência classificada em `FATO`/`INFERÊNCIA`/`DECISÃO`, exigido por `kortex-mvpt-orchestrator`, `kortex-blueprint-architect` e `kortex-qa-redteam`.
 - [Protocolo de Automação Documental](architecture/governance/KORTEXOS_DOCUMENTATION_AUTOMATION_PROTOCOL.md) — regra prospectiva de Docs-as-Code para agentes (DEC-43).
 - [ADRs](architecture/adr/) — decisões técnicas e seus vínculos com ondas (ver [ADR 0021](architecture/adr/0021-frontend-ux-responsiveness-and-adaptive-modals.md) para o Design System e Modais Adaptativos).
 - [ADR 0023 — Onda 5](architecture/adr/0023-onda5-recurring-group-booking-waitlist.md) — recorrência, Group Booking pai/filhos e waitlist no modelo Booksy.
