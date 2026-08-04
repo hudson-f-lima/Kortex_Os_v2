@@ -20,7 +20,8 @@ Documentação de visão não autoriza schema, endpoint, tela, deploy ou promoç
 | Onda 1 — Payment Core | **PARCIAL**; correção forward-only autorizada por DEC-38 | `NO-GO` para `main`/produção até homologação e decisão formal | [Onda 1](waves/onda-1-payment-core/) |
 | Onda 2 — KortexFlow Ledger | **REAL local**; fatias 012–016 e hardening de ledger regularizados por DEC-42 | `NO-GO` para `staging`/`main` até Environment Guardian, Delivery Guardian e homologação | [Onda 2](waves/onda-2-kortexflow-ledger/) |
 | Onda 3 — Compensation | **REAL em `staging`** — as 6 fatias (017-022: Feature Flag, staff_levels, staff_level_service_overrides/resolve_service_pricing, comissão de venda, vínculo pacote↔pedido, imutabilidade) mescladas via PR #24 e PR #25, implementadas via `$tdd` (661/661 pgTAP, backend 301/301, PWA 108/108, todos verificados pessoalmente contra a aplicação real rodando localmente, não só pgTAP). Blueprint aprovado por DEC-46; Etapa 8 e a promoção a `staging` regularizadas por DEC-47; achados de auditoria pós-merge (P1/P2/P3) corrigidos pelas fatias 021-022 sob emenda DEC-48. Produção segue em Fase 11 — nenhuma migration da trilha 5.1.2 chegou lá | `NO-GO` para `main`/produção até os gates de ambiente/entrega/homologação (bloqueados por DEC-40, `kortex-api-staging` suspenso por billing) | [Onda 3](waves/onda-3-compensation/) |
-| Onda 4 — Calendar Policy, Availability Resolver & Resource Orchestration | **REAL local** — Blueprint aprovado (DEC-49), fundação sem ativação (`create_appointment`/`checkout_close` intocados). As 6 fatias (023-028) implementadas; Red Team de implementação pós-Etapa-8 e auditoria final de fix corrigiram os gaps reais conhecidos (unit scope, elegibilidade tri-state, isenção `exceptional_opening` removida, timezone, validação estrita de data, lint SQL, entre outros — ver ADR 0022). Evidência final: 764/764 pgTAP, 321/321 backend (`node --test`), `supabase db lint --local` sem erros, sem regressão | `NO-GO` para `staging`/`main` até os gates de ambiente/entrega/homologação — ainda não commitada | [Onda 4](waves/onda-4-calendar-availability/) |
+| Onda 4 — Calendar Policy, Availability Resolver & Resource Orchestration | **REAL em `staging`** — Blueprint aprovado (DEC-49), fundação sem ativação (`create_appointment`/`checkout_close` intocados). As 6 fatias (023-028) implementadas e mescladas via PR #27 (`1f55d70`); Red Team de implementação pós-Etapa-8 e auditoria final de fix corrigiram os gaps reais conhecidos (unit scope, elegibilidade tri-state, isenção `exceptional_opening` removida, timezone, validação estrita de data, lint SQL, entre outros — ver ADR 0022). Evidência final: 764/764 pgTAP, 321/321 backend (`node --test`), `supabase db lint --local` sem erros, sem regressão | `NO-GO` para `main`/produção até os gates de ambiente/entrega/homologação | [Onda 4](waves/onda-4-calendar-availability/) |
+| Onda 5 — Recurring, Group Booking & Waitlist | **BLUEPRINT APROVADO** por DEC-51; Etapa 8 local autorizada por DEC-52, ainda sem código/migration executável | Fatiamento 029–035 pronto; `NO-GO` para `staging`/`main`/produção | [Onda 5](waves/onda-5-recurring-group-waitlist/) |
 
 ## Arquitetura e decisões
 
@@ -29,6 +30,7 @@ Documentação de visão não autoriza schema, endpoint, tela, deploy ou promoç
 - Hardening dos agentes `kortex-*` (DEC-50): portabilidade de referências, guardrail de reverificação, subordinação dos vendor skills de UI ao Design System real, espelho em `.claude/skills/` e 5 hooks determinísticos em `.claude/hooks/` (`check-secret-commit.js`, `check-branch-protection.js`, `check-tenant-invariant.js`, `check-design-system.js`, `check-blueprint-gate.js`), registrados em `.claude/settings.json`.
 - [Protocolo de Automação Documental](architecture/governance/KORTEXOS_DOCUMENTATION_AUTOMATION_PROTOCOL.md) — regra prospectiva de Docs-as-Code para agentes (DEC-43).
 - [ADRs](architecture/adr/) — decisões técnicas e seus vínculos com ondas (ver [ADR 0021](architecture/adr/0021-frontend-ux-responsiveness-and-adaptive-modals.md) para o Design System e Modais Adaptativos).
+- [ADR 0023 — Onda 5](architecture/adr/0023-onda5-recurring-group-booking-waitlist.md) — recorrência, Group Booking pai/filhos e waitlist no modelo Booksy.
 - [Global Benchmark Map](architecture/vision/KORTEXOS_5_1_2_GLOBAL_BENCHMARK_MAP.md)
 - [Comparative Proposal](architecture/vision/KORTEXOS_5_1_2_COMPARATIVE_PROPOSAL.md)
 - [Pontos Cegos Pré-Blueprint](architecture/vision/KORTEXOS_5_1_2_PONTOS_CEGOS_PRE_BLUEPRINT.md)
@@ -49,6 +51,7 @@ Documentação de visão não autoriza schema, endpoint, tela, deploy ou promoç
 - [Onda 2 — KortexFlow Ledger](waves/onda-2-kortexflow-ledger/) — blueprint da fundação sem ativação.
 - [Onda 3 — Compensation](waves/onda-3-compensation/) — blueprint de Staff Levels & Comissão de Venda.
 - [Onda 4 — Calendar Policy, Availability Resolver & Resource Orchestration](waves/onda-4-calendar-availability/) — blueprint aprovado, fundação sem ativação.
+- [Onda 5 — Recurring, Group Booking & Waitlist](waves/onda-5-recurring-group-waitlist/) — Blueprint aprovado por DEC-51 e Etapa 8 local autorizada por DEC-52; sete issues prontas para TDD.
 
 ## Como fazer
 
