@@ -1,0 +1,4 @@
+﻿interface:
+  display_name: "Kortex MVP Técnico Orchestrator"
+  short_description: "Orquestra o MVP técnico greenfield"
+  default_prompt: "Use $kortex-mvpt-orchestrator para planejar e validar o próximo incremento greenfield do KortexOS."
