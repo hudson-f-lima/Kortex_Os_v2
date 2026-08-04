@@ -13,6 +13,8 @@
 
 `.agents/skills/` é a fonte canônica única de edição dos 10 agentes `kortex-*`. A descoberta nativa de skills do Claude Code carrega de `.claude/skills/`, não de `.agents/skills/` — por isso toda alteração futura em `.agents/skills/kortex-*` DEVE ser replicada (cópia de arquivo, nunca symlink) em `.claude/skills/kortex-*` no mesmo turno em que for feita.
 
+Desde 2026-08-04 (DEC-50), 5 hooks determinísticos em `.claude/hooks/` + `.claude/settings.json` reforçam parte destes invariantes com mecanismo, não só prosa: segredo em commit, proteção de branch (`main`/`staging`), invariante de tenant em rotas, uso do Design System em `.jsx` e gate de Blueprint em migrations. Validados ao vivo contra o harness real; ver DEC-50 para o detalhamento e as limitações conhecidas (7.3 não cobre `organization_id`; 7.5 bloqueia edição de migrations legadas sem a linha de referência, comportamento intencional).
+
 A construção do MVP técnico (Fases 1–11, Trilhas A–E) foi encerrada formalmente em 2026-07-20 (DEC-29). `docs/legacy/mvp-tecnico/PROJECT_STATE.md` e `docs/legacy/mvp-tecnico/KORTEX_MVP_TECNICO.md` continuam corretos sobre o que está em produção hoje, mas não são mais lidos como fonte ativa de escopo — consulte-os só para contexto histórico.
 
 ## Sincronização de estado local no início da sessão
