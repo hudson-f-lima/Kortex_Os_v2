@@ -33,6 +33,7 @@ Documentação de visão não autoriza schema, endpoint, tela, deploy ou promoç
 - [ADRs](architecture/adr/) — decisões técnicas e seus vínculos com ondas (ver [ADR 0021](architecture/adr/0021-frontend-ux-responsiveness-and-adaptive-modals.md) para o Design System e Modais Adaptativos).
 - [ADR 0023 — Onda 5](architecture/adr/0023-onda5-recurring-group-booking-waitlist.md) — recorrência, Group Booking pai/filhos e waitlist no modelo Booksy.
 - [Auditoria de Eficiências Transversais no Fluxo Agêntico](architecture/governance/KORTEXOS_AGENTIC_FLOW_EFFICIENCY_AUDIT.md) — maturidade do MAS contra práticas agentic da Anthropic; backlog AEF-01–12.
+- [Plano de Otimização do Fluxo Agêntico](architecture/governance/KORTEXOS_AGENTIC_FLOW_OPTIMIZATION_PLAN.md) — fases F0–F6, gates, métricas e incrementos OPT-001–008.
 - [Global Benchmark Map](architecture/vision/KORTEXOS_5_1_2_GLOBAL_BENCHMARK_MAP.md)
 - [Comparative Proposal](architecture/vision/KORTEXOS_5_1_2_COMPARATIVE_PROPOSAL.md)
 - [Pontos Cegos Pré-Blueprint](architecture/vision/KORTEXOS_5_1_2_PONTOS_CEGOS_PRE_BLUEPRINT.md)
