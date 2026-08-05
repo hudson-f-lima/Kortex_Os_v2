@@ -34,6 +34,10 @@ export function mapRpcError(error) {
       return HttpError.conflict('appointment_checkout_unit_unsupported', error.message);
     case 'P0012':
       return HttpError.conflict('deposit_hold_expired', error.message);
+    case 'P0020':
+      return HttpError.conflict('series_conflict_not_open', error.message);
+    case 'P0021':
+      return HttpError.notFound('series_conflict_not_found', error.message);
     default:
       return mapPostgresError(error);
   }
