@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(5);
+SELECT plan(10);
 
 CREATE FUNCTION pg_temp.mk_user(p_email text) RETURNS uuid
 LANGUAGE sql AS $$
@@ -78,23 +78,70 @@ INSERT INTO public.clients (organization_id, name, created_by) VALUES (:'org1'::
 INSERT INTO public.appointments (organization_id, client_id, professional_id, service_id, starts_at, ends_at, created_by, unit_id)
   VALUES (:'org1'::uuid, :'client2'::uuid, :'prof2'::uuid, :'service1'::uuid, '2026-10-05T13:00:00Z', '2026-10-05T13:30:00Z', :'owner1'::uuid, :'unit1'::uuid);
 
-SELECT throws_ok(
-  format(
-    $sql$select public.appointment_series_create(%L, %L, 'series-create-collision-0001', jsonb_build_object(
-      'client_id', %L, 'professional_id', %L, 'service_id', %L,
-      'unit_id', %L, 'anchor_date', '2026-09-07', 'local_start_time', '10:00',
-      'recurrence_days', array[1], 'recurrence_interval_weeks', 1,
-      'duration_minutes', 30, 'valid_from', '2026-09-07'
-    ))$sql$,
-    :'org1', :'owner1', :'client1', :'prof2', :'service1', :'unit1'
-  ),
-  null, null,
-  'a collision on any of the 8 candidate occurrences fails the whole appointment_series_create call'
+SELECT public.appointment_series_create(
+  :'org1'::uuid, :'owner1'::uuid, 'series-create-collision-0001',
+  jsonb_build_object(
+    'client_id', :'client1'::uuid, 'professional_id', :'prof2'::uuid, 'service_id', :'service1'::uuid,
+    'unit_id', :'unit1'::uuid, 'anchor_date', '2026-09-07', 'local_start_time', '10:00',
+    'recurrence_days', array[1], 'recurrence_interval_weeks', 1,
+    'duration_minutes', 30, 'valid_from', '2026-09-07'
+  )
+) AS partial_series_response \gset
+SELECT is(
+  (SELECT count(*) FROM public.appointments WHERE series_id = ((:'partial_series_response'::jsonb -> 'series') ->> 'id')::uuid),
+  7::bigint,
+  'a collision leaves the seven valid occurrences materialized'
 );
 SELECT is(
-  (SELECT count(*) FROM public.appointment_series WHERE organization_id = :'org1'::uuid AND anchor_date = '2026-09-07'::date AND local_start_time = '10:00' AND id <> ((:'series_response'::jsonb -> 'series') ->> 'id')::uuid),
-  0::bigint,
-  'the failed attempt leaves no orphaned appointment_series row behind (all-or-nothing rollback)'
+  (SELECT count(*) FROM public.appointment_series_conflicts
+    WHERE series_id = ((:'partial_series_response'::jsonb -> 'series') ->> 'id')::uuid
+      AND occurrence_date = '2026-10-05'::date AND status = 'OPEN'),
+  1::bigint,
+  'the conflicting occurrence is durably recorded as OPEN'
+);
+SELECT is(
+  jsonb_array_length(:'partial_series_response'::jsonb -> 'conflicts'),
+  1,
+  'the series response exposes the durable conflict without hiding the partial outcome'
+);
+
+SELECT id AS conflict1 FROM public.appointment_series_conflicts
+WHERE series_id = ((:'partial_series_response'::jsonb -> 'series') ->> 'id')::uuid
+  AND occurrence_date = '2026-10-05'::date \gset
+DELETE FROM public.appointments
+WHERE organization_id = :'org1'::uuid AND professional_id = :'prof2'::uuid
+  AND starts_at = '2026-10-05T13:00:00Z'::timestamptz;
+
+SELECT public.appointment_series_conflict_retry(
+  :'org1'::uuid, :'owner1'::uuid, 'series-conflict-retry-0001',
+  jsonb_build_object('conflict_id', :'conflict1'::uuid)
+) AS conflict_retry_response \gset
+SELECT is(
+  (SELECT count(*) FROM public.appointments WHERE series_id = ((:'partial_series_response'::jsonb -> 'series') ->> 'id')::uuid),
+  8::bigint,
+  'retry materializes only the formerly conflicting occurrence'
+);
+SELECT is(
+  (SELECT status FROM public.appointment_series_conflicts WHERE id = :'conflict1'::uuid),
+  'RESOLVED',
+  'retry resolves the conflict only after the appointment exists'
+);
+SELECT public.appointment_series_conflict_retry(
+  :'org1'::uuid, :'owner1'::uuid, 'series-conflict-retry-0001',
+  jsonb_build_object('conflict_id', :'conflict1'::uuid)
+) AS conflict_retry_response_repeat \gset
+SELECT is(
+  (SELECT count(*) FROM public.appointments WHERE series_id = ((:'partial_series_response'::jsonb -> 'series') ->> 'id')::uuid),
+  8::bigint,
+  'retrying the same conflict command is idempotent and does not duplicate the occurrence'
+);
+SELECT throws_ok(
+  format(
+    'select public.appointment_series_conflict_retry(%L, %L, %L, jsonb_build_object(''conflict_id'', %L::uuid))',
+    :'org1', :'owner1', 'series-conflict-retry-0002', :'conflict1'
+  ),
+  'P0020', 'series conflict is not open',
+  'a resolved conflict cannot be retried with a new command'
 );
 
 -- Behavior 5 (issue 030, "ausência de inserção direta em appointments"):
