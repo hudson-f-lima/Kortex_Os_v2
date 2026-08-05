@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(3);
+SELECT plan(4);
 
 CREATE FUNCTION pg_temp.mk_user(p_email text) RETURNS uuid
 LANGUAGE sql AS $$
@@ -35,6 +35,13 @@ SELECT public.appointment_series_create(
 ) AS series_response \gset
 SELECT ((:'series_response'::jsonb -> 'series') ->> 'id') AS series1 \gset
 
+-- Snapshot de uma ocorrência já materializada, antes de qualquer chamada a
+-- extend_window — usado pela Behavior 1b (issue 031, "a janela futura não
+-- reescreve histórico") para provar campo a campo que ela não foi tocada,
+-- não só que a contagem total não mudou.
+SELECT id AS occ1_id, version AS occ1_version_before, updated_at AS occ1_updated_at_before
+FROM public.appointments WHERE series_id = :'series1'::uuid AND starts_at = '2026-09-07T13:00:00Z'::timestamptz \gset
+
 -- Behavior 1 (issue 030, "idempotência por ocorrência"): calling
 -- extend_window with as_of_date still inside the already-materialized
 -- window re-processes the same 8 dates but creates nothing new — the
@@ -47,6 +54,17 @@ SELECT is(
   (SELECT count(*) FROM public.appointments WHERE series_id = :'series1'::uuid),
   8::bigint,
   'extend_window with as_of_date inside the current window does not duplicate occurrences'
+);
+
+-- Behavior 1b (issue 031, "a janela futura não reescreve histórico"): a
+-- ocorrência já materializada não só permanece única (Behavior 1) — seus
+-- próprios campos (version, updated_at) ficam intocados, provando que
+-- extend_window nunca faz UPDATE numa ocorrência existente, só INSERT nas
+-- que ainda faltam.
+SELECT is(
+  (SELECT row(version, updated_at) FROM public.appointments WHERE id = :'occ1_id'::uuid),
+  row(:'occ1_version_before'::bigint, :'occ1_updated_at_before'::timestamptz),
+  'a redundant extend_window call never mutates version/updated_at of an already-materialized occurrence'
 );
 
 -- Behavior 2 (issue 030, "janela rolante"): as_of_date past the original
