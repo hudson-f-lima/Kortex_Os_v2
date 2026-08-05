@@ -51,14 +51,24 @@ SELECT is(
   'deposit_holds snapshots the original professional identity'
 );
 
+-- Onda 5, fatia 033: "titular imutável" endureceu update_appointment para
+-- rejeitar QUALQUER client_id fora do escape hatch de replan (P0022),
+-- supersedendo em generalidade o guard P0007 desta fatia (Onda 1) para o
+-- caminho genérico especificamente — P0007 seguia sendo levantado só quando
+-- havia hold ativo; agora nenhuma mudança de client_id passa por
+-- update_appointment sem a flag interna, hold ativo ou não. O guard
+-- original de identidade financeira (trigger
+-- appointments_active_hold_identity_guard) continua existindo e protegendo
+-- outros caminhos; só não é mais alcançado por ESTE, porque P0022 barra
+-- primeiro.
 SELECT throws_ok(
   format(
     $sql$select public.update_appointment(%L, %L, 'change-client-after-hold-001', %L, jsonb_build_object('client_id', %L, 'version', 1))$sql$,
     :'org_id', :'owner_id', :'appointment_id', :'client_b'
   ),
-  'P0007',
+  'P0022',
   NULL,
-  'a generic appointment update cannot change client_id while an active hold exists'
+  'a generic appointment update cannot change client_id while an active hold exists (superseded by the broader titleholder-immutable guard, fatia 033)'
 );
 
 SELECT is(

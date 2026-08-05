@@ -38,6 +38,12 @@ export function mapRpcError(error) {
       return HttpError.conflict('series_conflict_not_open', error.message);
     case 'P0021':
       return HttpError.notFound('series_conflict_not_found', error.message);
+    case 'P0022':
+      return HttpError.conflict('appointment_client_immutable', error.message);
+    case 'P0023':
+      return HttpError.conflict('waitlist_offer_not_open', error.message);
+    case 'P0024':
+      return HttpError.forbidden('waitlist_offer_token_mismatch', error.message);
     default:
       return mapPostgresError(error);
   }
