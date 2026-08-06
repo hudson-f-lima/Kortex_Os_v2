@@ -1,10 +1,10 @@
 ---
 title: "Onda 5 — feature flag e pre-flight"
-status: "DRAFT"
+status: "IMPLEMENTADA"
 stage: "ISSUE"
 governance_ref: ["DEC-51", "ADR-0023"]
 upstream_doc: "docs/waves/onda-5-recurring-group-waitlist/KORTEXOS_5_1_2_BLUEPRINT_ONDA_5.md"
-last_updated: "2026-08-04"
+last_updated: "2026-08-06"
 ---
 
 # 029 — Feature flag e pre-flight da Onda 5

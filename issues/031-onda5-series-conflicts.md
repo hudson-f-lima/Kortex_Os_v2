@@ -4,7 +4,7 @@ status: "ABSORVIDA"
 stage: "ISSUE"
 governance_ref: ["DEC-51", "ADR-0023"]
 upstream_doc: "docs/waves/onda-5-recurring-group-waitlist/KORTEXOS_5_1_2_BLUEPRINT_ONDA_5.md"
-last_updated: "2026-08-05"
+last_updated: "2026-08-06"
 ---
 
 # 031 — conflitos explícitos de recorrência

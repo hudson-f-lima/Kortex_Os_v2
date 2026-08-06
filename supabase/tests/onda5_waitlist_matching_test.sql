@@ -4,7 +4,7 @@
 -- aceito e ausência de preferência significa qualquer profissional
 -- elegível. Aceitar/recusar/expirar a oferta é escopo da fatia 035.
 BEGIN;
-SELECT plan(13);
+SELECT plan(14);
 
 CREATE FUNCTION pg_temp.mk_user(p_email text) RETURNS uuid
 LANGUAGE sql AS $$
@@ -208,6 +208,36 @@ SELECT ok(
 SELECT ok(
   NOT has_table_privilege('authenticated', 'public.waitlist_offers', 'INSERT'),
   'authenticated has no direct INSERT privilege on waitlist_offers'
+);
+
+-- Behavior 10 (issue 038): o matcher não pode ofertar slot que já foi
+-- ocupado por outro appointment. A proteção de corrida em create_appointment
+-- continua necessária, mas a oferta não deve nascer sabendo que é inviável.
+SELECT (public.waitlist_entry_create(
+  :'org1'::uuid, :'owner1'::uuid, 'wl-entry-occupied-0001',
+  jsonb_build_object(
+    'unit_id', :'unit1'::uuid, 'client_id', :'client4'::uuid, 'service_id', :'service1'::uuid,
+    'date_from', '2026-09-01', 'date_to', '2026-09-30', 'consent', true
+  )
+) -> 'entry' ->> 'id')::uuid AS entry_occupied \gset
+SELECT public.create_appointment(
+  :'org1'::uuid, :'owner1'::uuid, 'wl-occupied-appointment-0001',
+  jsonb_build_object(
+    'unit_id', :'unit1'::uuid, 'client_id', :'client3'::uuid, 'professional_id', :'profa'::uuid,
+    'service_id', :'service1'::uuid, 'starts_at', '2026-09-07T16:00:00Z'
+  )
+);
+SELECT public.waitlist_matcher_run(
+  :'org1'::uuid, :'owner1'::uuid, 'wl-match-occupied-0001',
+  jsonb_build_object(
+    'unit_id', :'unit1'::uuid, 'professional_id', :'profa'::uuid, 'service_id', :'service1'::uuid,
+    'starts_at', '2026-09-07T16:00:00Z'
+  )
+);
+SELECT is(
+  (SELECT count(*) FROM public.waitlist_offers WHERE waitlist_entry_id = :'entry_occupied'::uuid),
+  0::bigint,
+  'an already occupied slot creates zero waitlist offers'
 );
 
 SELECT * FROM finish();
