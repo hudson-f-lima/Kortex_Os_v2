@@ -234,7 +234,7 @@ export function AppointmentModal({
   }
 
   return (
-    <Modal onClose={onClose}>
+    <Modal onClose={onClose} size="lg">
       <h2>{mode === 'edit' ? 'Editar agendamento' : 'Novo agendamento'}</h2>
 
         <form className="auth-form" onSubmit={handleSubmit}>

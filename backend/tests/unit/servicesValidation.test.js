@@ -135,3 +135,121 @@ test('validateServicePayload accepts an unbounded fixed commission override', ()
   );
   assert.deepEqual(patch, { commission_type: 'fixed', commission_value: 999999 });
 });
+
+test('validateServicePayload accepts a valid deposit_mechanic on its own', () => {
+  const patch = validateServicePayload({ deposit_mechanic: 'hold' }, { requireAll: false });
+  assert.deepEqual(patch, { deposit_mechanic: 'hold' });
+});
+
+test('validateServicePayload rejects an invalid deposit_mechanic', () => {
+  throwsCode(
+    () => validateServicePayload({ deposit_mechanic: 'card' }, { requireAll: false }),
+    'invalid_deposit_mechanic',
+  );
+});
+
+test('validateServicePayload requires deposit_type and deposit_value together', () => {
+  throwsCode(
+    () => validateServicePayload({ deposit_type: 'percentage' }, { requireAll: false }),
+    'invalid_deposit',
+  );
+  throwsCode(
+    () => validateServicePayload({ deposit_value: 1000 }, { requireAll: false }),
+    'invalid_deposit',
+  );
+});
+
+test('validateServicePayload accepts a valid deposit_type/deposit_value pair', () => {
+  const patch = validateServicePayload(
+    { deposit_type: 'percentage', deposit_value: 5000 },
+    { requireAll: false },
+  );
+  assert.deepEqual(patch, { deposit_type: 'percentage', deposit_value: 5000 });
+});
+
+test('validateServicePayload rejects a percentage deposit_value above 10000 basis points', () => {
+  throwsCode(
+    () => validateServicePayload({ deposit_type: 'percentage', deposit_value: 10001 }, { requireAll: false }),
+    'invalid_deposit_value',
+  );
+});
+
+test('validateServicePayload accepts an unbounded fixed deposit_value', () => {
+  const patch = validateServicePayload(
+    { deposit_type: 'fixed', deposit_value: 999999 },
+    { requireAll: false },
+  );
+  assert.deepEqual(patch, { deposit_type: 'fixed', deposit_value: 999999 });
+});
+
+test('validateServicePayload rejects a negative deposit_value', () => {
+  throwsCode(
+    () => validateServicePayload({ deposit_type: 'fixed', deposit_value: -1 }, { requireAll: false }),
+    'invalid_deposit_value',
+  );
+});
+
+test('validateServicePayload requires no_show_commission_type and no_show_commission_value together', () => {
+  throwsCode(
+    () => validateServicePayload({ no_show_commission_type: 'percentage' }, { requireAll: false }),
+    'invalid_no_show_commission',
+  );
+  throwsCode(
+    () => validateServicePayload({ no_show_commission_value: 1000 }, { requireAll: false }),
+    'invalid_no_show_commission',
+  );
+});
+
+test('validateServicePayload accepts a valid no_show_commission pair independent of commission_type', () => {
+  const patch = validateServicePayload(
+    {
+      commission_type: 'percentage',
+      commission_value: 3000,
+      no_show_commission_type: 'fixed',
+      no_show_commission_value: 800,
+    },
+    { requireAll: false },
+  );
+  assert.deepEqual(patch, {
+    commission_type: 'percentage',
+    commission_value: 3000,
+    no_show_commission_type: 'fixed',
+    no_show_commission_value: 800,
+  });
+});
+
+test('validateServicePayload rejects a percentage no_show_commission_value above 10000 basis points', () => {
+  throwsCode(
+    () =>
+      validateServicePayload(
+        { no_show_commission_type: 'percentage', no_show_commission_value: 10001 },
+        { requireAll: false },
+      ),
+    'invalid_no_show_commission_value',
+  );
+});
+
+test('validateServicePayload accepts explicit null to clear deposit_mechanic', () => {
+  const patch = validateServicePayload({ deposit_mechanic: null }, { requireAll: false });
+  assert.deepEqual(patch, { deposit_mechanic: null });
+});
+
+test('validateServicePayload accepts explicit null on both deposit_type and deposit_value to clear the pair', () => {
+  const patch = validateServicePayload({ deposit_type: null, deposit_value: null }, { requireAll: false });
+  assert.deepEqual(patch, { deposit_type: null, deposit_value: null });
+});
+
+test('validateServicePayload rejects a mismatched null when clearing deposit_type/deposit_value', () => {
+  throwsCode(
+    () => validateServicePayload({ deposit_type: null, deposit_value: 500 }, { requireAll: false }),
+    'invalid_deposit',
+  );
+});
+
+test('validateServicePayload accepts explicit null on both no_show_commission fields to clear the pair', () => {
+  const patch = validateServicePayload(
+    { no_show_commission_type: null, no_show_commission_value: null },
+    { requireAll: false },
+  );
+  assert.deepEqual(patch, { no_show_commission_type: null, no_show_commission_value: null });
+});

@@ -5,6 +5,7 @@ import {
   validateBoolean,
   validateCommissionType,
   validateCommissionValue,
+  validateDepositMechanic,
   validateId,
   validateMoneyCents,
   validateRequiredString,
@@ -19,9 +20,36 @@ const ALLOWED_FIELDS = new Set([
   'commission_type',
   'commission_value',
   'active',
+  'deposit_mechanic',
+  'deposit_type',
+  'deposit_value',
+  'no_show_commission_type',
+  'no_show_commission_value',
 ]);
 
 export const validateServiceId = validateId;
+
+// A type/value pair that's optional as a whole: both provided validates the
+// pair, both explicit null clears it, anything else (one present, one
+// missing/mismatched-null) is rejected under `errorCode`.
+function assignPairField(patch, body, typeField, valueField, errorCode) {
+  const patchingType = body[typeField] !== undefined;
+  const patchingValue = body[valueField] !== undefined;
+  if (!patchingType && !patchingValue) return;
+  if (patchingType !== patchingValue) {
+    throw HttpError.badRequest(errorCode, `${typeField} and ${valueField} must be provided together`);
+  }
+  if (body[typeField] === null || body[valueField] === null) {
+    if (body[typeField] !== null || body[valueField] !== null) {
+      throw HttpError.badRequest(errorCode, `${typeField} and ${valueField} must be cleared together`);
+    }
+    patch[typeField] = null;
+    patch[valueField] = null;
+    return;
+  }
+  patch[typeField] = validateCommissionType(body[typeField], typeField);
+  patch[valueField] = validateCommissionValue(body[valueField], patch[typeField], valueField);
+}
 
 export function validateServicePayload(body, { requireAll = true } = {}) {
   assertKnownFields(body, ALLOWED_FIELDS);
@@ -70,6 +98,19 @@ export function validateServicePayload(body, { requireAll = true } = {}) {
   if (body.active !== undefined) {
     patch.active = validateBoolean(body.active, 'active');
   }
+
+  if (body.deposit_mechanic !== undefined) {
+    patch.deposit_mechanic = body.deposit_mechanic === null ? null : validateDepositMechanic(body.deposit_mechanic);
+  }
+
+  // deposit_type/deposit_value are an optional pair: both or neither, same
+  // shape as commission_type/commission_value. Both explicit null clears the
+  // policy (removes it); a mix of null and a value is not a valid patch.
+  assignPairField(patch, body, 'deposit_type', 'deposit_value', 'invalid_deposit');
+
+  // no_show_commission_type/value are independent of commission_type/value —
+  // no-show charges are never derived from the normal sale commission.
+  assignPairField(patch, body, 'no_show_commission_type', 'no_show_commission_value', 'invalid_no_show_commission');
 
   if (!requireAll) {
     assertNonEmptyPatch(patch);

@@ -72,7 +72,7 @@ test('checkout validation — unknown fields rejected', async () => {
   });
 });
 
-test('checkout validation — allowed fields: client_id, items, payments, discount_cents, tip_cents', async () => {
+test('checkout validation — allowed fields: client_id, items, payments, discount_cents, tip_cents, appointment_id', async () => {
   const payload = {
     client_id: null,
     items: [{ kind: 'product', id: '550e8400-e29b-41d4-a716-446655440001', quantity: 1 }],
@@ -82,5 +82,8 @@ test('checkout validation — allowed fields: client_id, items, payments, discou
   };
   const result = validateCheckoutPayload(payload);
   assert.ok(result);
-  assert.deepEqual(Object.keys(result).sort(), ['client_id', 'discount_cents', 'items', 'payments', 'tip_cents']);
+  assert.deepEqual(
+    Object.keys(result).sort(),
+    ['appointment_id', 'client_id', 'discount_cents', 'items', 'payments', 'tip_cents'],
+  );
 });

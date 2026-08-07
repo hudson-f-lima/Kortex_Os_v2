@@ -40,19 +40,19 @@ VALUES (:'org'::uuid, 'Test Client', '123456789', 'client@test.local', :'owner':
 RETURNING id AS client_id \gset
 
 SELECT is(
-  (SELECT count(*)::integer FROM public.sync_events WHERE table_name = 'clients' AND action = 'INSERT'),
+  (SELECT count(*)::integer FROM public.sync_events WHERE table_name = 'clients' AND action = 'INSERT' AND record_id = :'client_id'::uuid),
   1,
   'INSERT on clients creates a sync_event'
 );
 
 SELECT is(
-  (SELECT record_id FROM public.sync_events WHERE table_name = 'clients' AND action = 'INSERT'),
+  (SELECT record_id FROM public.sync_events WHERE table_name = 'clients' AND action = 'INSERT' AND record_id = :'client_id'::uuid),
   :'client_id'::uuid,
   'sync_event has correct record_id'
 );
 
 SELECT is(
-  (SELECT (payload->>'name') FROM public.sync_events WHERE table_name = 'clients' AND action = 'INSERT'),
+  (SELECT (payload->>'name') FROM public.sync_events WHERE table_name = 'clients' AND action = 'INSERT' AND record_id = :'client_id'::uuid),
   'Test Client',
   'sync_event payload contains the correct client name'
 );
@@ -63,13 +63,13 @@ SET phone = '987654321'
 WHERE id = :'client_id'::uuid;
 
 SELECT is(
-  (SELECT count(*)::integer FROM public.sync_events WHERE table_name = 'clients' AND action = 'UPDATE'),
+  (SELECT count(*)::integer FROM public.sync_events WHERE table_name = 'clients' AND action = 'UPDATE' AND record_id = :'client_id'::uuid),
   1,
   'UPDATE on clients creates a sync_event'
 );
 
 SELECT is(
-  (SELECT (payload->>'phone') FROM public.sync_events WHERE table_name = 'clients' AND action = 'UPDATE'),
+  (SELECT (payload->>'phone') FROM public.sync_events WHERE table_name = 'clients' AND action = 'UPDATE' AND record_id = :'client_id'::uuid),
   '987654321',
   'sync_event payload contains updated client phone'
 );
@@ -79,13 +79,13 @@ DELETE FROM public.clients
 WHERE id = :'client_id'::uuid;
 
 SELECT is(
-  (SELECT count(*)::integer FROM public.sync_events WHERE table_name = 'clients' AND action = 'DELETE'),
+  (SELECT count(*)::integer FROM public.sync_events WHERE table_name = 'clients' AND action = 'DELETE' AND record_id = :'client_id'::uuid),
   1,
   'DELETE on clients creates a sync_event'
 );
 
 SELECT is(
-  (SELECT (payload->>'name') FROM public.sync_events WHERE table_name = 'clients' AND action = 'DELETE'),
+  (SELECT (payload->>'name') FROM public.sync_events WHERE table_name = 'clients' AND action = 'DELETE' AND record_id = :'client_id'::uuid),
   'Test Client',
   'DELETE sync_event payload contains old client name'
 );
