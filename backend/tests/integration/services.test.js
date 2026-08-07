@@ -213,6 +213,78 @@ test('deleting a service referenced by an appointment returns 409 instead of a r
   assert.equal(del.body.code, 'referenced_by_other_records');
 });
 
+test('a service can be created with a full deposit/no-show policy, read back, then have the policy cleared idempotently', async () => {
+  const { organizationId, accessToken } = await setUpOrgWithRole('owner');
+  const serviceGroupId = await createServiceGroup(supabaseAdmin, organizationId);
+
+  const created = await request(app)
+    .post('/api/v1/services')
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId)
+    .send({
+      name: 'Corte Com Depósito',
+      price_cents: 5000,
+      duration_minutes: 30,
+      service_group_id: serviceGroupId,
+      deposit_mechanic: 'hold',
+      deposit_type: 'percentage',
+      deposit_value: 2000,
+      no_show_commission_type: 'fixed',
+      no_show_commission_value: 1000,
+    });
+  assert.equal(created.status, 201);
+  assert.equal(created.body.service.deposit_mechanic, 'hold');
+  assert.equal(created.body.service.deposit_type, 'percentage');
+  assert.equal(created.body.service.deposit_value, 2000);
+  assert.equal(created.body.service.no_show_commission_type, 'fixed');
+  assert.equal(created.body.service.no_show_commission_value, 1000);
+  const serviceId = created.body.service.id;
+
+  const fetched = await request(app)
+    .get(`/api/v1/services/${serviceId}`)
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId);
+  assert.equal(fetched.status, 200);
+  assert.equal(fetched.body.service.deposit_mechanic, 'hold');
+  assert.equal(fetched.body.service.deposit_type, 'percentage');
+  assert.equal(fetched.body.service.deposit_value, 2000);
+  assert.equal(fetched.body.service.no_show_commission_type, 'fixed');
+  assert.equal(fetched.body.service.no_show_commission_value, 1000);
+
+  const cleared = await request(app)
+    .patch(`/api/v1/services/${serviceId}`)
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId)
+    .send({
+      deposit_mechanic: null,
+      deposit_type: null,
+      deposit_value: null,
+      no_show_commission_type: null,
+      no_show_commission_value: null,
+    });
+  assert.equal(cleared.status, 200);
+  assert.equal(cleared.body.service.deposit_mechanic, null);
+  assert.equal(cleared.body.service.deposit_type, null);
+  assert.equal(cleared.body.service.deposit_value, null);
+  assert.equal(cleared.body.service.no_show_commission_type, null);
+  assert.equal(cleared.body.service.no_show_commission_value, null);
+  assert.equal(cleared.body.service.price_cents, 5000, 'unrelated fields are preserved');
+
+  const clearedAgain = await request(app)
+    .patch(`/api/v1/services/${serviceId}`)
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId)
+    .send({
+      deposit_mechanic: null,
+      deposit_type: null,
+      deposit_value: null,
+      no_show_commission_type: null,
+      no_show_commission_value: null,
+    });
+  assert.equal(clearedAgain.status, 200, 'clearing an already-null policy is idempotent');
+  assert.equal(clearedAgain.body.service.deposit_mechanic, null);
+});
+
 test('deleting a service group referenced by a service returns 409 instead of a raw DB error', async () => {
   const { organizationId, accessToken } = await setUpOrgWithRole('owner');
   const serviceGroupId = await createServiceGroup(supabaseAdmin, organizationId);

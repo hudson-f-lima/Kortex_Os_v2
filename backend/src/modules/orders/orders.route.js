@@ -38,7 +38,10 @@ export function ordersRouter({ supabaseAdmin, organizationContext }) {
 
   router.get('/orders', requireRole(...READ_ROLES), async (req, res, next) => {
     try {
-      const orders = await service.list({ organizationId: req.auth.organizationId });
+      const orders = await service.list({
+        organizationId: req.auth.organizationId,
+        unitId: req.auth.unitId,
+      });
       res.status(200).json({ orders });
     } catch (err) {
       next(err);
@@ -48,7 +51,11 @@ export function ordersRouter({ supabaseAdmin, organizationContext }) {
   router.get('/orders/:id', requireRole(...READ_ROLES), async (req, res, next) => {
     try {
       const orderId = validateId(req.params.id);
-      const order = await service.get({ organizationId: req.auth.organizationId, orderId });
+      const order = await service.get({
+        organizationId: req.auth.organizationId,
+        unitId: req.auth.unitId,
+        orderId,
+      });
       res.status(200).json({ order });
     } catch (err) {
       next(err);

@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(6);
+SELECT plan(10);
 
 CREATE FUNCTION pg_temp.mk_user(p_email text) RETURNS uuid
 LANGUAGE sql AS $$
@@ -27,6 +27,31 @@ SELECT ok(
     WHERE organization_id = :'org1'::uuid AND user_id = :'founder'::uuid AND role = 'owner' AND active
   ),
   'the actor becomes an active owner membership of the new organization'
+);
+
+-- Onda 0: inserting into organizations (whichever the caller — this RPC,
+-- or any direct insert elsewhere, e.g. rpc_fase9_foundation_test.sql's fixture)
+-- always creates a default unit via an AFTER INSERT trigger on organizations
+-- itself, not via create_organization-specific logic (DEC-31). Fixed timezone,
+-- no per-org input in this onda. The owner membership stays org-wide (unit_id null).
+SELECT (SELECT id FROM public.units WHERE organization_id = :'org1'::uuid AND is_default AND active) AS unit1 \gset
+SELECT ok(:'unit1'::uuid IS NOT NULL, 'create_organization creates exactly one default active unit');
+SELECT is(
+  (SELECT timezone FROM public.units WHERE id = :'unit1'::uuid),
+  'America/Sao_Paulo',
+  'the default unit gets the fixed timezone (no per-organization input in Onda 0)'
+);
+SELECT ok(
+  EXISTS(
+    SELECT 1 FROM public.unit_access_audit_events
+    WHERE organization_id = :'org1'::uuid AND unit_id = :'unit1'::uuid
+      AND event_type = 'unit_created' AND actor_kind = 'system'
+  ),
+  'inserting the organization records a system-attributed unit_created audit event (the trigger has no user actor to attribute it to)'
+);
+SELECT ok(
+  (SELECT unit_id FROM public.memberships WHERE organization_id = :'org1'::uuid AND user_id = :'founder'::uuid) IS NULL,
+  'the owner membership remains org-wide (unit_id null) even though a unit now exists'
 );
 
 -- Invalid actor

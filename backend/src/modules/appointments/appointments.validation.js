@@ -18,6 +18,18 @@ const UPDATE_FIELDS = new Set([
   'version',
   'confirm',
 ]);
+// Replanning a held appointment is a separate financial command.  It may
+// change the frozen identity or time, but it must not be smuggled through as
+// a generic status update.
+const REPLAN_FIELDS = new Set([
+  'client_id',
+  'professional_id',
+  'service_id',
+  'starts_at',
+  'version',
+  'confirm',
+]);
+const REPLAN_CHANGE_FIELDS = ['client_id', 'professional_id', 'service_id', 'starts_at'];
 
 export const APPOINTMENT_STATUSES = ['scheduled', 'confirmed', 'in_service', 'completed', 'cancelled', 'no_show'];
 
@@ -78,6 +90,20 @@ export function validateAppointmentPayload(body, { requireAll = true } = {}) {
     if (body.confirm !== undefined) {
       patch.confirm = validateBoolean(body.confirm, 'confirm');
     }
+  }
+
+  return patch;
+}
+
+export function validateAppointmentReplanPayload(body) {
+  assertKnownFields(body, REPLAN_FIELDS);
+  const patch = validateAppointmentPayload(body, { requireAll: false });
+
+  if (!REPLAN_CHANGE_FIELDS.some((field) => patch[field] !== undefined)) {
+    throw HttpError.badRequest(
+      'replan_change_required',
+      'replan requires at least one of client_id, professional_id, service_id or starts_at',
+    );
   }
 
   return patch;

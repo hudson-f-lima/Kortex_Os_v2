@@ -286,3 +286,13 @@ After documenting:
 - [ ] Known gotchas are documented inline where they matter
 - [ ] No commented-out code remains
 - [ ] Rules files (CLAUDE.md etc.) are current and accurate
+
+## KortexOS Docs-as-Code contract
+
+Apply `AGENTS.md` and `docs/architecture/governance/KORTEXOS_DOCUMENTATION_AUTOMATION_PROTOCOL.md` to every KortexOS documentation or decision task.
+
+- Create new ADRs under `docs/architecture/adr/`, preserving the next verified numeric sequence and the repository's Markdown convention.
+- Add the canonical YAML document frontmatter to new Markdown artefacts in non-legacy `docs/` and `issues/`. `SKILL.md` and repository instruction files keep their own required frontmatter formats.
+- When a technical decision is registered, update the DEC↔ADR matrix in `docs/architecture/governance/KORTEXOS_5_1_2_DECISION_LOG.md` and the SSoT navigation in `docs/INDEX.md` in the same turn.
+- Mark a fully revoked prior decision `STATUS: SUPERSEDED BY [DEC/ADR]`; for partial refinement, identify the exact affected scope so the historical record remains truthful.
+- Include `DOCUMENTATION_CHECK` in the final handoff and validate affected local Markdown links.

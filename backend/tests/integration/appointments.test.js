@@ -107,6 +107,181 @@ test('owner can create, list, update and delete an appointment', async () => {
   assert.equal(afterDelete.body.code, 'appointment_not_found');
 });
 
+test('reception only reads appointments from the unit derived from its membership', async () => {
+  const { organizationId, accessToken, ownerUserId, userId } = await setUpOrgWithRole('reception');
+  const { clientId, professionalId, serviceId } = await seedCatalog(organizationId, ownerUserId);
+
+  const { data: defaultUnit, error: defaultUnitError } = await supabaseAdmin
+    .from('units')
+    .select('id')
+    .eq('organization_id', organizationId)
+    .eq('is_default', true)
+    .single();
+  assert.equal(defaultUnitError, null, defaultUnitError?.message);
+
+  const { data: otherUnit, error: otherUnitError } = await supabaseAdmin
+    .from('units')
+    .insert({
+      organization_id: organizationId,
+      name: `Outra Unidade ${randomUUID().slice(0, 8)}`,
+      timezone: 'America/Sao_Paulo',
+      active: true,
+      is_default: false,
+      created_by: ownerUserId,
+    })
+    .select('id')
+    .single();
+  assert.equal(otherUnitError, null, otherUnitError?.message);
+
+  const { error: professionalUnitError } = await supabaseAdmin.from('professional_units').insert({
+    organization_id: organizationId,
+    professional_id: professionalId,
+    unit_id: otherUnit.id,
+    active: true,
+    created_by: ownerUserId,
+  });
+  assert.equal(professionalUnitError, null, professionalUnitError?.message);
+
+  const { error: membershipError } = await supabaseAdmin
+    .from('memberships')
+    .update({ unit_id: defaultUnit.id })
+    .eq('organization_id', organizationId)
+    .eq('user_id', userId);
+  assert.equal(membershipError, null, membershipError?.message);
+
+  const baseAppointment = {
+    organization_id: organizationId,
+    client_id: clientId,
+    professional_id: professionalId,
+    service_id: serviceId,
+    ends_at: '2026-08-12T10:30:00Z',
+    created_by: ownerUserId,
+  };
+  const { data: seededAppointments, error: appointmentError } = await supabaseAdmin
+    .from('appointments')
+    .insert([
+      { ...baseAppointment, unit_id: defaultUnit.id, starts_at: '2026-08-12T10:00:00Z' },
+      {
+        ...baseAppointment,
+        unit_id: otherUnit.id,
+        starts_at: '2026-08-12T11:00:00Z',
+        ends_at: '2026-08-12T11:30:00Z',
+      },
+    ])
+    .select('id, unit_id, version');
+  assert.equal(appointmentError, null, appointmentError?.message);
+
+  const listed = await request(app)
+    .get('/api/v1/appointments')
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId);
+
+  assert.equal(listed.status, 200);
+  assert.equal(listed.body.appointments.length, 1);
+  assert.equal(listed.body.appointments[0].unit_id, defaultUnit.id);
+
+  const otherUnitAppointment = seededAppointments.find((appointment) => appointment.unit_id === otherUnit.id);
+  const crossUnitUpdate = await request(app)
+    .patch(`/api/v1/appointments/${otherUnitAppointment.id}`)
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId)
+    .set('Idempotency-Key', idemKey())
+    .send({ status: 'confirmed', version: otherUnitAppointment.version });
+  assert.equal(crossUnitUpdate.status, 404);
+  assert.equal(crossUnitUpdate.body.code, 'appointment_not_found');
+
+  const crossUnitDelete = await request(app)
+    .delete(`/api/v1/appointments/${otherUnitAppointment.id}`)
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId);
+  assert.equal(crossUnitDelete.status, 404);
+  assert.equal(crossUnitDelete.body.code, 'appointment_not_found');
+
+  const { error: deactivateLinkError } = await supabaseAdmin
+    .from('professional_units')
+    .update({ active: false })
+    .eq('organization_id', organizationId)
+    .eq('professional_id', professionalId)
+    .eq('unit_id', defaultUnit.id);
+  assert.equal(deactivateLinkError, null, deactivateLinkError?.message);
+
+  const createWithInactiveLink = await request(app)
+    .post('/api/v1/appointments')
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId)
+    .set('Idempotency-Key', idemKey())
+    .send({
+      client_id: clientId,
+      professional_id: professionalId,
+      service_id: serviceId,
+      starts_at: '2026-08-12T12:00:00Z',
+    });
+  assert.equal(createWithInactiveLink.status, 400);
+  assert.equal(createWithInactiveLink.body.code, 'professional_not_available_in_unit');
+});
+
+test('professional reads only their own appointments unless schedule:view_all is granted', async () => {
+  const { organizationId, accessToken, ownerUserId, userId } = await setUpOrgWithRole('professional');
+  const { clientId, professionalId, serviceId } = await seedCatalog(organizationId, ownerUserId);
+  const { error: linkedUserError } = await supabaseAdmin
+    .from('professionals')
+    .update({ user_id: userId })
+    .eq('organization_id', organizationId)
+    .eq('id', professionalId);
+  assert.equal(linkedUserError, null, linkedUserError?.message);
+
+  const { data: colleague, error: colleagueError } = await supabaseAdmin
+    .from('professionals')
+    .insert({ organization_id: organizationId, name: 'Colega' })
+    .select('id')
+    .single();
+  assert.equal(colleagueError, null, colleagueError?.message);
+
+  const baseAppointment = {
+    organization_id: organizationId,
+    client_id: clientId,
+    service_id: serviceId,
+    ends_at: '2026-08-13T10:30:00Z',
+    created_by: ownerUserId,
+  };
+  const { error: appointmentError } = await supabaseAdmin.from('appointments').insert([
+    {
+      ...baseAppointment,
+      professional_id: professionalId,
+      starts_at: '2026-08-13T10:00:00Z',
+    },
+    {
+      ...baseAppointment,
+      professional_id: colleague.id,
+      starts_at: '2026-08-13T11:00:00Z',
+      ends_at: '2026-08-13T11:30:00Z',
+    },
+  ]);
+  assert.equal(appointmentError, null, appointmentError?.message);
+
+  const ownOnly = await request(app)
+    .get('/api/v1/appointments')
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId);
+  assert.equal(ownOnly.status, 200);
+  assert.deepEqual(ownOnly.body.appointments.map((appointment) => appointment.professional_id), [professionalId]);
+
+  const { error: permissionError } = await supabaseAdmin.from('membership_permissions').insert({
+    organization_id: organizationId,
+    user_id: userId,
+    permission_code: 'schedule:view_all',
+    granted_by: ownerUserId,
+  });
+  assert.equal(permissionError, null, permissionError?.message);
+
+  const afterGrant = await request(app)
+    .get('/api/v1/appointments')
+    .set('Authorization', `Bearer ${accessToken}`)
+    .set('X-Organization-Id', organizationId);
+  assert.equal(afterGrant.status, 200);
+  assert.equal(afterGrant.body.appointments.length, 2);
+});
+
 test('create and update require an Idempotency-Key header', async () => {
   const { organizationId, accessToken, ownerUserId } = await setUpOrgWithRole('owner');
   const { clientId, professionalId, serviceId } = await seedCatalog(organizationId, ownerUserId);

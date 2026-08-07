@@ -26,6 +26,9 @@ import { cashEntriesRouter } from './modules/cashEntries/cashEntries.route.js';
 import { membershipsRouter } from './modules/memberships/memberships.route.js';
 import { convitesRouter } from './modules/convites/convites.route.js';
 import { syncRouter } from './modules/sync/sync.route.js';
+import { pspWebhookEventsRouter } from './modules/pspWebhookEvents/pspWebhookEvents.route.js';
+import { availabilityRouter } from './modules/availability/availability.route.js';
+import { appointmentSeriesRouter } from './modules/appointmentSeries/appointmentSeries.route.js';
 
 export function createApp(env, supabaseAdmin) {
   const app = express();
@@ -47,6 +50,7 @@ export function createApp(env, supabaseAdmin) {
   );
 
   app.use(healthRouter());
+  app.use('/api/v1', pspWebhookEventsRouter({ supabaseAdmin }));
 
   const auth = createAuthMiddleware(env);
   const organizationContext = createOrganizationContextMiddleware(supabaseAdmin);
@@ -72,6 +76,8 @@ export function createApp(env, supabaseAdmin) {
   apiRouter.use(membershipsRouter({ supabaseAdmin, organizationContext }));
   apiRouter.use(convitesRouter({ supabaseAdmin, organizationContext, env }));
   apiRouter.use(syncRouter({ supabaseAdmin, organizationContext }));
+  apiRouter.use(availabilityRouter({ supabaseAdmin, organizationContext }));
+  apiRouter.use(appointmentSeriesRouter({ supabaseAdmin, organizationContext }));
   app.use('/api/v1', apiRouter);
 
   app.use((req, res, next) => {
