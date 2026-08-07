@@ -1,10 +1,10 @@
 ---
 title: "Hardening — CSP e X-Frame-Options no PWA (produção e staging)"
-status: "IMPLEMENTADA (config); PENDENTE (verificação pós-deploy)"
+status: "IMPLEMENTADA em staging (verificado ao vivo); configurada em produção (serviço suspenso, sem verificação ao vivo possível)"
 stage: "ISSUE"
 governance_ref: []
 upstream_doc: null
-last_updated: "2026-08-06"
+last_updated: "2026-08-07"
 ---
 
 # 043 — CSP e X-Frame-Options no PWA (Render)
@@ -30,3 +30,21 @@ Branch `hardening/043-pwa-csp-frame-options`, a partir de `staging` pós-merge d
 **Validação extra:** sintaxe YAML confirmada por um parser real (`js-yaml`, já presente como dependência transitiva em `frontend/node_modules`), não só pelo teste baseado em regex — `render.yaml` carrega sem erro e ambos os serviços expõem exatamente os 2 headers esperados.
 
 **Pendente, fora do alcance de um teste local:** o Aceite completo (curl contra a URL real pós-deploy) só pode ser verificado depois do merge + deploy automático do Render. `tests/render-headers.test.js` é o gate mecânico que roda antes disso; não substitui a verificação ao vivo.
+
+## Verificação pós-deploy e achado de infraestrutura (2026-08-07)
+
+PR #38 mergeada em `staging` (`3cbd8b3`). Deploy automático do Render não disparou — investigado via API do Render (`RENDER_API_KEY` disponível no `.env`): **não existe Blueprint ativo ligando este repositório a `render.yaml`** (`GET /v1/blueprints` só lista um blueprint de um projeto não relacionado). Isso significa que `render.yaml` neste repositório é hoje só documentação/intenção — os serviços reais no Render foram criados avulsos e não resincronizam automaticamente com o arquivo. Consequência prática: qualquer edição futura em `render.yaml` (headers, env vars, o que for) precisa ser aplicada manualmente no serviço real (dashboard ou API), não só commitada.
+
+Disparado deploy manual (`POST /v1/services/{id}/deploys`) para captar o commit da PR — completou (`live`), mas os headers continuaram ausentes na resposta real (confirmado com bypass de cache, `cf-cache-status: MISS`), confirmando que o deploy não lê `headers:` do `render.yaml` sem Blueprint sync. Aplicado diretamente via `POST /v1/services/{id}/headers` (endpoint dedicado de header rules do Render, existe independente de Blueprint) para `kortex-pwa-staging` — os mesmos 2 headers, mesmo valor do `render.yaml`.
+
+**Verificado ao vivo, com bypass de cache (`cf-cache-status: MISS`):** `content-security-policy` e `x-frame-options: DENY` presentes na resposta real; `strict-transport-security`/`x-content-type-options` inalterados. App testado no browser: tela de login renderiza normalmente, JS/CSS carregam (200), console sem erro/violação de CSP.
+
+## Produção (2026-08-07, autorizado pelo Platform Owner)
+
+Confirmado antes de aplicar: `VITE_API_BASE_URL`/`VITE_SUPABASE_URL` reais do serviço `kortex-pwa` de produção (`srv-d9goto37uimc738pcsjg`, URL real `https://kortex-os-v2-1.onrender.com` — diferente de `kortex-pwa.onrender.com`, o valor assumido no comentário do `render.yaml`) batem exatamente com as origens já usadas em `connect-src`; a mesma CSP/`X-Frame-Options` da staging foi aplicada via `POST /v1/services/srv-d9goto37uimc738pcsjg/headers`, confirmada salva por `GET` no mesmo endpoint.
+
+**Não verificável ao vivo:** `curl -sI` contra `https://kortex-os-v2-1.onrender.com/` retorna `503`, `x-render-routing: suspend-by-user` — o serviço está suspenso por usuário (não por esta sessão), assim como `kortex-api` (produção, `srv-d9air667r5hc73fukuqg`, também `suspended: ["user"]`). Os headers ficam salvos na configuração do serviço e valem assim que ele for reativado; não há como confirmar a resposta HTTP real enquanto estiver suspenso.
+
+**Achado à parte, fora do escopo desta issue, não corrigido:** com produção suspensa no Render, o front-end de produção realmente servido hoje é provavelmente o GitHub Pages (`https://hudson-f-lima.github.io/Kortex_Os_v2/`, `200 OK` confirmado), não o `kortex-pwa` do Render. Isso é consistente com a suspensão ser deliberada. Um teste de CORS contra `kortex-api` (produção) com origin `https://kortex-os-v2-1.onrender.com` não recebeu `access-control-allow-origin` — o `CORS_ORIGINS` real do serviço é só `https://hudson-f-lima.github.io`, sem o `kortex-pwa`/`kortex-os-v2-1` que o `render.yaml` lista. Como a API de produção também está suspensa, isso não tem efeito prático agora; registrado aqui para o caso de alguém reativar o Render `kortex-pwa` no futuro esperando que ele funcione.
+
+**Decisão em aberto, fora do escopo desta issue:** este repositório não tem Blueprint Render sincronizado com `render.yaml` (`GET /v1/blueprints` só lista um projeto não relacionado) — mudanças de infraestrutura no arquivo não se propagam sozinhas, e a URL real de alguns serviços diverge do que o arquivo assume. Registrar como issue própria se o Platform Owner quiser corrigir isso.
