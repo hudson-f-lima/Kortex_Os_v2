@@ -1,0 +1,4 @@
+﻿interface:
+  display_name: "Kortex PWA Architect"
+  short_description: "Planeja uma PWA modular, rápida e segura"
+  default_prompt: "Use $kortex-pwa-architect para estruturar módulos, cache e integração API da PWA KortexOS."

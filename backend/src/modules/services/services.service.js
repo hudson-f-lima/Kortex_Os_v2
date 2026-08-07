@@ -2,7 +2,9 @@ import { HttpError } from '../../shared/httpError.js';
 import { mapPostgresError } from '../../shared/postgresError.js';
 
 const COLUMNS =
-  'id, name, price_cents, duration_minutes, service_group_id, commission_type, commission_value, active, created_at, updated_at';
+  'id, name, price_cents, duration_minutes, service_group_id, commission_type, commission_value, active, ' +
+  'deposit_mechanic, deposit_type, deposit_value, no_show_commission_type, no_show_commission_value, ' +
+  'created_at, updated_at';
 
 export function createServicesService(supabaseAdmin) {
   async function assertServiceGroupInOrg(organizationId, serviceGroupId) {

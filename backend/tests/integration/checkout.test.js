@@ -164,7 +164,7 @@ test('a service item without professional_id is rejected', async () => {
   assert.equal(res.body.code, 'invalid_items');
 });
 
-test('reception can checkout, professional role cannot', async () => {
+test('reception scoped to the default unit can checkout, while professional role cannot', async () => {
   const reception = await setUpOrgWithRole('reception');
   const { serviceId, professionalId } = await seedProductAndService(reception.organizationId);
 
@@ -192,6 +192,50 @@ test('reception can checkout, professional role cannot', async () => {
     });
   assert.equal(asProfessional.status, 403);
   assert.equal(asProfessional.body.code, 'insufficient_role');
+});
+
+test('reception scoped to a non-default unit cannot checkout or create an order in the default unit', async () => {
+  const reception = await setUpOrgWithRole('reception');
+  const { data: otherUnit, error: unitError } = await supabaseAdmin
+    .from('units')
+    .insert({
+      organization_id: reception.organizationId,
+      name: `Unidade ${randomUUID().slice(0, 8)}`,
+      timezone: 'America/Sao_Paulo',
+      active: true,
+      is_default: false,
+    })
+    .select('id')
+    .single();
+  assert.equal(unitError, null, unitError?.message);
+
+  const { error: membershipError } = await supabaseAdmin
+    .from('memberships')
+    .update({ unit_id: otherUnit.id })
+    .eq('organization_id', reception.organizationId)
+    .eq('user_id', reception.userId);
+  assert.equal(membershipError, null, membershipError?.message);
+
+  const { serviceId, professionalId } = await seedProductAndService(reception.organizationId);
+  const checkout = await request(app)
+    .post('/api/v1/checkout')
+    .set('Authorization', `Bearer ${reception.accessToken}`)
+    .set('X-Organization-Id', reception.organizationId)
+    .set('Idempotency-Key', `ck-${randomUUID()}`)
+    .send({
+      items: [{ kind: 'service', id: serviceId, quantity: 1, professional_id: professionalId }],
+      payments: [{ method: 'cash', amount_cents: 5000 }],
+    });
+
+  assert.equal(checkout.status, 409);
+  assert.equal(checkout.body.code, 'unit_write_not_supported');
+
+  const { count, error: countError } = await supabaseAdmin
+    .from('orders')
+    .select('*', { count: 'exact', head: true })
+    .eq('organization_id', reception.organizationId);
+  assert.equal(countError, null, countError?.message);
+  assert.equal(count, 0, 'the rejected request must not materialize an order in any unit');
 });
 
 test('insufficient stock is rejected with 409, leaving stock untouched', async () => {

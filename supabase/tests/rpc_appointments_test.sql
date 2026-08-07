@@ -29,8 +29,12 @@ SELECT ok(
   NOT has_function_privilege('authenticated', 'public.create_appointment(uuid, uuid, text, jsonb)', 'EXECUTE'),
   'authenticated cannot execute create_appointment'
 );
+-- Onda 5, fatia 033: update_appointment ganhou um 6º parâmetro posicional
+-- (p_allow_client_transfer, default false) para o escape hatch controlado
+-- de appointment_replan_with_hold; a assinatura de 5 argumentos foi
+-- derrubada (create or replace não substitui função com aridade diferente).
 SELECT ok(
-  NOT has_function_privilege('authenticated', 'public.update_appointment(uuid, uuid, text, uuid, jsonb)', 'EXECUTE'),
+  NOT has_function_privilege('authenticated', 'public.update_appointment(uuid, uuid, text, uuid, jsonb, boolean)', 'EXECUTE'),
   'authenticated cannot execute update_appointment'
 );
 

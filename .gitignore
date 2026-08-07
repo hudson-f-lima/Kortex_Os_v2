@@ -25,8 +25,11 @@ coverage/
 Thumbs.db
 .vscode/
 .idea/
+.claude/settings.local.json
 .cache/
 .tmp/
+__pycache__/
+*.pyc
 
 # Runtime exports may contain PII
 data/exports/*

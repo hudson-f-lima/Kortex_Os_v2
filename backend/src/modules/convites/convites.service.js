@@ -3,6 +3,7 @@ import { mapPostgresError } from '../../shared/postgresError.js';
 import { mapRpcError } from '../../shared/rpcError.js';
 
 const PROFESSIONAL_COLUMNS = 'id, name, user_id, active, created_at, updated_at';
+const UNIT_SCOPED_ROLES = new Set(['reception', 'professional']);
 
 // Mapeia erros da Admin API do GoTrue (auth.admin.inviteUserByEmail), que tem
 // um shape diferente de erro do PostgREST/RPC (AuthError: { message, status,
@@ -15,6 +16,19 @@ function mapInviteAuthError(error) {
 }
 
 export function createConvitesService(supabaseAdmin, env) {
+  async function resolveUnitId(organizationId, role) {
+    if (!UNIT_SCOPED_ROLES.has(role)) return null;
+    const { data, error } = await supabaseAdmin
+      .from('units')
+      .select('id')
+      .eq('organization_id', organizationId)
+      .eq('is_default', true)
+      .eq('active', true)
+      .single();
+    if (error) throw mapPostgresError(error);
+    return data.id;
+  }
+
   async function assertProfessionalIsUnclaimed(organizationId, professionalId) {
     const { data, error } = await supabaseAdmin
       .from('professionals')
@@ -43,11 +57,13 @@ export function createConvitesService(supabaseAdmin, env) {
       if (inviteError) throw mapInviteAuthError(inviteError);
       const newUserId = inviteData.user.id;
 
-      const { error: membershipError } = await supabaseAdmin.rpc('membership_set', {
+      const unitId = await resolveUnitId(organizationId, role);
+      const { error: membershipError } = await supabaseAdmin.rpc('membership_scope_set', {
         p_organization_id: organizationId,
         p_actor_user_id: actorUserId,
         p_target_user_id: newUserId,
         p_role: role,
+        p_unit_id: unitId,
         p_active: true,
       });
       if (membershipError) throw mapRpcError(membershipError);

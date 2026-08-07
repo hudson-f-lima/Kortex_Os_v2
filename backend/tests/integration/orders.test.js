@@ -94,6 +94,68 @@ test('an order from another organization is invisible (cross-tenant)', async () 
   assert.equal(listedFromOrgB.body.orders.length, 0);
 });
 
+test('reception only reads orders and child facts from the unit in its membership', async () => {
+  const reception = await setUpOrgWithRole('reception');
+  const { data: defaultUnit, error: defaultUnitError } = await supabaseAdmin
+    .from('units')
+    .select('id')
+    .eq('organization_id', reception.organizationId)
+    .eq('is_default', true)
+    .single();
+  assert.equal(defaultUnitError, null, defaultUnitError?.message);
+
+  const { data: otherUnit, error: otherUnitError } = await supabaseAdmin
+    .from('units')
+    .insert({
+      organization_id: reception.organizationId,
+      name: `Outra Unidade ${randomUUID().slice(0, 8)}`,
+      timezone: 'America/Sao_Paulo',
+      active: true,
+      is_default: false,
+      created_by: reception.ownerUserId,
+    })
+    .select('id')
+    .single();
+  assert.equal(otherUnitError, null, otherUnitError?.message);
+
+  const { data: orders, error: ordersError } = await supabaseAdmin
+    .from('orders')
+    .insert([
+      {
+        organization_id: reception.organizationId,
+        unit_id: defaultUnit.id,
+        subtotal_cents: 1000,
+        total_cents: 1000,
+        created_by: reception.ownerUserId,
+      },
+      {
+        organization_id: reception.organizationId,
+        unit_id: otherUnit.id,
+        subtotal_cents: 2000,
+        total_cents: 2000,
+        created_by: reception.ownerUserId,
+      },
+    ])
+    .select('id, unit_id');
+  assert.equal(ordersError, null, ordersError?.message);
+
+  const otherOrder = orders.find((order) => order.unit_id === otherUnit.id);
+  const listed = await request(app)
+    .get('/api/v1/orders')
+    .set('Authorization', `Bearer ${reception.accessToken}`)
+    .set('X-Organization-Id', reception.organizationId);
+  assert.equal(listed.status, 200);
+  assert.equal(listed.body.orders.length, 1);
+  assert.equal(listed.body.orders[0].unit_id, defaultUnit.id);
+
+  const crossUnitGet = await request(app)
+    .get(`/api/v1/orders/${otherOrder.id}`)
+    .set('Authorization', `Bearer ${reception.accessToken}`)
+    .set('X-Organization-Id', reception.organizationId);
+  assert.equal(crossUnitGet.status, 404);
+  assert.equal(crossUnitGet.body.code, 'order_not_found');
+});
+
 test('owner can refund a closed order with a valid reason (ADR 0006)', async () => {
   const owner = await setUpOrgWithRole('owner');
   const { orderId } = await closeACheckout(owner.organizationId, owner.ownerUserId);

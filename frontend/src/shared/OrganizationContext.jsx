@@ -124,13 +124,15 @@ export function OrganizationProvider({ children }) {
     () => ({
       organizations,
       organizationId,
+      organization: current,
+      settings: current?.settings || {},
       role,
       loading,
       error,
       selectOrganization,
       refresh,
     }),
-    [organizations, organizationId, role, loading, error, selectOrganization, refresh],
+    [organizations, organizationId, current, role, loading, error, selectOrganization, refresh],
   );
 
   return <OrganizationContext.Provider value={value}>{children}</OrganizationContext.Provider>;
