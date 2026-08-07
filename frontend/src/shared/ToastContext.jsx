@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import { Toast } from '../ui/primitives/Toast.jsx';
 
 const ToastContext = createContext(null);
@@ -33,8 +33,13 @@ export function ToastProvider({ children }) {
     addToast({ title, description, variant: 'default' });
   }, [addToast]);
 
+  const value = useMemo(
+    () => ({ addToast, success, error, info }),
+    [addToast, success, error, info],
+  );
+
   return (
-    <ToastContext.Provider value={{ addToast, success, error, info }}>
+    <ToastContext.Provider value={value}>
       {children}
       <div 
         style={{
