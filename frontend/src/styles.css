@@ -70,19 +70,30 @@ button {
   font-size: 0.875rem;
 }
 
-.auth-form input {
+/* :not(.k-input)/:not(.k-button) — .auth-form is shared by raw-element
+   screens (LoginPage, CreateOrganizationPage, AcceptInvitePage,
+   RequireOrganization) AND by modals built on the <Input>/<Button>
+   primitives (ManualEntryModal e outros). Sem a exclusão, a maior
+   especificidade de ".auth-form button" (classe+elemento) vence sobre
+   ".k-button--primary" (classe única) e sobrescreve as cores do design
+   system nos modais — inclusive o bug de contraste abaixo. */
+.auth-form input:not(.k-input) {
   padding: 0.5rem;
   border: 1px solid var(--border);
   border-radius: 6px;
   font-size: 1rem;
 }
 
-.auth-form button {
+/* color: var(--bg) em vez de um branco fixo — --accent inverte entre os
+   temas (quase-preto no claro, branco no escuro) e --bg segue o padrão
+   oposto, então o texto sempre sai legível nos dois lados. O branco fixo
+   anterior virava texto branco sobre fundo branco no tema escuro. */
+.auth-form button:not(.k-button) {
   padding: 0.6rem;
   border: none;
   border-radius: 6px;
   background: var(--accent);
-  color: #fff;
+  color: var(--bg);
 }
 
 .link-button {
@@ -113,7 +124,7 @@ button {
   gap: 1rem;
   padding: 0.75rem;
   background: var(--accent);
-  color: #fff;
+  color: var(--bg); /* mesmo raciocínio de .auth-form button — --bg é sempre o inverso de --accent entre os temas */
   font-size: 0.875rem;
 }
 
@@ -202,7 +213,7 @@ button {
 
 .agenda-view-toggle button.active {
   background: var(--accent);
-  color: #fff;
+  color: var(--bg); /* mesmo raciocínio de .auth-form button — --bg é sempre o inverso de --accent entre os temas */
   border-color: var(--accent);
 }
 
@@ -702,6 +713,29 @@ button {
   gap: 0.15rem;
   flex: 1;
   font-size: 0.85rem;
+}
+
+.record-amount-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.record-amount {
+  font-variant-numeric: tabular-nums;
+}
+
+.record-amount--credit {
+  color: var(--color-success);
+}
+
+.record-amount--debit {
+  color: var(--color-danger);
+}
+
+.caixa-total {
+  font-weight: 600;
+  font-size: 1.05rem;
 }
 
 button.record-list-link {

@@ -8,6 +8,7 @@ import { Button } from '../../ui/primitives/Button.jsx';
 import { Input } from '../../ui/primitives/Input.jsx';
 import { Select } from '../../ui/primitives/Select.jsx';
 import { PageSkeleton } from '../../ui/primitives/PageSkeleton.jsx';
+import { Badge } from '../../ui/primitives/Badge.jsx';
 
 // Mirrors backend/src/modules/cashEntries/cashEntries.route.js READ_ROLES
 // (owner/admin/manager) — reception has 'caixa' in nav.js (recepção também
@@ -27,9 +28,19 @@ const KIND_OPTIONS = [
   { value: 'refund', label: 'Estorno' },
 ];
 
+// cash_entries.amount_cents é sempre um inteiro positivo por contrato
+// (backend/src/modules/cashEntries/cashEntries.route.js valida
+// amount_cents > 0; a RPC de estorno grava v_order.total_cents, também
+// positivo) — é o `kind` que diz se o valor entra ou sai do caixa, nunca o
+// sinal do próprio amount_cents.
+const DEBIT_KINDS = new Set(['expense', 'refund']);
 
 function kindLabel(kind) {
   return KIND_LABELS[kind] ?? kind;
+}
+
+function isDebit(kind) {
+  return DEBIT_KINDS.has(kind);
 }
 
 // Fase 9 (docs/adr/0006-gorjeta-fora-da-comissao-e-motivo-do-estorno.md):
@@ -84,7 +95,12 @@ export function CaixaPage() {
     });
   }, [entries, fromDate, toDate]);
 
-  const totalCents = filteredEntries.reduce((sum, entry) => sum + entry.amount_cents, 0);
+  // Saldo líquido do período: entradas somam, saídas/estornos subtraem.
+  // (Antes somava amount_cents cru, sempre positivo — uma Saída de R$500
+  // aumentava o total em vez de reduzi-lo.)
+  const totalCents = filteredEntries.reduce((sum, entry) => {
+    return sum + (isDebit(entry.kind) ? -entry.amount_cents : entry.amount_cents);
+  }, 0);
 
   if (!canRead) {
     return (
@@ -133,22 +149,31 @@ export function CaixaPage() {
         )}
       </div>
 
-      <p className="comanda-total">Total no período: {formatCents(totalCents)}</p>
+      <p className="caixa-total">Saldo do período: {formatCents(totalCents)}</p>
 
       {filteredEntries.length === 0 && <p className="list-empty">Nenhum lançamento encontrado.</p>}
 
       <ul className="record-list">
-        {filteredEntries.map((entry) => (
-          <li key={entry.id} className="record-list-item">
-            <span className="record-list-main">
-              <strong>{formatCents(entry.amount_cents)}</strong>
-              <span>
-                {kindLabel(entry.kind)}
-                {entry.description ? ` · ${entry.description}` : ''} · {new Date(entry.created_at).toLocaleString('pt-BR')}
+        {filteredEntries.map((entry) => {
+          const debit = isDebit(entry.kind);
+          return (
+            <li key={entry.id} className="record-list-item">
+              <span className="record-list-main">
+                <span className="record-amount-row">
+                  <Badge variant={debit ? 'danger' : 'success'}>{kindLabel(entry.kind)}</Badge>
+                  <strong className={`record-amount ${debit ? 'record-amount--debit' : 'record-amount--credit'}`}>
+                    {debit ? '− ' : '+ '}
+                    {formatCents(entry.amount_cents)}
+                  </strong>
+                </span>
+                <span>
+                  {kindLabel(entry.kind)}
+                  {entry.description ? ` · ${entry.description}` : ''} · {new Date(entry.created_at).toLocaleString('pt-BR')}
+                </span>
               </span>
-            </span>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
 
       {showManualEntry && (

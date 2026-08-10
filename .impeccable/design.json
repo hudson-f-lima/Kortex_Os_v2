@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-10T22:42:38Z",
+  "title": "Design System: KortexOS",
+  "extensions": {
+    "colorMeta": {
+      "control-green": { "role": "primary", "displayName": "Control Green", "canonical": "#059669", "tonalRamp": ["#052e22", "#064E3B", "#047857", "#059669", "#10B981", "#34D399", "#D1FAE5", "#ECFDF5"] },
+      "control-green-hover": { "role": "primary-hover", "displayName": "Control Green (Hover)", "canonical": "#047857", "tonalRamp": ["#052e22", "#064E3B", "#047857", "#059669", "#10B981", "#34D399", "#D1FAE5", "#ECFDF5"] },
+      "control-green-tint": { "role": "primary-tint", "displayName": "Confirmed-State Tint", "canonical": "#ECFDF5", "tonalRamp": ["#052e22", "#064E3B", "#047857", "#059669", "#10B981", "#34D399", "#D1FAE5", "#ECFDF5"] },
+      "intelligence-blue": { "role": "secondary", "displayName": "Intelligence Blue", "canonical": "#1D4ED8", "tonalRamp": ["#0f1a3d", "#172554", "#1E40AF", "#1D4ED8", "#2563EB", "#60A5FA", "#DBEAFE", "#EFF6FF"] },
+      "intelligence-blue-tint": { "role": "secondary-tint", "displayName": "System-Info Tint", "canonical": "#EFF6FF", "tonalRamp": ["#0f1a3d", "#172554", "#1E40AF", "#1D4ED8", "#2563EB", "#60A5FA", "#DBEAFE", "#EFF6FF"] },
+      "kortex-ai-violet": { "role": "tertiary", "displayName": "Kortex.ai Violet", "canonical": "#6D5CE7", "tonalRamp": ["#1e1547", "#2f2073", "#4433a8", "#5847c9", "#6D5CE7", "#9384ef", "#c9c0f8", "#ede9fe"] },
+      "alert-amber": { "role": "warning", "displayName": "Alert Amber", "canonical": "#D97706", "tonalRamp": ["#451a03", "#78350f", "#b45309", "#D97706", "#f59e0b", "#fbbf24", "#FDE68A", "#FFFBEB"] },
+      "danger-red": { "role": "danger", "displayName": "Danger Red", "canonical": "#DC2626", "tonalRamp": ["#450a0a", "#7f1d1d", "#b91c1c", "#DC2626", "#ef4444", "#f87171", "#fecaca", "#fef2f2"] },
+      "ink": { "role": "text-primary", "displayName": "Ink", "canonical": "#0F172A", "tonalRamp": ["#08111F", "#0F172A", "#334155", "#64748B", "#CBD5E1", "#E2E8F0", "#F1F5F9", "#FFFFFF"] },
+      "ink-secondary": { "role": "text-secondary", "displayName": "Ink Secondary", "canonical": "#334155", "tonalRamp": ["#08111F", "#0F172A", "#334155", "#64748B", "#CBD5E1", "#E2E8F0", "#F1F5F9", "#FFFFFF"] },
+      "ink-muted": { "role": "text-muted", "displayName": "Ink Muted", "canonical": "#64748B", "tonalRamp": ["#08111F", "#0F172A", "#334155", "#64748B", "#CBD5E1", "#E2E8F0", "#F1F5F9", "#FFFFFF"] },
+      "hairline": { "role": "border", "displayName": "Hairline", "canonical": "#E2E8F0", "tonalRamp": ["#08111F", "#0F172A", "#334155", "#64748B", "#CBD5E1", "#E2E8F0", "#F1F5F9", "#FFFFFF"] },
+      "hairline-strong": { "role": "border-strong", "displayName": "Hairline Strong", "canonical": "#CBD5E1", "tonalRamp": ["#08111F", "#0F172A", "#334155", "#64748B", "#CBD5E1", "#E2E8F0", "#F1F5F9", "#FFFFFF"] },
+      "canvas": { "role": "background", "displayName": "Canvas", "canonical": "#F8FAFC", "tonalRamp": ["#08111F", "#0F172A", "#334155", "#64748B", "#CBD5E1", "#E2E8F0", "#F1F5F9", "#FFFFFF"] },
+      "surface": { "role": "surface", "displayName": "Surface", "canonical": "#FFFFFF", "tonalRamp": ["#08111F", "#0F172A", "#334155", "#64748B", "#CBD5E1", "#E2E8F0", "#F1F5F9", "#FFFFFF"] }
+    },
+    "typographyMeta": {
+      "body": { "displayName": "Body", "purpose": "Default reading size for lists, form values, and card content." },
+      "label": { "displayName": "Label", "purpose": "Status labels, timestamps, and secondary meta — the 0.75rem floor, always WCAG AAA." }
+    },
+    "shadows": [
+      { "name": "ambient-low", "value": "0 1px 2px rgba(0,0,0,0.05)", "purpose": "Resting elevation for an appointment card on the timeline canvas." },
+      { "name": "ambient-card", "value": "0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05)", "purpose": "An explicitly elevated Card, or an appointment card on hover." },
+      { "name": "ambient-modal", "value": "0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)", "purpose": "Lifting a modal card off the page behind the darkened overlay." }
+    ],
+    "motion": [
+      { "name": "motion-fast", "value": "120ms", "purpose": "Micro-interactions: input focus, button hover, badge state change." },
+      { "name": "motion-base", "value": "180ms", "purpose": "Component-level transitions: card hover lift, general state changes." },
+      { "name": "motion-slow", "value": "240ms", "purpose": "Larger surface transitions." },
+      { "name": "ease-standard", "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Default easing applied across Button/Card/Input/Select/AppointmentCard/SmartStrip transitions." }
+    ],
+    "breakpoints": [
+      { "name": "mobile", "value": "640px", "purpose": "Below this, modals become bottom sheets and the shell nav switches to a bottom tab bar." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one color that means 'do this' — primary action, 44px control height.",
+      "html": "<button class=\"ds-btn-primary\">Confirmar lançamento</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; height: 44px; padding: 0 16px; background-color: var(--color-action-primary, #059669); color: #ffffff; font-weight: 500; border: none; border-radius: 8px; cursor: pointer; transition: all 120ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-btn-primary:hover { background-color: var(--color-action-primary-hover, #047857); } .ds-btn-primary:focus-visible { outline: 2px solid var(--color-focus, #3B82F6); outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Outline button for the non-primary action in a modal footer (e.g. 'Fechar').",
+      "html": "<button class=\"ds-btn-secondary\">Fechar</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; height: 44px; padding: 0 16px; background-color: transparent; color: var(--color-text-primary, #0F172A); font-weight: 500; border: 1px solid var(--color-border-strong, #CBD5E1); border-radius: 8px; cursor: pointer; transition: all 120ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-btn-secondary:hover { background-color: var(--color-surface-muted, #F1F5F9); } .ds-btn-secondary:focus-visible { outline: 2px solid var(--color-focus, #3B82F6); outline-offset: 2px; }"
+    },
+    {
+      "name": "Success Badge",
+      "kind": "chip",
+      "refersTo": "badge-success",
+      "description": "Inline status pill — used for transaction kind, active/inactive, AI-flagged content.",
+      "html": "<span class=\"ds-badge ds-badge--success\">Entrada</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; justify-content: center; padding: 0 8px; height: 24px; font-size: 0.75rem; font-weight: 600; border-radius: 999px; line-height: 1; white-space: nowrap; } .ds-badge--success { background-color: #D1FAE5; color: #047857; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Labeled field with focus ring and inline field-specific error state.",
+      "html": "<div class=\"ds-input-wrapper\"><label class=\"ds-input-label\" for=\"ds-demo-input\">Valor (R$)</label><input id=\"ds-demo-input\" class=\"ds-input\" type=\"text\" placeholder=\"0,00\" /></div>",
+      "css": ".ds-input-wrapper { display: flex; flex-direction: column; gap: 4px; } .ds-input-label { color: var(--color-text-primary, #0F172A); font-size: 0.875rem; } .ds-input { width: 100%; height: 44px; padding: 0 12px; border: 1px solid var(--color-border-strong, #CBD5E1); border-radius: 8px; background-color: var(--color-surface, #FFFFFF); color: var(--color-text-primary, #0F172A); font-size: 1rem; transition: all 120ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-input::placeholder { color: var(--color-text-muted, #64748B); } .ds-input:focus { outline: none; border-color: var(--color-focus, #3B82F6); box-shadow: 0 0 0 1px var(--color-focus, #3B82F6); }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Flat-by-default surface container; shadow only on the elevated variant.",
+      "html": "<div class=\"ds-card\"><strong>R$ 1.240,00</strong><span>Faturamento do dia</span></div>",
+      "css": ".ds-card { display: flex; flex-direction: column; gap: 4px; background-color: var(--color-surface, #FFFFFF); border: 1px solid var(--color-border, #E2E8F0); border-radius: 16px; padding: 16px; transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-card strong { font-size: 1.05rem; color: var(--color-text-primary, #0F172A); } .ds-card span { font-size: 0.875rem; color: var(--color-text-secondary, #334155); }"
+    },
+    {
+      "name": "Appointment Card (confirmed)",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Signature timeline unit — 4px colored status bar + tinted background communicate state by geometry, not just color.",
+      "html": "<div class=\"ds-appt-card\"><div class=\"ds-appt-card__bar\"></div><div class=\"ds-appt-card__content\"><div class=\"ds-appt-card__header\"><span class=\"ds-appt-card__time\">14:00</span></div><div class=\"ds-appt-card__client\">Marina Souza</div><div class=\"ds-appt-card__service\">Corte + Escova</div></div></div>",
+      "css": ".ds-appt-card { display: flex; flex-direction: row; background-color: #ECFDF5; border: 1px solid #D1FAE5; border-radius: 8px; overflow: hidden; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05); transition: box-shadow 120ms, transform 120ms; } .ds-appt-card:hover { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); } .ds-appt-card__bar { width: 4px; flex-shrink: 0; background-color: #059669; } .ds-appt-card__content { padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; } .ds-appt-card__header { font-size: 0.75rem; color: #334155; } .ds-appt-card__time { font-weight: 600; color: #0F172A; } .ds-appt-card__client { font-size: 0.875rem; font-weight: 500; color: #0F172A; } .ds-appt-card__service { font-size: 0.75rem; color: #334155; }"
+    },
+    {
+      "name": "SmartStrip (AI insight)",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Top-docked banner carrying the Kortex.ai layer's voice — the violet icon is the one break from the info/warning/danger triad.",
+      "html": "<div class=\"ds-smartstrip\"><div class=\"ds-smartstrip__content\"><svg class=\"ds-smartstrip__icon\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M12 2l1.6 5.1L19 9l-5.4 1.9L12 16l-1.6-5.1L5 9l5.4-1.9L12 2z\"/></svg><span class=\"ds-smartstrip__message\">3 horários vagos hoje às 15h podem ser oferecidos à lista de espera</span></div><button class=\"ds-smartstrip__action\">Ver sugestão</button></div>",
+      "css": ".ds-smartstrip { display: flex; align-items: center; justify-content: space-between; min-height: 48px; padding: 8px 16px; background-color: #EFF6FF; border-bottom: 1px solid #DBEAFE; gap: 16px; } .ds-smartstrip__content { display: flex; align-items: center; gap: 12px; flex: 1; } .ds-smartstrip__icon { color: #6D5CE7; flex-shrink: 0; } .ds-smartstrip__message { font-weight: 500; color: #0F172A; font-size: 0.875rem; } .ds-smartstrip__action { background: none; border: none; color: #1D4ED8; font-weight: 600; font-size: 0.875rem; cursor: pointer; padding: 4px 8px; border-radius: 8px; } .ds-smartstrip__action:hover { background-color: rgba(0,0,0,0.05); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Control Room",
+    "overview": "KortexOS reads as a calm command room for a beauty/wellness business, not a consumer booking app. Its job is to let a busy owner or front-desk operator glance at agenda, caixa, and estoque and know instantly what state each thing is in — confirmed, pending, in progress, at risk — the same way a control-room operator reads a bank of status lights, not a way a shopper browses a catalog. That instinct shows up everywhere in the implemented system: a five-state color vocabulary on appointment cards, a three-level alert strip on the timeline, six semantic badge variants, a toast system keyed to the same palette. One accent (control-green) does double duty as the primary action color AND the \"confirmed / healthy\" status color — action and status share one visual language on purpose. The system is built entirely on the OS's own UI font stack (no custom webfont), flat by default with shadows appearing only as a deliberate signal (elevated cards, open modals, a hovering drag target) rather than ambient decoration. It is unapologetically utilitarian: dense information, high-contrast text (WCAG AAA is an explicit project invariant, not a nice-to-have), and color spent almost exclusively on status and one primary action per screen. One deliberate, load-bearing distinction: the system uses two different accent blues for two different meanings — intelligence-blue marks ordinary system information, kortex-ai-violet is reserved exclusively for anything the Kortex.ai layer suggested or classified.",
+    "keyCharacteristics": [
+      "Status-coded, not decoration-coded — color always means something specific, never applied for visual variety.",
+      "Flat by default; shadow is a state signal, not a resting-state texture.",
+      "System font only, no custom typeface loading — a deliberate performance choice for an offline-first PWA.",
+      "One primary accent (control-green) shared between \"the button to press\" and \"the thing that's fine.\"",
+      "A second accent (kortex-ai-violet) exists solely to mark AI-originated content, kept visually separate from ordinary system blue.",
+      "Single light theme today — the mandated component system has no dark-mode layer yet, even though the page chrome around it does."
+    ],
+    "rules": [
+      { "name": "The AI Never Wears System Blue Rule", "body": "Anything the Kortex.ai layer suggested, classified, or drafted uses kortex-ai-violet, never intelligence-blue. A user must be able to tell \"the system computed this\" from \"the AI suggested this\" by color alone, without reading a label.", "section": "colors" },
+      { "name": "The One Green Rule", "body": "control-green is the only color that means \"do this\" or \"this succeeded.\" It never appears as a neutral decorative accent — if a green element is on screen, it is either the primary action or a confirmed/success state.", "section": "colors" },
+      { "name": "The 0.75rem Floor Rule", "body": "No legend, label, or status text renders smaller than 0.75rem, and every text/background pairing at that size still clears WCAG AAA contrast — this floor exists specifically because the smallest text in the system is also the text a distracted operator most needs to read correctly.", "section": "typography" },
+      { "name": "The Flat-Until-It-Matters Rule", "body": "Surfaces are flat by default. Shadow appears only to mark a genuine state change: something is now floating above the page (modal), something is being hovered as an interactive target, or something was explicitly asked to stand out. A resting list item never has a shadow.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use control-green for exactly one thing per screen: the primary action, or a confirmed/success status.",
+      "Do reserve kortex-ai-violet exclusively for Kortex.ai-originated content; use intelligence-blue for everything else the system already knows.",
+      "Do build every new interactive control from ui/primitives (Button, Input, Select, Badge, Modal, Card, ActionRequestModal) — never a raw <button>/<input>/<select>.",
+      "Do keep every modal on the shared <Modal> shell with internal scroll and the mobile bottom-sheet behavior.",
+      "Do hold every label and status text to 0.75rem minimum with WCAG AAA contrast — verify, don't assume, on any new color pairing."
+    ],
+    "donts": [
+      "Don't add a shadow to a resting-state element.",
+      "Don't introduce a new accent hue for a one-off feature — a new color needs a new meaning, not just visual variety.",
+      "Don't reference --spacing-*, --shadow-*, --color-primary-500, --color-emerald-500, --color-rose-500, --color-amber-500, or --color-text-tertiary in new CSS — none exist in tokens.css. Toast.css and EmptyState.css currently do this and render broken as a result.",
+      "Don't assume dark-mode support inside a ui/primitives component — tokens.css has no prefers-color-scheme: dark layer today."
+    ]
+  }
+}

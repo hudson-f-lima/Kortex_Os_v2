@@ -38,8 +38,19 @@ describe('CaixaPage', () => {
     mockEntries();
     render(<CaixaPage />);
 
-    await waitFor(() => expect(screen.getByText('R$ 50,00')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('+ R$ 50,00')).toBeInTheDocument());
     expect(screen.getByText(/Venda · Checkout/)).toBeInTheDocument();
+  });
+
+  it('nets out expenses/refunds from the period total instead of summing raw amount_cents', async () => {
+    mockEntries([
+      { id: 'entry-1', order_id: 'order-1', kind: 'sale', amount_cents: 10000, description: 'Checkout', created_at: '2026-07-10T12:00:00Z' },
+      { id: 'entry-2', order_id: null, kind: 'expense', amount_cents: 3000, description: 'Compra de material', created_at: '2026-07-10T13:00:00Z' },
+    ]);
+    render(<CaixaPage />);
+
+    // Saldo: R$ 100,00 (venda) - R$ 30,00 (saída) = R$ 70,00 — não R$ 130,00.
+    await waitFor(() => expect(screen.getByText('Saldo do período: R$ 70,00')).toBeInTheDocument());
   });
 
   it('shows an empty message when there are no entries', async () => {
@@ -70,7 +81,7 @@ describe('CaixaPage', () => {
     mockEntries();
     render(<CaixaPage />);
 
-    await waitFor(() => expect(screen.getByText('R$ 50,00')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('+ R$ 50,00')).toBeInTheDocument());
     fireEvent.change(screen.getByLabelText('Filtrar por tipo'), { target: { value: 'expense' } });
 
     await waitFor(() => expect(apiClientMock.get).toHaveBeenCalledWith('/cash-entries?kind=expense'));
@@ -81,7 +92,7 @@ describe('CaixaPage', () => {
     apiClientMock.post.mockResolvedValue({ cash_entry_id: 'entry-2', organization_id: 'org-1', status: 'success' });
     render(<CaixaPage />);
 
-    await waitFor(() => expect(screen.getByText('R$ 50,00')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('+ R$ 50,00')).toBeInTheDocument());
     fireEvent.click(screen.getByText('+ Novo lançamento'));
     fireEvent.change(screen.getByLabelText('Tipo'), { target: { value: 'expense' } });
     fireEvent.change(screen.getByLabelText('Valor (R$)'), { target: { value: '35,00' } });
@@ -96,6 +107,54 @@ describe('CaixaPage', () => {
       ),
     );
     await waitFor(() => expect(apiClientMock.get).toHaveBeenCalledTimes(2));
+  });
+
+  it('sends initial focus to the first form field when the manual-entry modal opens', async () => {
+    mockEntries();
+    render(<CaixaPage />);
+
+    await waitFor(() => expect(screen.getByText('+ R$ 50,00')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('+ Novo lançamento'));
+
+    await waitFor(() => expect(screen.getByLabelText('Tipo')).toHaveFocus());
+  });
+
+  it('flags the failing field instead of a shared page-level error when the amount is invalid', async () => {
+    mockEntries();
+    render(<CaixaPage />);
+
+    await waitFor(() => expect(screen.getByText('+ R$ 50,00')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('+ Novo lançamento'));
+    // "0,00" passa a validação nativa `required` (não está em branco) mas
+    // ainda é inválido para a regra de negócio (valor deve ser > 0) —
+    // exercita o caminho de validação da própria ManualEntryModal, não o
+    // bloqueio HTML5 do browser por campo vazio.
+    fireEvent.change(screen.getByLabelText('Valor (R$)'), { target: { value: '0,00' } });
+    fireEvent.change(screen.getByLabelText('Descrição'), { target: { value: 'Compra de material' } });
+    fireEvent.click(screen.getByText('Confirmar lançamento'));
+
+    await waitFor(() => expect(screen.getByLabelText('Valor (R$)')).toHaveAttribute('aria-invalid', 'true'));
+    expect(screen.getByLabelText('Descrição')).toHaveAttribute('aria-invalid', 'false');
+    expect(screen.getByText('Informe um valor maior que zero.')).toBeInTheDocument();
+    expect(apiClientMock.post).not.toHaveBeenCalled();
+  });
+
+  it('previews the interpreted amount before submit, including for ambiguous multi-comma input', async () => {
+    mockEntries();
+    render(<CaixaPage />);
+
+    await waitFor(() => expect(screen.getByText('+ R$ 50,00')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('+ Novo lançamento'));
+
+    fireEvent.change(screen.getByLabelText('Valor (R$)'), { target: { value: '35,00' } });
+    expect(screen.getByText('Confirma R$ 35,00')).toBeInTheDocument();
+
+    // reaisToCents trunca decimais além da 2ª casa em vez de rejeitar — um
+    // terceiro dígito digitado por engano ("10,999") vira R$ 10,99 sem
+    // aviso. O preview expõe o valor que será de fato enviado, para o
+    // usuário perceber antes de confirmar.
+    fireEvent.change(screen.getByLabelText('Valor (R$)'), { target: { value: '10,999' } });
+    expect(screen.getByText('Confirma R$ 10,99')).toBeInTheDocument();
   });
 
   it('hides the manual entry action for reception (cash_entry_manual never included that role)', () => {
