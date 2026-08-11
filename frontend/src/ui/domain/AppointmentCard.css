@@ -96,3 +96,20 @@
 
 .k-appt-card--canceled .k-appt-card__status-bar { background-color: var(--color-danger); }
 .k-appt-card--canceled { opacity: 0.6; }
+
+/* Drag-to-reschedule (AgendaPage/TimelineView) */
+.k-appt-card--draggable {
+  /* Evita que o navegador interprete o gesto como scroll da página em
+     touch — sem isso, arrastar um card no mobile rola a tela em vez de
+     mover o agendamento. */
+  touch-action: none;
+}
+
+.k-appt-card--dragging {
+  opacity: 0.35;
+}
+
+.k-appt-card--saving {
+  opacity: 0.6;
+  cursor: wait;
+}

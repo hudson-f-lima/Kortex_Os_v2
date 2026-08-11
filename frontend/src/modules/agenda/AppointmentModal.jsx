@@ -4,86 +4,11 @@ import { ApiError } from '../../shared/apiClient.js';
 import { ClientPicker } from '../../shared/ClientPicker.jsx';
 import { Modal } from '../../shared/Modal.jsx';
 import { messageForError, FORBIDDEN_MESSAGE } from '../../shared/apiErrorMessage.js';
+import { newIdempotencyKey } from '../../shared/idempotencyKey.js';
 import { ACTIVE_STATUSES, statusLabel } from './appointmentStatus.js';
+import { APPOINTMENT_ERROR_MESSAGES as ERROR_MESSAGES } from './appointmentErrorMessages.js';
+import { ChangeDiff } from './ChangeDiff.jsx';
 import { addMinutes, fromDateTimeLocalValue, toDateTimeLocalValue } from './dateUtils.js';
-
-const ERROR_MESSAGES = {
-  professional_double_booked: 'Este profissional já tem um agendamento nesse horário.',
-  reference_not_found: 'Um dos itens selecionados não foi encontrado para esta organização.',
-  professional_not_eligible_for_service: 'Este profissional não está habilitado para este serviço.',
-  version_conflict: 'Este agendamento foi alterado por outro usuário. Feche e abra de novo para ver a versão mais recente.',
-  invalid_time_range: 'O horário de término deve ser depois do início.',
-};
-
-function newIdempotencyKey() {
-  return `appt-${crypto.randomUUID()}`;
-}
-
-function formatDateTime(value) {
-  if (!value) return '—';
-  return new Date(value).toLocaleString('pt-BR');
-}
-
-// Compara current (snapshot do PATCH pouco antes de reconfigurar) com
-// proposed (o que a RPC resolveria se confirmado) — ADR 0013 change plan.
-function ChangeDiff({ diff, professionals, services, onConfirm, onCancel, submitting }) {
-  const nameFor = (list, id) => list.find((item) => item.id === id)?.name ?? '—';
-
-  const rows = [
-    {
-      label: 'Profissional',
-      current: nameFor(professionals, diff.current.professional_id),
-      proposed: nameFor(professionals, diff.proposed.professional_id),
-    },
-    {
-      label: 'Serviço',
-      current: nameFor(services, diff.current.service_id),
-      proposed: nameFor(services, diff.proposed.service_id),
-    },
-    {
-      label: 'Duração',
-      current: `${diff.current.resolved_duration_minutes} min`,
-      proposed: `${diff.proposed.resolved_duration_minutes} min`,
-    },
-    {
-      label: 'Término',
-      current: formatDateTime(diff.current.ends_at),
-      proposed: formatDateTime(diff.proposed.ends_at),
-    },
-  ];
-
-  return (
-    <div className="appointment-diff">
-      <p>Essa mudança recalcula a duração do agendamento. Confirme antes de aplicar:</p>
-      <table className="data-table">
-        <thead>
-          <tr>
-            <th />
-            <th>Atual</th>
-            <th>Novo</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.label}>
-              <td>{row.label}</td>
-              <td>{row.current}</td>
-              <td>{row.proposed}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div className="modal-actions">
-        <button type="button" className="link-button" onClick={onCancel} disabled={submitting}>
-          Voltar
-        </button>
-        <button type="button" onClick={onConfirm} disabled={submitting}>
-          {submitting ? 'Aplicando…' : 'Confirmar mudança'}
-        </button>
-      </div>
-    </div>
-  );
-}
 
 // Cria e edita agendamentos (docs/PWA_PLANEJAMENTO.md §5.1/§5.3): cliente
 // buscável ou criado inline, serviço define o término automaticamente
