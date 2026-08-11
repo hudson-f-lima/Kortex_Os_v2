@@ -22,11 +22,25 @@ inputs:
     type: string
     enum: ["", approve]
     default: ""
+  blueprint_approval:
+    type: string
+    enum: ["", approve]
+    default: ""
+  etapa8_approval:
+    type: string
+    enum: ["", approve]
+    default: ""
+  blueprint_path:
+    type: string
+    default: ""
+  etapa8_evidence:
+    type: string
+    default: ""
 
 steps:
   - id: preflight
     type: shell
-    run: "node .specify/kortex/scripts/preflight.mjs --repo . --authorized-root . --task-class \"{{ inputs.task_class }}\""
+    run: "node .specify/kortex/scripts/preflight.mjs --repo . --authorized-root . --task-class \"{{ inputs.task_class }}\" --blueprint-approval \"{{ inputs.blueprint_approval }}\" --etapa8-approval \"{{ inputs.etapa8_approval }}\" --blueprint-path \"{{ inputs.blueprint_path }}\" --etapa8-evidence \"{{ inputs.etapa8_evidence }}\""
 
   - id: load-progressive-context
     type: shell
