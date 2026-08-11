@@ -317,7 +317,7 @@ Em 2026-08-10, o Platform Owner aprovou a adoção controlada após o veredito `
 
 Primeiro incremento integrado concluído em modo read-only: pin `0.12.11`, contrato/handoff, adapter de fontes, pre-flight, workflow v1.0.1, evals `20/20` + `10/10`, context pack, fan-out seguro, telemetria e rollback dry-run. O run `4ffd5ffd` terminou `GO`; runs anteriores preservam o bloqueio de raiz sem tracking remoto e a pausa HITL da fronteira.
 
-O Red Team posterior encontrou três gaps de governança e abriu a issue `054`; portanto o workflow está aprovado somente para read-only/dry-run até a revalidação adversarial.
+O Red Team posterior encontrou três gaps de governança; a issue `054` foi implementada e revalidada em worktrees limpos. O workflow permanece aprovado com restrições: gates de migration/produto/promoção não equivalem a autorização de mutação.
 
 ## DOCUMENTATION_CHECK
 
@@ -337,7 +337,7 @@ FILES_CHANGED:
 - `.specify/kortex/`: pin, contrato, scripts de pre-flight/adapter/evals/contexto/fan-out/telemetria/rollback e workflow v1.0.1.
 
 BLOCKERS_REMAINING:
-- Issue `054` precisa corrigir e revalidar o gate de migration/Blueprint, worktree sujo e saída arbitrária do adapter.
+- Nenhum gap conhecido da issue 054 permanece aberto; mutação de produto, migration real, deploy e promoção continuam fora do escopo do workflow.
 - Execução continua limitada ao primeiro incremento até os gates das issues `044`–`053` serem verificados.
 - Nenhuma mutação de produto, migration, deploy, promoção ou ativação autônoma é autorizada por DEC-59.
 - `verdict_input` permanece fora do caminho confiável no pin `0.12.11`; usar approval adapter allowlisted.

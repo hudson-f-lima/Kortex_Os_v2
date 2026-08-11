@@ -1,6 +1,6 @@
 ---
 title: "Red Team — Integração controlada do Spec Kit"
-status: "EM_REMEDIACAO"
+status: "APROVADO"
 stage: "EXECUTION"
 governance_ref: ["DEC-59", "ADR-0024"]
 upstream_doc: "docs/architecture/governance/KORTEXOS_SPECKIT_OPTIMIZATION_IMPLEMENTATION_PLAN.md"
@@ -36,11 +36,24 @@ Gates de dinheiro, estoque, agenda, Supabase, PWA e Render foram classificados c
 2. **P2 — pre-flight aceita worktree sujo para tarefa mecânica.** O resultado expõe `clean=false`, mas não bloqueia. Alterações não relacionadas podem contaminar comandos shell ou a evidência de um run.
 3. **P2 — adapter possui escrita arbitrária quando recebe `--output`.** O caminho integrado usa stdout, mas o script não restringe o destino a stdout ou a um diretório de run allowlisted; sob shell não sandboxed, isso amplia a superfície de sobrescrita.
 
+## Revalidação da issue 054
+
+Os três achados foram corrigidos em TDD e revalidados pessoalmente:
+
+- `remediation-eval.mjs`: `GO` nos três casos negativos — worktree sujo, migration sem gates e adapter fora do run root.
+- `efae4f2a`: workflow read-only completo, `GO`.
+- `7a0b955d`: migration com Blueprint real, approvals de Blueprint/Etapa 8 e evidência em `docs/waves`, `completed`.
+- `aca8e6bd`: migration sem approvals, `failed` no pre-flight.
+- `856aa9fd`: comportamento de produto sem Benchmark, abortado no `benchmark-gate`.
+- `a3a15969`: promoção, bloqueada no pre-flight.
+
+O filtro de worktree ignora somente `.specify/workflows/`, criado pelo próprio runtime; qualquer caminho externo continua bloqueando.
+
 ## VEREDITO
 
-**NO-GO para tarefas sensíveis, migration, implementação ou qualquer fluxo que possa interpretar `GO` como autorização de mutação.**
+**GO COM RESTRIÇÕES para o workflow controlado e seus gates.** A issue 054 está revalidada; o workflow continua dry-run e não autoriza mutação de produto, migration real, deploy, promoção ou ativação de feature flag.
 
-**GO limitado a read-only/dry-run**, com a condição de que o fluxo não avance para código, schema, deploy ou promoção até a [issue 054](../../../issues/054-speckit-redteam-remediation.md) ser implementada e revalidada.
+O caminho de migration só pode prosseguir no pre-flight quando Blueprint, Etapa 8 e paths reais em `docs/waves` forem fornecidos; o caminho de produto continua dependente do Benchmark Gate.
 
 ## DOCUMENTATION_CHECK
 
