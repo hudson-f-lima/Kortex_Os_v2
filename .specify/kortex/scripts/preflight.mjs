@@ -11,6 +11,10 @@ const authorized = authorizedInput ? path.resolve(authorizedInput) : null;
 const mode = args.get('--mode') || 'read-only-dry-run';
 const taskClass = args.get('--task-class') || 'read-only';
 const expectedCli = '0.12.11';
+const blueprintApproval = args.get('--blueprint-approval') || '';
+const etapa8Approval = args.get('--etapa8-approval') || '';
+const blueprintPath = args.get('--blueprint-path') || '';
+const etapa8Evidence = args.get('--etapa8-evidence') || '';
 const required = [
   'AGENTS.md',
   'docs/INDEX.md',
@@ -37,10 +41,23 @@ const commit = git('rev-parse', 'HEAD');
 const upstreamRef = (() => { try { return git('rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}'); } catch { return null; } })();
 const upstream = upstreamRef ? (() => { try { return git('rev-parse', upstreamRef); } catch { return null; } })() : null;
 const status = git('status', '--short', '--branch');
+const porcelain = git('status', '--porcelain');
+const clean = porcelain.length === 0;
 const protectedBranch = branch === 'main' || branch === 'staging';
 if (protectedBranch && taskClass !== 'read-only' && mode !== 'read-only-dry-run') fail(`protected branch: ${branch}`);
 if (taskClass === 'promotion') fail('promotion is never authorized by this local preflight');
 if (taskClass !== 'read-only' && !upstream) fail(`no origin tracking ref for branch: ${branch}`);
+if (taskClass === 'migration') {
+  if (blueprintApproval !== 'approve' || etapa8Approval !== 'approve') fail('Blueprint and Etapa 8 approvals are required');
+  const wavesRoot = path.resolve(repo, 'docs', 'waves');
+  for (const [label, candidate] of [['Blueprint', blueprintPath], ['Etapa 8 evidence', etapa8Evidence]]) {
+    if (!candidate) fail(`${label} path is required for migration`);
+    const resolved = path.resolve(repo, candidate);
+    const relative = path.relative(wavesRoot, resolved);
+    if (relative.startsWith('..') || path.isAbsolute(relative) || !fs.existsSync(resolved)) fail(`${label} must exist under docs/waves`);
+  }
+}
+if (taskClass !== 'read-only' && !clean) fail('worktree must be clean for non-read-only tasks');
 
 const sourceHashes = Object.fromEntries(required.map(relative => {
   const content = fs.readFileSync(path.join(repo, relative));
@@ -55,7 +72,7 @@ console.log(JSON.stringify({
   commit,
   upstream_ref: upstreamRef,
   upstream,
-  clean: status.split('\n').length === 1,
+  clean,
   task_class: taskClass,
   mode,
   cli_version_required: expectedCli,

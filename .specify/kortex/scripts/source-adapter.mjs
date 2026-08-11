@@ -6,8 +6,8 @@ import { execFileSync } from 'node:child_process';
 const args = new Map();
 for (let i = 2; i < process.argv.length; i += 2) args.set(process.argv[i], process.argv[i + 1]);
 const repo = path.resolve(args.get('--repo') || process.env.KORTEX_REPO || process.cwd());
-const output = args.get('--output');
-if (!output) throw new Error('--output is required');
+const output = args.get('--output') || '-';
+const blocked = (reason) => { console.error(JSON.stringify({ status: 'BLOCKED', reason })); process.exit(2); };
 const sources = [
   'AGENTS.md',
   'docs/INDEX.md',
@@ -17,6 +17,12 @@ const sources = [
   'docs/architecture/adr/0024-adocao-controlada-spec-kit-fluxo-agentico.md'
 ];
 const git = (...gitArgs) => execFileSync('git', ['-C', repo, ...gitArgs], { encoding: 'utf8' }).trim();
+if (output !== '-') {
+  const allowedRunRoot = path.resolve(repo, '.specify', 'workflows', 'runs');
+  const outputPath = path.resolve(output);
+  const relative = path.relative(allowedRunRoot, outputPath);
+  if (relative.startsWith('..') || path.isAbsolute(relative)) blocked('output must be stdout or inside .specify/workflows/runs');
+}
 const metadata = sources.map(relative => {
   const content = fs.readFileSync(path.join(repo, relative));
   return { path: relative, bytes: content.length, sha256: crypto.createHash('sha256').update(content).digest('hex') };
