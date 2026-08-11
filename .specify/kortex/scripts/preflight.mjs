@@ -42,7 +42,10 @@ const upstreamRef = (() => { try { return git('rev-parse', '--abbrev-ref', '--sy
 const upstream = upstreamRef ? (() => { try { return git('rev-parse', upstreamRef); } catch { return null; } })() : null;
 const status = git('status', '--short', '--branch');
 const porcelain = git('status', '--porcelain');
-const clean = porcelain.length === 0;
+const porcelainPaths = porcelain.split(/\r?\n/).filter(Boolean).map(line => line.slice(3).split(' -> ').pop());
+const runtimeChanges = porcelainPaths.filter(relative => relative === '.specify/workflows/runs' || relative.startsWith('.specify/workflows/runs/'));
+const unapprovedChanges = porcelainPaths.filter(relative => !runtimeChanges.includes(relative));
+const clean = unapprovedChanges.length === 0;
 const protectedBranch = branch === 'main' || branch === 'staging';
 if (protectedBranch && taskClass !== 'read-only' && mode !== 'read-only-dry-run') fail(`protected branch: ${branch}`);
 if (taskClass === 'promotion') fail('promotion is never authorized by this local preflight');
@@ -73,6 +76,8 @@ console.log(JSON.stringify({
   upstream_ref: upstreamRef,
   upstream,
   clean,
+  ignored_runtime_changes: runtimeChanges.length,
+  unapproved_changes: unapprovedChanges,
   task_class: taskClass,
   mode,
   cli_version_required: expectedCli,
