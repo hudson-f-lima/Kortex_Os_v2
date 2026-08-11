@@ -1,6 +1,6 @@
 ---
 title: "SPK-BASELINE — Baseline de Compatibilidade do Spec Kit"
-status: "EM_REMEDIACAO"
+status: "APROVADO"
 stage: "EXECUTION"
 governance_ref: ["DEC-59", "ADR-0024"]
 upstream_doc: "docs/architecture/governance/KORTEXOS_SPECKIT_OPTIMIZATION_IMPLEMENTATION_PLAN.md"
@@ -147,9 +147,9 @@ Telemetria integrada no momento: 5 runs, 2 completos, 1 pausado e 2 falhos (ambo
 
 O commit `4f04148` foi validado em `C:\tmp\kortexos-speckit-adoption`, branch `codex/speckit-adoption-validation`, acompanhando `origin/staging` (`ahead 1`) e sem alterações locais. O run `72576c42` completou o workflow v1.0.1 com pre-flight `GO`, todas as verificações read-only, handoff `GO`, zero falhas e zero runs órfãos. O estado de runs permanece no worktree temporário para auditoria local; não foi incluído no commit de integração.
 
-## Red Team de implementação
+## Red Team de implementação e remediação
 
-O Red Team reproduziu três gaps na mesma branch limpa: `migration` completou sem gate de Blueprint/Etapa 8 (`8c830a44`); pre-flight retornou `GO` com `clean=false` para tarefa mecânica; e o adapter gravou em caminho arbitrário quando recebeu `--output`. O Benchmark Gate de produto e o bloqueio de promoção passaram. O relatório completo está em [`KORTEXOS_SPECKIT_RED_TEAM_REPORT.md`](KORTEXOS_SPECKIT_RED_TEAM_REPORT.md); a remediação rastreável é a [issue 054](../../../issues/054-speckit-redteam-remediation.md).
+O Red Team inicial reproduziu três gaps: migration sem Blueprint/Etapa 8 (`8c830a44`), worktree sujo aceito e saída arbitrária do adapter. A issue 054 corrigiu os três gaps e o filtro passou a ignorar somente `.specify/workflows/`, criado pelo runtime. Revalidação: harness `GO`, read-only `efae4f2a`, migration aprovada `7a0b955d`, migration sem gates bloqueada `aca8e6bd`, Benchmark bloqueado `856aa9fd` e promoção bloqueada `a3a15969`. Relatório: [`KORTEXOS_SPECKIT_RED_TEAM_REPORT.md`](KORTEXOS_SPECKIT_RED_TEAM_REPORT.md).
 
 ## Gate SPK-0
 
@@ -187,4 +187,4 @@ BLOCKERS_REMAINING:
 - A integração só pode avançar pelas issues `044`–`053`, com revisão de segurança e sem mutação externa autônoma.
 
 VEREDITO:
-- `SPK-0 = GO`; `SPK-1 = GO condicionado`; `SPK-2 = GO`; `SPK-3 = GO limitado ao dry-run`; `SPK-4 = GO limitado ao piloto`; `SPK-5 = GO limitado ao piloto`; `SPK-6 = GO limitado ao piloto`; `SPK-7 = ADOPT_WITH_CONSTRAINTS aprovado por DEC-59`; Red Team integrado = `NO-GO` para tarefas sensíveis até a issue 054. Read-only/dry-run permanece permitido.
+- `SPK-0 = GO`; `SPK-1 = GO condicionado`; `SPK-2 = GO`; `SPK-3 = GO limitado ao dry-run`; `SPK-4 = GO limitado ao piloto`; `SPK-5 = GO limitado ao piloto`; `SPK-6 = GO limitado ao piloto`; `SPK-7 = ADOPT_WITH_CONSTRAINTS aprovado por DEC-59`; Red Team + issue 054 = `GO COM RESTRIÇÕES`. Nenhuma mutação real de produto, migration, deploy ou promoção é autorizada.
