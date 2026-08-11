@@ -143,6 +143,10 @@ O workflow não possui step de código de produto, migration, escrita externa, p
 
 Telemetria integrada no momento: 5 runs, 2 completos, 1 pausado e 2 falhos (ambos bloqueios de pre-flight/integração), zero runs órfãos; tokens/custo continuam `UNKNOWN`.
 
+## Validação em worktree limpo
+
+O commit `4f04148` foi validado em `C:\tmp\kortexos-speckit-adoption`, branch `codex/speckit-adoption-validation`, acompanhando `origin/staging` (`ahead 1`) e sem alterações locais. O run `72576c42` completou o workflow v1.0.1 com pre-flight `GO`, todas as verificações read-only, handoff `GO`, zero falhas e zero runs órfãos. O estado de runs permanece no worktree temporário para auditoria local; não foi incluído no commit de integração.
+
 ## Gate SPK-0
 
 **GO para SPK-0:** não há conflito de arquivos do Spec Kit nem autorização implícita para código/produto; a ref de comparação foi sincronizada e o snapshot foi registrado.
