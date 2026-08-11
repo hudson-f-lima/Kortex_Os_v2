@@ -1,12 +1,13 @@
 # KORTEXOS™ — Migration Map 5.1.2
 
-**Versão:** v1.2
-**Data:** 2026-07-20 (v1.0 aprovada DEC-24; v1.1 adiciona Onda 0, DEC-27; v1.2 finaliza escopo de unidade, DEC-28)
+**Versão:** v1.3
+**Data:** 2026-07-20 (v1.0 aprovada DEC-24; v1.1 adiciona Onda 0, DEC-27; v1.2 finaliza escopo de unidade, DEC-28); 2026-08-11 (v1.3 adiciona Onda 7, DEC-64)
 **Produzido por:** Claude Code, executando a Etapa 6 da ordem de construção (Master Briefing §22.1), seguindo `$kortex-migration-mapper` (`.agents/skills/kortex-migration-mapper/`).
 **Entrada:** `KORTEXOS_5_1_2_TRUTH_MAP.md` v1.0 (DEC-23) + `KORTEXOS_5_1_2_PONTOS_CEGOS_PRE_BLUEPRINT.md` v1.0 (DEC-26, item 1 reconsiderado por DEC-27).
 **Autoridade deste artefato (§0.1 do Master):** mapeia nomes, tabelas, domínios, prefixos e impacto de promoção. **Não executa.** Não escreve SQL, não define coluna/tipo/constraint, não é Blueprint (etapa 7, segue BLOQUEADA até este documento ser aprovado).
-**Status:** **APROVADO pelo Platform Owner (v1.0 DEC-24; v1.1 DEC-27; v1.2 DEC-28, todas 2026-07-20).** Etapa 6 CONCLUÍDA — ver `KORTEXOS_5_1_2_DECISION_LOG.md` e `KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md` §22.1. Etapa 7 (Blueprint) desbloqueada, ainda não iniciada.
+**Status:** **APROVADO pelo Platform Owner (v1.0 DEC-24; v1.1 DEC-27; v1.2 DEC-28, todas 2026-07-20; v1.3 DEC-64, 2026-08-11 — plano de reconciliação e texto final aprovados em duas confirmações explícitas separadas).** Etapa 6 CONCLUÍDA — ver `KORTEXOS_5_1_2_DECISION_LOG.md` e `KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md` §22.1. Etapa 7 (Blueprint) desbloqueada para as Ondas 0-6. **A Onda 7 tem seu Migration Map aprovado (DEC-64), mas o início do seu Blueprint fica bloqueado até a reconciliação de numeração DEC-65 ser mesclada em `staging`** (esta branch, `docs/reconcile-dec62-onda6-vs-runner`, ainda não foi mesclada).
 **Changelog v1.1 → v1.2 (DEC-28):** as 4 questões deixadas em aberto na Onda 0 foram decididas — vínculo profissional↔unidade é N:N (`professional_units`); `memberships` ganha escopo híbrido (`unit_id` nullable); todas as Ondas 1-3/5-6 e as 19 tabelas MVP existentes ganham classificação de escopo por unidade (org-wide / catálogo com override / transacional direto) — ver tabela de classificação após a Onda 0.
+**Changelog v1.2 → v1.3 (DEC-64, 2026-08-11):** Onda 7 adicionada — fecha o sub-item "drag/resize" de M01 (Truth Map, DEC-23) que DEC-24/27/28 não alocaram a nenhuma onda. Não reabre nem altera nenhuma onda existente.
 
 ## 0. Regra de leitura e limites
 
@@ -126,6 +127,20 @@ Padrão adotado: **Zenoti** (herança empresa→unidade com override autorizado 
 | Domínio | Objeto proposto | Estende/novo | Depende de | Impacto em tabela MVP existente | Risco |
 |---|---|---|---|---|---|
 | D12/D15 | Versionamento de venda (`order_revisions` ou equivalente) | Novo, mas **altera fluxo** de `checkout_close`/`order_refund` | `orders` (existente), `kortex_ledger_entries` (Onda 2) | **Altera** contrato de fechamento existente — precisa nascer só depois que o ledger existir, porque reabertura sem ledger reversível cria dupla verdade financeira | **Crítico** — é o "Risco nº 1" já identificado no Decision Log (Seção 6); não implementar antes da Onda 2 estar completa e testada |
+
+### Onda 7 — Agenda: reagendamento por arraste e redimensionamento (D07, completa M01) — APROVADA (DEC-64, 2026-08-11)
+
+> Fecha a lacuna registrada no Truth Map (DEC-23): "M01 — visualização/edição de agenda (drag, resize, chain) | `PARCIAL` | ... | Sem reagendamento por arraste, redimensionamento por alça, ou 'move visit' de bloco composto". O Migration Map original (DEC-24/27/28) não alocou esse sub-item de M01 a nenhuma das Ondas 0-6 — gap de cobertura descoberto nesta sessão, mesmo padrão do achado D02 que gerou DEC-25. Diferente das Ondas 1-6, **não depende de nenhuma delas**: reagendar/redimensionar um `appointment` já existente não precisa de Payment Core, Ledger, Compensation, Availability Resolver completo, Recorrência/Grupo/Waitlist nem versionamento de comanda — usa só a fundação `REAL` já existente (`create_appointment`/`update_appointment`, exclusion constraint GiST, `version` otimista, ADR 0013 change-plan). Escopo por unidade: nenhum — não introduz `unit_id` novo em lugar nenhum, `update_appointment` já é unit-aware (fatia 037).
+>
+> **Sub-item 1 — reagendamento por arraste (mudar `starts_at`/`professional_id` de um appointment existente arrastando na grade):** frontend-only, zero migration — já entregue nesta sessão (branch `feat/agenda-drag-and-resize-clean`) reaproveitando o PATCH `/appointments/:id` e o fluxo `confirmation_required` (ADR 0013) que já existiam. Registrado aqui retroativamente porque também fecha parte de M01.
+>
+> **Sub-item 2 — redimensionamento (mudar a duração de um appointment existente sem trocar profissional/serviço):** é o que este Migration Map libera para Blueprint — **bloqueado para início até a reconciliação de numeração DEC-65 (ver Decision Log SEÇÃO 30) ser mesclada em `staging`.**
+
+| Domínio | Objeto proposto | Estende/novo | Depende de | Impacto em tabela MVP existente | Risco |
+|---|---|---|---|---|---|
+| D07 | `update_appointment` (RPC `security definer` existente) — aceitar `duration_minutes` opcional no payload, mesmo padrão que `create_appointment` já usa desde a Onda 5 (série/grupo) | **Estende** (lógica de função, nenhuma tabela nova, nenhuma coluna nova) | `appointments`, `professional_service_capabilities` (ambas existentes) | Nenhum — não altera schema; só o corpo da função `update_appointment` (`supabase/migrations/20260805020000_onda5_fatia033_participants.sql`, última `create or replace`) | **Baixo** — protegido pela exclusion constraint GiST já existente (nenhuma nova superfície de integridade); comissão é 100% baseada em `commission_cents`, nunca em `resolved_duration_minutes` (grep zero confirmado no backend); não inaugura tabela de auditoria nova |
+
+**Decisão de desenho fechada nesta sessão (antes do Blueprint, registrada aqui para não repetir a interview):** mudança pura de duração sempre exige confirmação explícita (reaproveita ADR 0013), diferente de mover só o horário (que continua aplicando direto, MOVE_TIME_ONLY). Colisão com o próximo agendamento do mesmo profissional retorna `max_fit_duration_minutes` dentro do diff de confirmação — pré-checagem informativa, não substitui a exclusion constraint. Benchmark feito: FullCalendar (`eventOverlap`/`eventConstraint`/`revert`) e produtos de agenda de salão não têm convenção de auto-clamp silencioso — a tensão "recusar vs. estender" é sempre resolvida por decisão humana explícita, nunca automática.
 
 ## 4. Decisões sobre os riscos de alto impacto (Platform Owner, 2026-07-20)
 
