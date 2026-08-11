@@ -34,8 +34,11 @@ Documentação de visão não autoriza schema, endpoint, tela, deploy ou promoç
 - [Protocolo de Automação Documental](architecture/governance/KORTEXOS_DOCUMENTATION_AUTOMATION_PROTOCOL.md) — regra prospectiva de Docs-as-Code para agentes (DEC-43).
 - [ADRs](architecture/adr/) — decisões técnicas e seus vínculos com ondas (ver [ADR 0021](architecture/adr/0021-frontend-ux-responsiveness-and-adaptive-modals.md) para o Design System e Modais Adaptativos).
 - [ADR 0023 — Onda 5](architecture/adr/0023-onda5-recurring-group-booking-waitlist.md) — recorrência, Group Booking pai/filhos e waitlist no modelo Booksy.
+- [ADR 0024 — Adoção controlada do Spec Kit](architecture/adr/0024-adocao-controlada-spec-kit-fluxo-agentico.md) — motor de workflow subordinado ao MAS, com gates, pre-flight, telemetria e rollback.
 - [Auditoria de Eficiências Transversais no Fluxo Agêntico](architecture/governance/KORTEXOS_AGENTIC_FLOW_EFFICIENCY_AUDIT.md) — maturidade do MAS contra práticas agentic da Anthropic; backlog AEF-01–12.
 - [Plano de Otimização do Fluxo Agêntico](architecture/governance/KORTEXOS_AGENTIC_FLOW_OPTIMIZATION_PLAN.md) — fases F0–F6, gates, métricas e incrementos OPT-001–008.
+- [Plano de Implementação das Otimizações com Spec Kit](architecture/governance/KORTEXOS_SPECKIT_OPTIMIZATION_IMPLEMENTATION_PLAN.md) — piloto seletivo, workflow, gates, evals, paralelismo e rollback.
+- [SPK-BASELINE — Baseline de Compatibilidade do Spec Kit](architecture/governance/KORTEXOS_SPECKIT_BASELINE.md) — snapshot read-only, pin proposto, métricas e gate SPK-0.
 - [Global Benchmark Map](architecture/vision/KORTEXOS_5_1_2_GLOBAL_BENCHMARK_MAP.md)
 - [Comparative Proposal](architecture/vision/KORTEXOS_5_1_2_COMPARATIVE_PROPOSAL.md)
 - [Pontos Cegos Pré-Blueprint](architecture/vision/KORTEXOS_5_1_2_PONTOS_CEGOS_PRE_BLUEPRINT.md)
