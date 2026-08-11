@@ -315,7 +315,7 @@ O Spec Kit só poderá ser incorporado ao fluxo oficial quando todos os critéri
 
 Em 2026-08-10, o Platform Owner aprovou a adoção controlada após o veredito `ADOPT_WITH_CONSTRAINTS` do SPK-7. A execução está limitada às issues `044`–`053` e aos artefatos `.specify/kortex/`; não autoriza código de produto, migration, deploy, promoção, ativação de feature flag ou sobrescrita das skills canônicas.
 
-Primeiro incremento integrado concluído em modo read-only: pin `0.12.11`, contrato/handoff, adapter de fontes, pre-flight, workflow v1.0.1, evals `20/20` + `10/10`, context pack, fan-out seguro, telemetria e rollback dry-run. O run `4ffd5ffd` terminou `GO`; runs anteriores preservam o bloqueio de raiz sem tracking remoto e a pausa HITL da fronteira.
+Primeiro incremento integrado concluído em modo read-only: pin `0.12.11`, contrato/handoff, adapter de fontes, pre-flight, workflow v1.1.0, evals `20/20` + `10/10`, context packs, runner real de fan-out limitado a dois workers, telemetria e rollback dry-run. O run `4ffd5ffd` terminou `GO`; o runner de DEC-62 concluiu `run-read-only-evals` com 2/2 workers em 394 ms. Runs anteriores preservam o bloqueio de raiz sem tracking remoto e a pausa HITL da fronteira. Worktrees para mutações, write sets não vazios e fan-in de código continuam fora do escopo.
 
 O Red Team posterior encontrou três gaps de governança; a issue `054` foi implementada e revalidada em worktrees limpos. O workflow permanece aprovado com restrições: gates de migration/produto/promoção não equivalem a autorização de mutação.
 
@@ -334,7 +334,7 @@ FILES_CHANGED:
 - `docs/architecture/adr/0024-adocao-controlada-spec-kit-fluxo-agentico.md`: decisão aceita de adoção controlada.
 - `docs/architecture/governance/KORTEXOS_5_1_2_DECISION_LOG.md`: DEC-59 e vínculo DEC↔ADR.
 - `issues/kortexos-speckit-integration-prd.md` e `issues/044`–`issues/053`: PRD e fatiamento executável.
-- `.specify/kortex/`: pin, contrato, scripts de pre-flight/adapter/evals/contexto/fan-out/telemetria/rollback e workflow v1.0.1.
+- `.specify/kortex/`: pin, contrato, scripts de pre-flight/adapter/evals/contexto/fan-out/runner/telemetria/rollback, plano read-only e workflow v1.1.0.
 
 BLOCKERS_REMAINING:
 - Nenhum gap conhecido da issue 054 permanece aberto; mutação de produto, migration real, deploy e promoção continuam fora do escopo do workflow.

@@ -1,0 +1,17 @@
+{
+  "run_id": "run-read-only-evals",
+  "workflow_id": "kortexos-workflow-v1",
+  "max_workers": 2,
+  "workers": [
+    {
+      "id": "context-audit",
+      "command": ["node", ".specify/kortex/scripts/context-pack.mjs", ".", "audit"],
+      "write_set": []
+    },
+    {
+      "id": "context-qa",
+      "command": ["node", ".specify/kortex/scripts/context-pack.mjs", ".", "qa"],
+      "write_set": []
+    }
+  ]
+}

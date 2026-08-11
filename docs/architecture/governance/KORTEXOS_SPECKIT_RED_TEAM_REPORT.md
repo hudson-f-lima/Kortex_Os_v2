@@ -2,9 +2,9 @@
 title: "Red Team — Integração controlada do Spec Kit"
 status: "APROVADO"
 stage: "EXECUTION"
-governance_ref: ["DEC-59", "ADR-0024"]
+governance_ref: ["DEC-59", "DEC-62", "ADR-0024"]
 upstream_doc: "docs/architecture/governance/KORTEXOS_SPECKIT_OPTIMIZATION_IMPLEMENTATION_PLAN.md"
-last_updated: "2026-08-10"
+last_updated: "2026-08-11"
 ---
 
 # Red Team — Integração controlada do Spec Kit
@@ -22,7 +22,7 @@ Revisão adversarial executada pessoalmente no worktree limpo `C:\tmp\kortexos-s
 | Pre-flight/root | PASS | Worktree limpo: `GO`, `origin_ref=origin/staging`, `ahead 1`; raiz falsa bloqueou com exit `2`. |
 | Promotion gate | PASS | `task_class=promotion` bloqueou com exit `2`. |
 | Benchmark Gate | PASS | `task_class=product-behavior` sem aprovação abortou no step `benchmark-gate` (`da245704`). |
-| Fan-out/rollback | PASS | `fanout-eval.mjs`: 2 workers, worktrees isoladas, write sets disjuntos; rollback somente dry-run. |
+| Fan-out/rollback | PASS | Baseline desta revisão: `fanout-eval.mjs` cobriu 2 workers, worktrees isoladas e write sets disjuntos; rollback somente dry-run. O workflow integrado foi posteriormente endurecido pelo runner read-only de DEC-62, com execução real allowlisted e telemetria redigida. |
 | Segredos | PASS | scan dos artefatos e documentação: `SECRET_SCAN=clean`; handoff com conteúdo secret-like bloqueou com exit `2`. |
 | Migration/Blueprint | FAIL | `task_class=migration` com `approval=approve` completou (`8c830a44`) sem exigir Blueprint, Etapa 8 ou evidência SQL. |
 | Worktree sujo | FAIL | Pre-flight com `clean=false` e `task_class=mechanical` retornou `GO` (`PREFLIGHT_DIRTY_EXIT=0`). |
