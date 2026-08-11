@@ -43,7 +43,7 @@ const upstream = upstreamRef ? (() => { try { return git('rev-parse', upstreamRe
 const status = git('status', '--short', '--branch');
 const porcelain = git('status', '--porcelain');
 const porcelainPaths = porcelain.split(/\r?\n/).filter(Boolean).map(line => line.slice(3).split(' -> ').pop());
-const runtimeChanges = porcelainPaths.filter(relative => relative === '.specify/workflows/runs' || relative.startsWith('.specify/workflows/runs/'));
+const runtimeChanges = porcelainPaths.filter(relative => relative === '.specify/workflows' || relative.startsWith('.specify/workflows/'));
 const unapprovedChanges = porcelainPaths.filter(relative => !runtimeChanges.includes(relative));
 const clean = unapprovedChanges.length === 0;
 const protectedBranch = branch === 'main' || branch === 'staging';
