@@ -19,7 +19,11 @@ function expectBlocked(name, result, reason) {
 }
 
 const results = [];
-results.push(expectBlocked('dirty-worktree', run(preflight, ['--repo', '.', '--authorized-root', '.', '--task-class', 'mechanical']), 'worktree must be clean'));
+const dirtyMarker = path.join(root, '.specify', 'kortex', '.remediation-eval-dirty-marker');
+fs.writeFileSync(dirtyMarker, 'test-only marker');
+const dirtyResult = run(preflight, ['--repo', '.', '--authorized-root', '.', '--task-class', 'mechanical']);
+fs.rmSync(dirtyMarker, { force: true });
+results.push(expectBlocked('dirty-worktree', dirtyResult, 'worktree must be clean'));
 results.push(expectBlocked('migration-without-gates', run(preflight, ['--repo', '.', '--authorized-root', '.', '--task-class', 'migration']), 'Blueprint and Etapa 8 approvals are required'));
 
 const probe = path.join(os.tmpdir(), `kortex-speckit-adapter-probe-${process.pid}.json`);
