@@ -39,6 +39,7 @@ Documentação de visão não autoriza schema, endpoint, tela, deploy ou promoç
 - [Plano de Otimização do Fluxo Agêntico](architecture/governance/KORTEXOS_AGENTIC_FLOW_OPTIMIZATION_PLAN.md) — fases F0–F6, gates, métricas e incrementos OPT-001–008.
 - [Plano de Implementação das Otimizações com Spec Kit](architecture/governance/KORTEXOS_SPECKIT_OPTIMIZATION_IMPLEMENTATION_PLAN.md) — piloto seletivo, workflow, gates, evals, paralelismo e rollback.
 - [SPK-BASELINE — Baseline de Compatibilidade do Spec Kit](architecture/governance/KORTEXOS_SPECKIT_BASELINE.md) — snapshot read-only, pin proposto, métricas e gate SPK-0.
+- [Red Team — Integração controlada do Spec Kit](architecture/governance/KORTEXOS_SPECKIT_RED_TEAM_REPORT.md) — três gaps reproduzidos e `NO-GO` para uso sensível até a issue corretiva 054.
 - [Global Benchmark Map](architecture/vision/KORTEXOS_5_1_2_GLOBAL_BENCHMARK_MAP.md)
 - [Comparative Proposal](architecture/vision/KORTEXOS_5_1_2_COMPARATIVE_PROPOSAL.md)
 - [Pontos Cegos Pré-Blueprint](architecture/vision/KORTEXOS_5_1_2_PONTOS_CEGOS_PRE_BLUEPRINT.md)
