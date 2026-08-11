@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kortex.local/spec-kit/run-contract.schema.json",
+  "title": "KortexOS Spec Kit Run Contract",
+  "type": "object",
+  "required": ["run", "verification", "handoff"],
+  "properties": {
+    "run": {
+      "type": "object",
+      "required": ["run_id", "workflow_id", "cli_version", "ref", "mode", "task", "context", "gates", "artifacts"],
+      "properties": {
+        "run_id": {"type": "string", "minLength": 8},
+        "workflow_id": {"type": "string", "minLength": 1},
+        "cli_version": {"const": "0.12.11"},
+        "ref": {
+          "type": "object",
+          "required": ["branch", "commit"],
+          "properties": {
+            "branch": {"type": "string", "minLength": 1},
+            "commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"}
+          },
+          "additionalProperties": false
+        },
+        "mode": {"enum": ["AFK", "HITL"]},
+        "task": {
+          "type": "object",
+          "required": ["id", "classification", "owner", "intent"],
+          "properties": {
+            "id": {"type": "string", "minLength": 1},
+            "classification": {"enum": ["read-only", "mechanical", "product-behavior", "migration", "promotion"]},
+            "owner": {"type": "string", "minLength": 1},
+            "intent": {"type": "string", "minLength": 1}
+          },
+          "additionalProperties": false
+        },
+        "context": {"type": "object", "required": ["sources"], "properties": {"sources": {"type": "array", "minItems": 1}}},
+        "gates": {"type": "array", "minItems": 1},
+        "artifacts": {"type": "array", "minItems": 1}
+      },
+      "additionalProperties": false
+    },
+    "verification": {
+      "type": "object",
+      "required": ["tests", "commands", "status"],
+      "properties": {
+        "tests": {"type": "array", "minItems": 1},
+        "commands": {"type": "array", "minItems": 1},
+        "status": {"enum": ["passed", "failed", "blocked"]}
+      },
+      "additionalProperties": false
+    },
+    "handoff": {
+      "type": "object",
+      "required": ["files_changed", "blockers_remaining", "verdict", "next_step", "stop_condition"],
+      "properties": {
+        "files_changed": {"type": "array"},
+        "blockers_remaining": {"type": "array"},
+        "verdict": {"enum": ["GO", "NO-GO", "PARTIAL", "BLOCKED"]},
+        "next_step": {"type": "string", "minLength": 1},
+        "stop_condition": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

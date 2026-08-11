@@ -1,0 +1,117 @@
+schema_version: "1.0"
+workflow:
+  id: "kortexos-workflow-v1"
+  name: "KortexOS Workflow v1"
+  version: "1.0.1"
+  author: "KortexOS"
+  description: "MAS-compatible, read-only workflow with explicit gates and verifiable handoff."
+
+requires:
+  speckit_version: "0.12.11"
+
+inputs:
+  task_class:
+    type: string
+    enum: [read-only, mechanical, product-behavior, migration, promotion]
+    default: read-only
+  approval:
+    type: string
+    enum: ["", approve]
+    default: ""
+  benchmark_approval:
+    type: string
+    enum: ["", approve]
+    default: ""
+  blueprint_approval:
+    type: string
+    enum: ["", approve]
+    default: ""
+  etapa8_approval:
+    type: string
+    enum: ["", approve]
+    default: ""
+  blueprint_path:
+    type: string
+    default: ""
+  etapa8_evidence:
+    type: string
+    default: ""
+
+steps:
+  - id: preflight
+    type: shell
+    run: "node .specify/kortex/scripts/preflight.mjs --repo . --authorized-root . --task-class \"{{ inputs.task_class }}\" --blueprint-approval \"{{ inputs.blueprint_approval }}\" --etapa8-approval \"{{ inputs.etapa8_approval }}\" --blueprint-path \"{{ inputs.blueprint_path }}\" --etapa8-evidence \"{{ inputs.etapa8_evidence }}\""
+
+  - id: load-progressive-context
+    type: shell
+    run: "node .specify/kortex/scripts/source-adapter.mjs --repo . --output -"
+
+  - id: layered-evals
+    type: shell
+    run: "node .specify/kortex/scripts/contract-eval.mjs"
+
+  - id: context-pack-check
+    type: shell
+    run: "node .specify/kortex/scripts/context-pack.mjs . audit"
+
+  - id: safe-fanout-check
+    type: shell
+    run: "node .specify/kortex/scripts/fanout-eval.mjs"
+
+  - id: rollback-check
+    type: shell
+    run: "node .specify/kortex/scripts/rollback-dry-run.mjs .specify/kortex"
+
+  - id: benchmark-branch
+    type: if
+    condition: "{{ inputs.task_class == 'product-behavior' }}"
+    then:
+      - id: benchmark-approval
+        type: if
+        condition: "{{ inputs.benchmark_approval == 'approve' }}"
+        then:
+          - id: benchmark-approved
+            type: shell
+            run: "node -e \"console.log('benchmark gate explicitly approved')\""
+        else:
+          - id: benchmark-gate
+            type: gate
+            message: "Benchmark Gate required for product behavior."
+            options: [approve, reject]
+            on_reject: abort
+    else:
+      - id: benchmark-not-applicable
+        type: shell
+        run: "node -e \"console.log('benchmark gate not applicable')\""
+
+  - id: intent-plan-gate
+    type: if
+    condition: "{{ inputs.approval == 'approve' }}"
+    then:
+      - id: intent-plan-approved
+        type: shell
+        run: "node -e \"console.log('intent and plan gate explicitly approved')\""
+    else:
+      - id: intent-plan-review
+        type: gate
+        message: "Review intent and plan before any implementation step."
+        options: [approve, reject]
+        on_reject: abort
+
+  - id: controlled-boundary
+    type: if
+    condition: "{{ inputs.approval == 'approve' }}"
+    then:
+      - id: controlled-boundary-approved
+        type: shell
+        run: "node -e \"console.log('controlled boundary approved; no mutation step exists in this workflow')\""
+    else:
+      - id: stop-before-mutation
+        type: gate
+        message: "Controlled integration stops before product code, migration, external write or promotion."
+        options: [approve, reject]
+        on_reject: abort
+
+  - id: final-handoff
+    type: shell
+    run: "node .specify/kortex/scripts/create-dry-run-handoff.mjs | node .specify/kortex/scripts/validate-handoff.mjs -"
