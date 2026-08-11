@@ -45,7 +45,9 @@ Documentação de visão não autoriza schema, endpoint, tela, deploy ou promoç
 
 - [Parte II — Cadastros Canônicos](reference/data-dictionaries/KORTEXOS_5_1_2_CADASTROS_CANONICOS.md)
 - [Parte III — Políticas de Negócio](reference/business-policies/KORTEXOS_5_1_2_POLITICAS_DE_NEGOCIO.md)
-- [Assets do Design System](reference/design-system/assets/)
+- [Assets do Design System](reference/design-system/assets/) — especificação original v1.0 (prescritiva, pré-implementação).
+- [`PRODUCT.md`](../PRODUCT.md) — resumo de contexto de produto para geração de UI por agentes (skill `impeccable`); subordinado ao Master Briefing, não é uma segunda fonte de verdade de negócio.
+- [`DESIGN.md`](../DESIGN.md) — tokens visuais extraídos do código implementado (`tokens.css` + `ui/primitives`), gerado por `$impeccable document`. Descreve o que está implementado hoje, não a spec v1.0 acima; as duas podem divergir e isso não foi reconciliado. Registra 2 gaps reais ainda sem correção: `EmptyState.css`/`Toast.css` referenciam custom properties inexistentes em `tokens.css` (colapsam padding/sombra/cor), e `tokens.css` não tem camada `prefers-color-scheme: dark` (só o `styles.css` legado tem).
 
 ## Ondas, diagnóstico e evidência
 
