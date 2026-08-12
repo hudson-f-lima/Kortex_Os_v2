@@ -2,9 +2,9 @@
 title: "ADR 0024 — Adoção controlada do Spec Kit no fluxo agêntico"
 status: "ACCEPTED"
 stage: "ADR"
-governance_ref: ["DEC-59"]
+governance_ref: ["DEC-59", "DEC-63"]
 upstream_doc: "docs/architecture/governance/KORTEXOS_SPECKIT_OPTIMIZATION_IMPLEMENTATION_PLAN.md"
-last_updated: "2026-08-10"
+last_updated: "2026-08-11"
 ---
 
 # ADR 0024: Adoção controlada do Spec Kit no fluxo agêntico
@@ -54,9 +54,17 @@ Rejeitada. O Spec Kit orquestra execução e estado; não decide domínio, arqui
 - A adoção não será considerada plena até os evals, rollback e métricas de custo permanecerem verdes em runs reais controlados.
 - Qualquer mudança de comportamento de produto continua sujeita ao Benchmark Gate e decisão do Platform Owner.
 
+## Emenda — runner de fan-out read-only (DEC-63, 2026-08-11)
+
+> Aprovado originalmente como DEC-62 na branch `codex/speckit-runner-telemetry`; renumerado para DEC-63 por DEC-65 (reconciliação de colisão de numeração com a Onda 6, que já usava DEC-62). Conteúdo inalterado.
+
+Para transformar a hipótese de eficiência em evidência operacional controlada, a integração passa a incluir um runner real em `.specify/kortex/scripts/fanout-runner.mjs`. Ele executa no máximo dois workers allowlisted em paralelo, sem shell, apenas contra scripts Node locais, exige `write_set` vazio no modo read-only e grava `state.json`/`log.jsonl` com eventos estruturados. Saída de stdout/stderr nunca é persistida; somente bytes, hashes, duração e código de saída são registrados.
+
+O workflow usa um plano versionado com dois context packs independentes (`audit` e `qa`), permitindo medir duração real e alimentar a telemetria automaticamente. Falha de worker produz `failed` e não autoriza fan-in, produto, migration, deploy ou promoção. Este incremento não declara concluído o scheduler geral da issue 050: worktrees isoladas, write sets não vazios e fan-in de código continuam fora do escopo read-only e exigem desenho/gate posterior.
+
 ## DOCUMENTATION_CHECK
 
 - [x] ADR classificada em `docs/architecture/adr/`.
 - [x] Frontmatter YAML preenchido.
-- [x] `docs/INDEX.md` e matriz DEC↔ADR serão atualizados no mesmo turno.
+- [x] `docs/INDEX.md` e matriz DEC↔ADR foram atualizados no mesmo turno.
 - [x] Nenhuma decisão anterior é supersedida; esta ADR limita e operacionaliza o plano SPK.
