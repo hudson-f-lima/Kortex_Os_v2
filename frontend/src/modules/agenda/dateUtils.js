@@ -102,3 +102,14 @@ export function fromDateTimeLocalValue(value) {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
 }
+
+// Arredonda minutos para o múltiplo de `step` mais próximo. Usado tanto pelo
+// clique-para-criar quanto pelo drag-to-reschedule da TimelineView — os dois
+// precisam do mesmo snap de 30 min pra não deixar um agendamento "torto".
+export function snapMinutes(minutes, step = SLOT_MINUTES) {
+  return Math.round(minutes / step) * step;
+}
+
+export function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
