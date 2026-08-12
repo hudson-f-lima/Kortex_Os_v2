@@ -1,8 +1,8 @@
 ---
 title: "Onda 6 — hardening adversarial e Red Team de implementação"
-status: "DRAFT"
+status: "APROVADO"
 stage: "ISSUE"
-governance_ref: ["DEC-62", "ADR-0025"]
+governance_ref: ["DEC-62", "DEC-66", "ADR-0025"]
 upstream_doc: "docs/waves/onda-6-checkout-reopen/BLUEPRINT_ONDA_6.md"
 last_updated: "2026-08-12"
 ---
