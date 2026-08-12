@@ -7,16 +7,17 @@
 
 - **Migration Map v1.3 / Onda 7: APROVADO** (DEC-64). Etapa 7 (Blueprint) **desbloqueada**.
 - **Reconciliação de numeração DEC-62: APROVADA e MESCLADA** (DEC-65, [PR #44](https://github.com/hudson-f-lima/Kortex_Os_v2/pull/44), merge commit `3c6327a`, em `staging`).
-- **Blueprint da Onda 7 (Etapa 7): NÃO iniciado.** Esta é a próxima ação de produto.
+- **Sub-item 1 (reagendamento por arraste): ENTREGUE e MESCLADO** ([PR #46](https://github.com/hudson-f-lima/Kortex_Os_v2/pull/46), merge commit `ed21a2b`, em `staging`).
+- **Blueprint da Onda 7 (Etapa 7): NÃO iniciado.** Esta é a próxima ação de produto — cobre só o sub-item 2 (redimensionamento).
 - **Etapa 8 (SQL/migration): BLOQUEADA** até o Blueprint existir e ser aprovado.
-- Produção/`main`: fora do escopo; nenhum deploy deve ser inferido deste documento.
+- Produção/`main`: fora do escopo; nenhum deploy deve ser inferido deste documento. `main` seguia ~133 commits atrás de `staging` na última verificação.
 
-### Branches relevantes (todas verificadas por comando, não por relato)
+### Branches relevantes (todas verificadas por comando, não por relato — revalide com `git fetch` + `git log` antes de confiar nisto, não é instantâneo)
 
 | Branch | Estado | Conteúdo |
 |---|---|---|
-| `staging` | Atual (`3c6327a`) | Tem DEC-62 a DEC-65, Migration Map v1.3/Onda 7, ADR 0025, Blueprint da Onda 6 |
-| `feat/agenda-drag-and-resize-clean` | Empurrada (`origin/feat/agenda-drag-and-resize-clean`), **sem PR aberto** | Reagendamento por arraste — ver seção abaixo |
+| `staging` | Atual (`ed21a2b`) | Tem DEC-62 a DEC-65, Migration Map v1.3/Onda 7, ADR 0025, Blueprint da Onda 6, e o sub-item 1 (drag-to-reschedule) |
+| `feat/agenda-drag-and-resize-clean` | Mesclada via PR #46 (`ed21a2b`) — pode ser apagada, mantida publicada só por hábito desta sessão | Reagendamento por arraste — já em `staging`, não precisa de nenhuma ação |
 | `codex/onda6-checkout-reopen` | Publicada, intacta | DEC-62 original (Onda 6) — já bate com a numeração canônica, nada a corrigir |
 | `codex/speckit-runner-telemetry` | Publicada, intacta | DEC-62 original (runner) — **ainda precisa renumerar para DEC-63** antes do próprio merge final; não reescrever, só alinhar numa branch nova quando for mesclar |
 
@@ -31,15 +32,14 @@
 
 ## O que já foi entregue (não refazer)
 
-### Sub-item 1 — reagendamento por arraste (frontend-only, completo)
+### Sub-item 1 — reagendamento por arraste (frontend-only, completo e em `staging`)
 
-Branch `feat/agenda-drag-and-resize-clean`, empurrada, sem PR ainda. 12 arquivos, 618 inserções.
+[PR #46](https://github.com/hudson-f-lima/Kortex_Os_v2/pull/46), merge commit `ed21a2b`. 12 arquivos, 618 inserções.
 
 - Arrastar um card na `TimelineView` (`frontend/src/modules/agenda/AgendaPage.jsx`) remaneja `starts_at` (mesma coluna) e/ou `professional_id` (coluna diferente) via Pointer Events (não HTML5 DnD — funciona em touch).
 - Reaproveita o PATCH `/appointments/:id` existente: `version` (lock otimista) + fluxo `confirmation_required` (ADR 0013) quando troca de profissional.
 - `ChangeDiff.jsx`, `appointmentErrorMessages.js` e `idempotencyKey.js` foram extraídos de `AppointmentModal.jsx` para serem compartilhados entre o modal e o drag.
-- 4 testes novos de drag (mesma coluna, coluna diferente, clique simples não dispara PATCH, fluxo de confirmação) + suíte completa: **25/25 passando** em `frontend/src/modules/agenda/` e `frontend/src/ui/domain/`.
-- **Próxima ação recomendada, se quiser mesclar isto independente do resto**: abrir PR desta branch para `staging` — não depende do Blueprint da Onda 7 (só usa contrato já existente). Rebase trivial, sem conflito (branch está 1 commit atrás de `staging`, arquivos não se sobrepõem com a reconciliação DEC-62/65).
+- 4 testes novos de drag (mesma coluna, coluna diferente, clique simples não dispara PATCH, fluxo de confirmação) + suíte completa: **25/25 passando** em `frontend/src/modules/agenda/` e `frontend/src/ui/domain/`, confirmados verdes no CI do PR antes do merge.
 
 ### Reconciliação DEC-62 a DEC-65 (completa, mesclada)
 
@@ -76,19 +76,23 @@ Invocar `$kortex-blueprint-architect` com este handoff como contexto (Migration 
 
 ```text
 FILES_CHANGED (esta sessão):
-- Frontend: drag-to-reschedule completo (feat/agenda-drag-and-resize-clean, sem PR).
-- Governança: Decision Log (DEC-62 a DEC-65), Migration Map v1.3, INDEX.md, ADR 0024 (mesclados em staging via PR #44).
+- Frontend: drag-to-reschedule completo, mesclado em staging (PR #46, ed21a2b).
+- Governança: Decision Log (DEC-62 a DEC-65), Migration Map v1.3, INDEX.md, ADR 0024
+  (mesclados em staging via PR #44, 3c6327a).
+- Este handoff + refresh pós-merge do INDEX.md/Migration Map (PR #45, depois corrigido
+  nesta revisão porque tinha sido escrito antes do PR #46 existir — ver nota abaixo).
 
 BLOCKERS_REMAINING:
-- Blueprint (Etapa 7) da Onda 7 — não iniciado.
-- PR do sub-item 1 (drag-to-reschedule) — opcional, pode mesclar independente.
-- codex/speckit-runner-telemetry precisa renumerar seu DEC-62 interno para DEC-63 antes do próprio merge final.
+- Blueprint (Etapa 7) da Onda 7 — não iniciado. Único bloqueador real restante.
+- codex/speckit-runner-telemetry precisa renumerar seu DEC-62 interno para DEC-63 antes do próprio merge final (não bloqueia a Onda 7).
 
 VEREDITO:
-- Onda 7, sub-item 1 (arraste): GO local, pronto para PR.
-- Onda 7, sub-item 2 (redimensionamento): Migration Map aprovado, Blueprint pendente.
+- Onda 7, sub-item 1 (arraste): CONCLUÍDO, em staging.
+- Onda 7, sub-item 2 (redimensionamento): Migration Map aprovado, Blueprint pendente — próxima ação.
 - Promoção remota/produção: fora de escopo, não avaliada nesta sessão.
 ```
+
+**Nota sobre este documento**: a primeira versão (PR #45) foi escrita e mesclada *antes* do PR #46 (sub-item 1) existir, então descrevia a branch do drag como "sem PR". Foi corrigida numa revisão posterior assim que o PR mergeou. Se você está lendo uma cópia antiga (cache, fork, PDF exportado), reconfira contra `docs/INDEX.md` em `staging` antes de agir — não contra este arquivo isolado.
 
 ## Fontes de autoridade
 
