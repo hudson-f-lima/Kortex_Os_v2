@@ -1,10 +1,10 @@
 ---
 title: "SPK-007 — Fan-out/fan-in seguro"
-status: "PROPOSED"
+status: "PARTIAL"
 stage: "ISSUE"
 governance_ref: ["DEC-59", "ADR-0024"]
 upstream_doc: "issues/kortexos-speckit-integration-prd.md"
-last_updated: "2026-08-10"
+last_updated: "2026-08-11"
 ---
 
 # 050 — Fan-out/fan-in seguro
@@ -23,6 +23,16 @@ Adicionar o scheduler restrito a dois workers, com declaração de dependências
 - [ ] Workers usam worktrees descartáveis e não escrevem na branch compartilhada.
 - [ ] Fan-in rejeita worker ausente, worktree suja, HEAD divergente ou evidência incompleta.
 - [ ] O piloto mede ganho de tempo sem regressão nos evals.
+
+## Evidence from DEC-63
+
+> Aprovado originalmente sob DEC-62; renumerado para DEC-63 por DEC-65 (reconciliação de colisão de numeração com a Onda 6).
+
+- [x] Real read-only runner, limited to two workers, with allowlisted Node commands and `shell: false`.
+- [x] Non-empty `write_set` is blocked before execution.
+- [x] Worker failure produces `failed` state without fan-in or mutation authorization.
+- [x] Real execution `run-read-only-evals`: 2/2 workers in 394 ms.
+- [ ] Isolated worktrees, non-empty write sets and code fan-in remain outside this increment.
 
 ## Blocked by
 
