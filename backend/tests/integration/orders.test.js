@@ -184,6 +184,39 @@ test('owner can refund a closed order with a valid reason (ADR 0006)', async () 
   assert.equal(cashEntries.body.cash_entries[0].amount_cents, 5000);
 });
 
+test('refund endpoint reverses a versioned current order even after the dark-launch flag is turned off', async () => {
+  const owner = await setUpOrgWithRole('owner');
+  const { error: enableError } = await supabaseAdmin
+    .from('organizations')
+    .update({ settings: { checkout_reopen_enabled: true } })
+    .eq('id', owner.organizationId);
+  assert.equal(enableError, null, enableError?.message);
+  const { orderId } = await closeACheckout(owner.organizationId, owner.userId);
+  const { error: disableError } = await supabaseAdmin
+    .from('organizations')
+    .update({ settings: {} })
+    .eq('id', owner.organizationId);
+  assert.equal(disableError, null, disableError?.message);
+
+  const refunded = await request(app)
+    .post(`/api/v1/orders/${orderId}/refund`)
+    .set('Authorization', `Bearer ${owner.accessToken}`)
+    .set('X-Organization-Id', owner.organizationId)
+    .set('Idempotency-Key', `refund-versioned-${randomUUID()}`)
+    .send({ reason: 'customer_cancellation' });
+  assert.equal(refunded.status, 200, JSON.stringify(refunded.body));
+
+  const { data: reversalLinks, error: linksError } = await supabaseAdmin
+    .from('order_ledger_links')
+    .select('id')
+    .eq('organization_id', owner.organizationId)
+    .eq('order_id', orderId)
+    .eq('revision_number', 1)
+    .eq('kind', 'reversal');
+  assert.equal(linksError, null, linksError?.message);
+  assert.equal(reversalLinks.length, 1);
+});
+
 test('refund rejects reception, missing/invalid reason, and a second refund on the same order', async () => {
   const reception = await setUpOrgWithRole('reception');
   const { orderId: orderForReception } = await closeACheckout(reception.organizationId, reception.ownerUserId);
