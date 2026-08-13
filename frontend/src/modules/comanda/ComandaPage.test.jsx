@@ -14,6 +14,7 @@ const apiClientMock = {
 
 vi.mock('../../shared/useOrganization.js', () => ({
   useOrganization: () => useOrganizationMock(),
+  useFeatureFlag: (flagName) => Boolean(useOrganizationMock().settings?.[flagName]),
 }));
 vi.mock('../../shared/useApiClient.js', () => ({
   useApiClient: () => apiClientMock,
@@ -233,6 +234,55 @@ describe('ComandaPage', () => {
     fireEvent.click(screen.getByText('Comandas fechadas'));
     await waitFor(() => expect(screen.getByText(/Pedido #order-ab/)).toBeInTheDocument());
     expect(screen.queryByText('Estornar')).not.toBeInTheDocument();
+  });
+
+  it('recloses a reopened order only through the dark-launched backend command', async () => {
+    useOrganizationMock.mockReturnValue({ role: 'owner', settings: { checkout_reopen_enabled: true } });
+    mockLists();
+    apiClientMock.get.mockImplementation((path) => {
+      if (path.startsWith('/professionals')) return Promise.resolve({ professionals: PROFESSIONALS });
+      if (path.startsWith('/catalog')) return Promise.resolve({ items: CATALOG_ITEMS });
+      if (path.startsWith('/clients')) return Promise.resolve({ clients: CLIENTS });
+      if (path === '/orders') {
+        return Promise.resolve({
+          orders: [{ id: 'order-reclose-1', status: 'reopened', total_cents: 5000, created_at: '2026-08-13T12:00:00Z' }],
+        });
+      }
+      if (path === '/orders/order-reclose-1') {
+        return Promise.resolve({
+          order: {
+            id: 'order-reclose-1', client_id: 'client-1', status: 'reopened', reopen_attempt_id: 'attempt-1',
+            total_cents: 5000, discount_cents: 0, tip_cents: 0,
+            items: [{ id: 'item-1', product_id: 'prod-1', description: 'Shampoo', quantity: 1, total_cents: 5000 }],
+            payments: [{ method: 'cash', amount_cents: 5000 }],
+          },
+        });
+      }
+      throw new Error(`unexpected path: ${path}`);
+    });
+    apiClientMock.post.mockResolvedValue({ order_id: 'order-reclose-1', status: 'closed', current_revision: 2 });
+
+    renderComanda();
+
+    await waitFor(() => expect(screen.getByText('Corte', { exact: false })).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Comandas fechadas'));
+    await waitFor(() => expect(screen.getByText('Refinalizar')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Refinalizar'));
+    await waitFor(() => expect(screen.getByText('Total revisado: R$ 50,00')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar refinalização' }));
+
+    await waitFor(() =>
+      expect(apiClientMock.post).toHaveBeenCalledWith(
+        '/orders/order-reclose-1/reclose',
+        {
+          reopen_attempt_id: 'attempt-1', client_id: 'client-1',
+          items: [{ kind: 'product', id: 'prod-1', quantity: 1 }],
+          payments: [{ method: 'cash', amount_cents: 5000 }],
+          discount_cents: 0, tip_cents: 0,
+        },
+        expect.objectContaining({ headers: expect.objectContaining({ 'Idempotency-Key': expect.any(String) }) }),
+      ),
+    );
   });
 
   it('prefills client and service from an appointment_id query param', async () => {

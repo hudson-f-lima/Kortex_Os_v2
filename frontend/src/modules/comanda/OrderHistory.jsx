@@ -2,18 +2,20 @@ import { useCallback, useEffect, useState } from 'react';
 import { formatCents } from '../../shared/money.js';
 import { messageForError, OFFLINE_FALLBACK } from '../../shared/apiErrorMessage.js';
 import { RefundModal } from './RefundModal.jsx';
+import { RecloseModal } from './RecloseModal.jsx';
 import { Button } from '../../ui/primitives/Button.jsx';
 
-const STATUS_LABELS = { closed: 'Fechada', refunded: 'Estornada', draft: 'Rascunho', cancelled: 'Cancelada' };
+const STATUS_LABELS = { closed: 'Fechada', reopened: 'Reaberta', refunded: 'Estornada', draft: 'Rascunho', cancelled: 'Cancelada' };
 
 // GET /orders (docs/PWA_PLANEJAMENTO.md §5.2 nunca teve uma UI própria até a
 // Fase 9 — a Comanda só escrevia via checkout_close). Lista comandas já
 // fechadas para permitir o estorno com motivo obrigatório (ADR 0006).
-export function OrderHistory({ apiClient, canRefund }) {
+export function OrderHistory({ apiClient, canRefund, canReclose }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refundingOrder, setRefundingOrder] = useState(null);
+  const [reclosingOrder, setReclosingOrder] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -67,6 +69,11 @@ export function OrderHistory({ apiClient, canRefund }) {
                 Estornar
               </Button>
             )}
+            {canReclose && order.status === 'reopened' && (
+              <Button variant="link" onClick={() => setReclosingOrder(order)}>
+                Refinalizar
+              </Button>
+            )}
           </li>
         ))}
       </ul>
@@ -78,6 +85,17 @@ export function OrderHistory({ apiClient, canRefund }) {
           onClose={() => setRefundingOrder(null)}
           onRefunded={() => {
             setRefundingOrder(null);
+            load();
+          }}
+        />
+      )}
+      {reclosingOrder && (
+        <RecloseModal
+          order={reclosingOrder}
+          apiClient={apiClient}
+          onClose={() => setReclosingOrder(null)}
+          onReclosed={() => {
+            setReclosingOrder(null);
             load();
           }}
         />

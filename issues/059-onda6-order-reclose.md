@@ -1,10 +1,10 @@
 ---
 title: "Onda 6 — order_reclose, pagamentos versionados e delta de caixa"
-status: "APROVADO"
+status: "IMPLEMENTADA"
 stage: "ISSUE"
 governance_ref: ["DEC-62", "DEC-66", "ADR-0025"]
 upstream_doc: "docs/waves/onda-6-checkout-reopen/BLUEPRINT_ONDA_6.md"
-last_updated: "2026-08-12"
+last_updated: "2026-08-13"
 ---
 
 # 059 — order_reclose, pagamentos versionados e delta de caixa
@@ -15,3 +15,9 @@ Aceite: ciclo reabrir→editar→refechar preserva histórico v1/v2 e os links d
 
 Type: AFK — contrato de delta/alocação já fechado no Blueprint (§3.7, §4.5); risco tratado pela fatia de hardening (061).
 Blocked by: `issues/058-onda6-order-reopen-discard.md`.
+
+## Implementação local — 2026-08-13
+
+Entregue por migration forward-only `20260813140851_onda6_order_reclose.sql`: `order_reclose` com escopo tenant/unidade, tentativa ativa e idempotência; nova revisão append-only de pagamentos, snapshot v2, fechamento de ledger, evento `reclosed` e delta de caixa com rateio proporcional determinístico de refund. O backend expõe somente `POST /orders/:id/reclose`, protegido por papel, feature flag e `Idempotency-Key`; a PWA mostra a ação apenas sob `checkout_reopen_enabled` e persiste exclusivamente por esse Command. Não houve ativação de flag, promoção ou deploy.
+
+Evidência em reset limpo: 1.036/1.036 pgTAP (63 arquivos, repetido após backend), 327/327 backend e 117/117 PWA; `supabase db lint --local` sem achados. Red Team de implementação local: `GO` para a fatia; a hardening transversal permanece na 061.
