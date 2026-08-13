@@ -3,6 +3,8 @@ import { formatCents } from '../../shared/money.js';
 import { messageForError, OFFLINE_FALLBACK } from '../../shared/apiErrorMessage.js';
 import { RefundModal } from './RefundModal.jsx';
 import { RecloseModal } from './RecloseModal.jsx';
+import { ReopenModal } from './ReopenModal.jsx';
+import { DiscardReopenModal } from './DiscardReopenModal.jsx';
 import { Button } from '../../ui/primitives/Button.jsx';
 
 const STATUS_LABELS = { closed: 'Fechada', reopened: 'Reaberta', refunded: 'Estornada', draft: 'Rascunho', cancelled: 'Cancelada' };
@@ -16,6 +18,8 @@ export function OrderHistory({ apiClient, canRefund, canReclose }) {
   const [error, setError] = useState(null);
   const [refundingOrder, setRefundingOrder] = useState(null);
   const [reclosingOrder, setReclosingOrder] = useState(null);
+  const [reopeningOrder, setReopeningOrder] = useState(null);
+  const [discardingOrder, setDiscardingOrder] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -69,9 +73,19 @@ export function OrderHistory({ apiClient, canRefund, canReclose }) {
                 Estornar
               </Button>
             )}
+            {canReclose && order.status === 'closed' && (
+              <Button variant="link" onClick={() => setReopeningOrder(order)}>
+                Reabrir
+              </Button>
+            )}
             {canReclose && order.status === 'reopened' && (
               <Button variant="link" onClick={() => setReclosingOrder(order)}>
                 Refinalizar
+              </Button>
+            )}
+            {canReclose && order.status === 'reopened' && (
+              <Button variant="link" onClick={() => setDiscardingOrder(order)}>
+                Descartar reabertura
               </Button>
             )}
           </li>
@@ -99,6 +113,12 @@ export function OrderHistory({ apiClient, canRefund, canReclose }) {
             load();
           }}
         />
+      )}
+      {reopeningOrder && (
+        <ReopenModal order={reopeningOrder} apiClient={apiClient} onClose={() => setReopeningOrder(null)} onReopened={() => { setReopeningOrder(null); load(); }} />
+      )}
+      {discardingOrder && (
+        <DiscardReopenModal order={discardingOrder} apiClient={apiClient} onClose={() => setDiscardingOrder(null)} onDiscarded={() => { setDiscardingOrder(null); load(); }} />
       )}
     </div>
   );
