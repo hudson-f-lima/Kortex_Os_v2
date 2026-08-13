@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(28);
+SELECT plan(36);
 
 CREATE FUNCTION pg_temp.mk_user(p_email text) RETURNS uuid
 LANGUAGE sql AS $$ INSERT INTO auth.users (id, email) VALUES (gen_random_uuid(), p_email) RETURNING id; $$;
@@ -48,6 +48,20 @@ SELECT is((select status from public.order_reopen_attempts where id = :'attempt_
 SELECT is((select count(*)::int from public.order_reopen_attempt_events where reopen_attempt_id = :'attempt_id'::uuid and event_type = 'discarded'), 1, 'discard appends an audit event');
 SELECT is(public.order_reopen_discard(:'org'::uuid, :'manager'::uuid, 'o6-reopen-discard-001', :'order_id'::uuid, :'attempt_id'::uuid), :'discard_response'::jsonb, 'discard replay returns the cached response without new effects');
 
+-- A discarded attempt frees the order for a new attempt on the same immutable
+-- revision. Each reversal/restore must remain attributable to its own attempt.
+SELECT public.order_reopen_request(:'org'::uuid, :'manager'::uuid, 'o6-reopen-request-again-001', :'order_id'::uuid, 'pricing_error', 'segunda tentativa') AS second_request_response \gset
+SELECT (:'second_request_response'::jsonb ->> 'reopen_attempt_id')::uuid AS second_attempt_id \gset
+SELECT is((:'second_request_response'::jsonb ->> 'status'), 'requested', 'a discarded attempt permits a second request on the same revision');
+SELECT public.order_reopen(:'org'::uuid, :'manager'::uuid, 'o6-reopen-open-again-001', :'order_id'::uuid, :'second_attempt_id'::uuid) AS second_open_response \gset
+SELECT is((:'second_open_response'::jsonb ->> 'status'), 'reopened', 'the second attempt opens the same revision');
+SELECT is((select count(*)::int from public.order_ledger_links where order_id = :'order_id'::uuid and kind = 'reversal'), 2, 'each successful attempt has its own reversal ledger link');
+SELECT is((select count(*)::int from public.order_ledger_links where order_id = :'order_id'::uuid and reopen_attempt_id = :'second_attempt_id'::uuid and kind = 'reversal'), 1, 'the second reversal link is attributed to the second attempt');
+SELECT public.order_reopen_discard(:'org'::uuid, :'manager'::uuid, 'o6-reopen-discard-again-001', :'order_id'::uuid, :'second_attempt_id'::uuid) AS second_discard_response \gset
+SELECT is((:'second_discard_response'::jsonb ->> 'status'), 'closed', 'the second discard restores the order to closed');
+SELECT is((select count(*)::int from public.order_ledger_links where order_id = :'order_id'::uuid and kind = 'restore'), 2, 'each discarded attempt has its own restore ledger link');
+SELECT is((select stock_on_hand from public.products where id = :'product'::uuid), 9, 'two open/discard cycles preserve the original stock consumption');
+
 SELECT throws_ok(
   format('select public.order_reopen_request(%L,%L,%L,%L,%L,%L)', :'org', :'reception', 'o6-reopen-reception-001', :'order_id', 'other', 'forbidden'),
   '42501', NULL, 'reception can never request a financial reopen'
@@ -78,6 +92,7 @@ SELECT is(
   'owner approval transitions the cash-close action request'
 );
 SELECT is((public.order_reopen(:'org'::uuid, :'manager'::uuid, 'o6-reopen-open-002', :'locked_order_id'::uuid, :'cash_attempt_id'::uuid) ->> 'status'), 'reopened', 'owner-approved cash close attempt can open');
+SELECT is((select count(*)::int from public.order_ledger_links where order_id = :'locked_order_id'::uuid and kind = 'reversal' and reopen_attempt_id = :'cash_attempt_id'::uuid), 1, 'owner-approved reversal link is attributed to its attempt');
 
 -- A historical closed order without the v1 closure link is intentionally ineligible.
 INSERT INTO public.orders(organization_id, unit_id, status, subtotal_cents, total_cents, created_by, closed_at)
