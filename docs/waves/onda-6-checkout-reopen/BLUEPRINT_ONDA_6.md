@@ -2,14 +2,14 @@
 title: "Blueprint Onda 6 — Checkout final: reabertura de comanda"
 status: "APROVADO"
 stage: "BLUEPRINT"
-governance_ref: ["DEC-03", "DEC-11", "DEC-24", "DEC-28", "DEC-44", "DEC-53", "DEC-62", "ADR-0025"]
+governance_ref: ["DEC-03", "DEC-11", "DEC-24", "DEC-28", "DEC-44", "DEC-53", "DEC-62", "DEC-66", "ADR-0025"]
 upstream_doc: "docs/waves/KORTEXOS_5_1_2_MIGRATION_MAP.md"
-last_updated: "2026-08-10"
+last_updated: "2026-08-13"
 ---
 
 # KortexOS 5.1.2 — Blueprint Onda 6: Checkout final e reabertura de comanda
 
-**Status:** APROVADO por DEC-62 em 2026-08-11. O Red Team de desenho concluiu `GO` após quatro rodadas; os achados reproduzíveis e suas correções estão na seção 8. A Etapa 8 permanece bloqueada até o fatiamento ser aprovado e uma autorização explícita própria.
+**Status:** APROVADO por DEC-62 em 2026-08-11. O Red Team de desenho concluiu `GO` após quatro rodadas; os achados reproduzíveis e suas correções estão na seção 8. O fatiamento 055–061 foi validado e a Etapa 8 local foi autorizada por DEC-66 em 2026-08-12, uma fatia por vez e via TDD. A autorização não alcança ativação, `staging`, `main` ou produção.
 
 **Escopo:** materializar a reabertura governada de uma comanda já fechada, com edição plena do pedido original, preservação integral de versões e efeitos financeiros/operacionais reversíveis. O núcleo é `order_revisions`, a trava financeira e os Commands server-owned de reabrir, refechar e descartar reabertura.
 
@@ -156,7 +156,8 @@ A quarta rodada reatacou os doze achados contra as migrations/RPCs reais e deu `
 
 - [x] Red Team de desenho revisou este contrato contra schema/RPCs reais e Benchmark Gate (`GO` de desenho, 2026-08-10).
 - [x] Platform Owner aprovou explicitamente o Blueprint (DEC-62, 2026-08-11).
-- [x] DEC-62, ADR 0025, matriz DEC↔ADR e navegação foram atualizados; o fatiamento vertical aguarda validação do Platform Owner.
+- [x] Fatiamento vertical 055–061 validado e Etapa 8 local autorizada pelo Platform Owner (DEC-66, 2026-08-12); a execução continua uma fatia por vez, sob TDD e sem promoção/ativação.
+- [x] Fatias 055–061 implementadas e reatacadas contra migrations/RPCs reais (2026-08-13): o gap de serialização entre financial lock e comissão foi corrigido forward-only; `GO LOCAL` com 1.060/1.060 pgTAP, 328/328 backend, 117/117 PWA e lint limpo. Promoção segue bloqueada.
 
 ## 9. DOCUMENTATION_CHECK
 

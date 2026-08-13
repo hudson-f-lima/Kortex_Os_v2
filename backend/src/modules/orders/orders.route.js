@@ -1,8 +1,10 @@
 import { Router } from 'express';
+import { requireFeatureFlag } from '../../middleware/requireFeatureFlag.js';
 import { requireRole } from '../../middleware/requireRole.js';
-import { validateId, validateIdempotencyKey } from '../../shared/validation.js';
+import { UUID_RE, validateId, validateIdempotencyKey } from '../../shared/validation.js';
 import { HttpError } from '../../shared/httpError.js';
 import { createOrdersService } from './orders.service.js';
+import { validateCheckoutPayload } from '../checkout/checkout.validation.js';
 
 // Mirrors orders_select / order_items_select / payments_select (read-only).
 const READ_ROLES = ['owner', 'admin', 'manager', 'reception'];
@@ -28,6 +30,17 @@ function validateRefundPayload(body) {
   }
 
   return { reason: body.reason };
+}
+
+function validateReclosePayload(body) {
+  if (body === null || typeof body !== 'object' || Array.isArray(body)) {
+    throw HttpError.badRequest('invalid_payload', 'payload must be a JSON object');
+  }
+  if (typeof body.reopen_attempt_id !== 'string' || !UUID_RE.test(body.reopen_attempt_id)) {
+    throw HttpError.badRequest('invalid_reopen_attempt_id', 'reopen_attempt_id must be a uuid');
+  }
+  const { reopen_attempt_id: reopenAttemptId, ...checkoutPayload } = body;
+  return { reopenAttemptId, payload: validateCheckoutPayload(checkoutPayload, { allowAppointmentId: false }) };
 }
 
 export function ordersRouter({ supabaseAdmin, organizationContext }) {
@@ -79,6 +92,31 @@ export function ordersRouter({ supabaseAdmin, organizationContext }) {
       next(err);
     }
   });
+
+  router.post(
+    '/orders/:id/reclose',
+    requireRole(...REFUND_ROLES),
+    requireFeatureFlag(supabaseAdmin, 'checkout_reopen_enabled'),
+    async (req, res, next) => {
+      try {
+        const orderId = validateId(req.params.id);
+        const idempotencyKey = validateIdempotencyKey(req.headers['idempotency-key']);
+        const { reopenAttemptId, payload } = validateReclosePayload(req.body);
+        const result = await service.reclose({
+          organizationId: req.auth.organizationId,
+          unitId: req.auth.unitId,
+          actorUserId: req.auth.userId,
+          orderId,
+          reopenAttemptId,
+          idempotencyKey,
+          payload,
+        });
+        res.status(200).json(result);
+      } catch (err) {
+        next(err);
+      }
+    },
+  );
 
   return router;
 }

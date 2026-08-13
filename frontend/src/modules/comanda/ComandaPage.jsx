@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useApiClient } from '../../shared/useApiClient.js';
-import { useOrganization } from '../../shared/useOrganization.js';
+import { useFeatureFlag, useOrganization } from '../../shared/useOrganization.js';
 import { ClientPicker } from '../../shared/ClientPicker.jsx';
 import { Modal } from '../../shared/Modal.jsx';
 import { formatCents } from '../../shared/money.js';
@@ -37,6 +37,7 @@ function newLineKey() {
 
 export function ComandaPage() {
   const { role } = useOrganization();
+  const recloseEnabled = useFeatureFlag('checkout_reopen_enabled');
   const apiClient = useApiClient();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -228,7 +229,7 @@ export function ComandaPage() {
       <div className="comanda-page">
         <h1>Comanda</h1>
         {viewToggle}
-        <OrderHistory apiClient={apiClient} canRefund={canRefund} />
+        <OrderHistory apiClient={apiClient} canRefund={canRefund} canReclose={canRefund && recloseEnabled} />
       </div>
     );
   }
