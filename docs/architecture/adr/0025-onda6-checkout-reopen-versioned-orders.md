@@ -2,16 +2,16 @@
 title: "ADR 0025 - Onda 6: reabertura versionada de pedidos"
 status: "ACCEPTED"
 stage: "DECISION"
-governance_ref: ["DEC-03", "DEC-11", "DEC-44", "DEC-53", "DEC-62"]
+governance_ref: ["DEC-03", "DEC-11", "DEC-44", "DEC-53", "DEC-62", "DEC-66"]
 upstream_doc: "docs/waves/onda-6-checkout-reopen/BLUEPRINT_ONDA_6.md"
-last_updated: "2026-08-10"
+last_updated: "2026-08-13"
 ---
 
 # ADR 0025: Onda 6 — Reabertura versionada de pedidos
 
 ## Status
 
-**Accepted (DEC-62, 2026-08-11).** Blueprint aprovado após Benchmark Gate e quatro rodadas de Red Team de desenho (GO). Isto não autoriza Etapa 8, SQL, UI, ativação ou promoção.
+**Accepted (DEC-62, 2026-08-11); Etapa 8 local autorizada por DEC-66.** A implementação das fatias 055–061 fechou localmente em 2026-08-13 após Red Team de código. O hardening final tornou uniforme o `FOR UPDATE` da linha de `orders` para produtor de financial lock e comissão de venda. Isto não autoriza ativação, `staging`, `main` ou produção.
 
 ## Contexto
 
@@ -36,4 +36,4 @@ Primitives privadas de ledger não recebem execução externa, inclusive de serv
 
 - checkout_close e order_refund mudam somente atrás de flag e com regressão do caminho legado.
 - Implementação fatiada, TDD e forward-only; cada migration terá pre-flight.
-- A Etapa 8 exige aprovação do fatiamento e autorização posterior.
+- A Etapa 8 foi executada localmente sob DEC-66; qualquer promoção continua a exigir DEC pós-Red-Team, Environment Guardian, homologação e Delivery Guardian.

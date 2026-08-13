@@ -1,10 +1,10 @@
 ---
 title: "Onda 6 — hardening adversarial e Red Team de implementação"
-status: "APROVADO"
+status: "IMPLEMENTADA LOCALMENTE"
 stage: "ISSUE"
 governance_ref: ["DEC-62", "DEC-66", "ADR-0025"]
 upstream_doc: "docs/waves/onda-6-checkout-reopen/BLUEPRINT_ONDA_6.md"
-last_updated: "2026-08-12"
+last_updated: "2026-08-13"
 ---
 
 # 061 — Hardening adversarial e Red Team de implementação
@@ -15,3 +15,25 @@ Aceite: nenhum achado `CRÍTICO` sobrevive sem mitigação (um `CRÍTICO` sem mi
 
 Type: HITL — achados de Red Team historicamente exigiram decisão do Platform Owner nas Ondas 3/4/5 (correções P1/P2/P3, emendas de ADR); esta fatia pode reabrir uma das 055-060 anteriores.
 Blocked by: `issues/060-onda6-order-refund-ledger-compat.md`.
+
+## Resultado de implementação (2026-08-13)
+
+O Red Team de implementação encontrou um gap real de serialização: o produtor
+de `order_financial_locks` e `commission_sale_record_create` não disputavam de
+forma uniforme a linha viva de `orders`. A migration
+`20260813150720_onda6_adversarial_hardening.sql` corrige o desvio sem alterar
+o contrato legado: o trigger privado do produtor trava o pedido, exige
+`status='closed'` e rejeita revisão obsoleta; a RPC de comissão passa a fazer
+o mesmo `FOR UPDATE` antes de validar e inserir o fato.
+
+O novo pgTAP cobre Gates 10 (Checkout Integrity), 11 (Ledger Balance), 12
+(Payment Allocation), 14 (Commission Privacy & Accuracy) e 18 (Cash Register
+Integrity), além de chamadas diretas a primitives privadas por `authenticated`
+e `service_role`. Evidência reproduzida em reset limpo: 1.060/1.060 pgTAP
+antes e depois de 328/328 testes de backend, 117/117 PWA e `supabase db lint
+--local` sem achados.
+
+**Veredito:** `GO LOCAL`. Não houve ativação de feature flag, deploy ou
+promoção. O DEC pós-Red-Team exigido para qualquer proposta de `staging`,
+somado aos gates de Environment Guardian, homologação e Delivery Guardian,
+permanece pendente e fora desta fatia.
