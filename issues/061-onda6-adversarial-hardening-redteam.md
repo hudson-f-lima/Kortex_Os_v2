@@ -1,8 +1,8 @@
 ---
 title: "Onda 6 — hardening adversarial e Red Team de implementação"
-status: "IMPLEMENTADA LOCALMENTE"
+status: "HOMOLOGAÇÃO EM STAGING"
 stage: "ISSUE"
-governance_ref: ["DEC-62", "DEC-66", "ADR-0025"]
+governance_ref: ["DEC-62", "DEC-66", "DEC-68", "ADR-0025"]
 upstream_doc: "docs/waves/onda-6-checkout-reopen/BLUEPRINT_ONDA_6.md"
 last_updated: "2026-08-13"
 ---
@@ -37,3 +37,13 @@ antes e depois de 328/328 testes de backend, 117/117 PWA e `supabase db lint
 promoção. O DEC pós-Red-Team exigido para qualquer proposta de `staging`,
 somado aos gates de Environment Guardian, homologação e Delivery Guardian,
 permanece pendente e fora desta fatia.
+
+## Atualização de ambiente (2026-08-13)
+
+Sob DEC-68, as 14 migrations versionadas da Onda 6 foram aplicadas no
+Supabase de staging, sem ativar `checkout_reopen_enabled`. A verificação
+estrutural confirmou as tabelas, as funções públicas e as colunas exigidas;
+o deploy de staging do commit `b154c7f` está saudável. A homologação funcional
+autenticada continua pendente: o PWA de staging alcança a tela de login, mas
+não havia sessão de teste disponível. Isso não é licença para `main` ou
+produção; ambos continuam aguardando esse cenário e o gate final de entrega.
