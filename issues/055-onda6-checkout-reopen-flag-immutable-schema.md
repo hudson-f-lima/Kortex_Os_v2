@@ -1,10 +1,10 @@
 ---
 title: "Onda 6 — flag e schema imutável de reabertura de comanda"
-status: "APROVADO"
+status: "IMPLEMENTADA"
 stage: "ISSUE"
 governance_ref: ["DEC-62", "DEC-66", "ADR-0025"]
 upstream_doc: "docs/waves/onda-6-checkout-reopen/BLUEPRINT_ONDA_6.md"
-last_updated: "2026-08-12"
+last_updated: "2026-08-13"
 ---
 
 # 055 — Flag e schema imutável de reabertura de comanda
@@ -15,3 +15,9 @@ Aceite: pgTAP cobre defaults, `unique (organization_id, order_id, revision_numbe
 
 Type: AFK — Blueprint §4.1-4.3 já fecha coluna, tipo, constraint e RLS; nenhuma decisão de negócio aberta.
 Blocked by: nenhuma — primeira fatia da Onda 6.
+
+## Implementação local e evidência
+
+Implementada localmente em 2026-08-13, sem RPC, rota, UI, ativação de flag ou alteração de `checkout_close`/`order_refund`. A fundação inclui o ciclo de status `reopened`, revisões e fatos financeiros com FKs compostas tenant/unit-safe, RLS de leitura gerencial, revogação de DML para `authenticated` e fatos imutáveis/append-only. O Red Team de implementação encontrou que o check legado de `orders.status` não aceitava `reopened`; a migration forward-only `20260813002041_onda6_orders_reopened_status.sql` substitui o check pelo superset governado e o teste correspondente está verde.
+
+Evidência reproduzida no banco local a partir de `supabase db reset --local`: 938/938 pgTAP (59 arquivos), `supabase db lint --local --fail-on error` sem achados, `npm.cmd --prefix backend test` 325/325 e PWA 116/116 em um worker, lint sem erros e build verde. Veredito local: `GO` para a próxima fatia autorizada; continua `NO-GO` para ativação, `staging`, `main` e produção sob DEC-66.
