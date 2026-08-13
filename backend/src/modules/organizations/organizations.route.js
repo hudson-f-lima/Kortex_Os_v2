@@ -28,7 +28,7 @@ export function organizationsRouter({ supabaseAdmin, organizationContext }) {
   router.get('/organizations', async (req, res, next) => {
     const { data, error } = await supabaseAdmin
       .from('memberships')
-      .select('role, organization_id, organizations!inner(id, name, slug, active)')
+      .select('role, organization_id, organizations!inner(id, name, slug, active, settings)')
       .eq('user_id', req.auth.userId)
       .eq('active', true)
       .eq('organizations.active', true);
@@ -43,6 +43,7 @@ export function organizationsRouter({ supabaseAdmin, organizationContext }) {
         id: row.organizations.id,
         name: row.organizations.name,
         slug: row.organizations.slug,
+        settings: row.organizations.settings,
         role: row.role,
       })),
     });
