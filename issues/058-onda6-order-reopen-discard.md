@@ -27,3 +27,7 @@ O Red Team de implementação exercitou permissões, recepção, replay divergen
 A homologação autenticada em staging identificou que os quatro Commands já existiam e permaneciam corretamente exclusivos do backend, mas o adaptador HTTP expunha apenas `POST /orders/:id/reclose`. Com isso, uma tentativa de solicitação de reabertura alcançava por *fallthrough* o middleware de Availability e retornava, incorretamente, o erro da flag `availability_resolver_enabled`.
 
 Foram incluídas as rotas server-owned `POST /orders/:id/reopen-request`, `POST /orders/:id/reopen`, `POST /orders/:id/reopen-approve` e `POST /orders/:id/reopen-discard`. Todas exigem `checkout_reopen_enabled`, papel compatível, `Idempotency-Key` e derivam organização e ator exclusivamente da sessão autenticada; a aprovação continua restrita a `owner`. A cobertura de integração confirma o ciclo solicitar→abrir→descartar e a recusa para `reception`. Não houve alteração de regra financeira, ativação de flag ou DML direto da PWA.
+
+## Correction of repeated attempts — 2026-08-13
+
+Authenticated staging homologation found that, after `discarded`, a second attempt on the same revision was accepted but its reversal ledger link collided with uniqueness by revision and kind. The forward-only migration `20260813193029_onda6_reopen_attempt_ledger_attribution.sql` makes reversal/restore links attributable to each reopen attempt while preserving the non-attempt refund path. pgTAP now covers two complete open-to-discard cycles on one revision and the owner-approved cash-close path.
