@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(2);
+SELECT plan(3);
 
 -- Behavior 1 (issue 055): todo pedido tem uma revisão corrente explícita.
 -- O contrato começa pela coluna; o default e o backfill serão cobertos no
@@ -9,6 +9,13 @@ SELECT has_column(
   'orders',
   'current_revision',
   'orders exposes current_revision for versioned checkout'
+);
+
+-- Behavior 3 (issue 055): cada fechamento terá um registro histórico próprio.
+SELECT has_table(
+  'public',
+  'order_revisions',
+  'order_revisions stores immutable order-close snapshots'
 );
 
 -- Behavior 2 (issue 055): pagamentos também pertencem a uma revisão do pedido.
