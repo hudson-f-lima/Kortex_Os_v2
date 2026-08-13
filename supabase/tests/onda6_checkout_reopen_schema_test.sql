@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(5);
+SELECT plan(7);
 
 CREATE FUNCTION pg_temp.mk_user(p_email text) RETURNS uuid
 LANGUAGE sql AS $$
@@ -57,6 +57,20 @@ SELECT has_table(
   'public',
   'order_revisions',
   'order_revisions stores immutable order-close snapshots'
+);
+
+-- Behavior 6 (issue 055): cada tentativa mantém seus eventos auditáveis.
+SELECT has_table(
+  'public',
+  'order_reopen_attempt_events',
+  'order_reopen_attempt_events records the reopen lifecycle'
+);
+
+-- Behavior 5 (issue 055): uma reabertura é uma tentativa distinta da revisão.
+SELECT has_table(
+  'public',
+  'order_reopen_attempts',
+  'order_reopen_attempts records a governed reopen attempt'
 );
 
 -- Behavior 2 (issue 055): pagamentos também pertencem a uma revisão do pedido.
