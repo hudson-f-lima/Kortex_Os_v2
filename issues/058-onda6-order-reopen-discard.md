@@ -31,3 +31,7 @@ Foram incluídas as rotas server-owned `POST /orders/:id/reopen-request`, `POST 
 ## Correction of repeated attempts — 2026-08-13
 
 Authenticated staging homologation found that, after `discarded`, a second attempt on the same revision was accepted but its reversal ledger link collided with uniqueness by revision and kind. The forward-only migration `20260813193029_onda6_reopen_attempt_ledger_attribution.sql` makes reversal/restore links attributable to each reopen attempt while preserving the non-attempt refund path. pgTAP now covers two complete open-to-discard cycles on one revision and the owner-approved cash-close path.
+
+## Homologation completed — 2026-08-13
+
+In authenticated staging, the real PWA completed `requested` to `reopened` to `discarded` on the same order after the forward-only migration. The persisted result is two discarded attempts, two attributed reversal links and two attributed restore links; the order ends `closed` at revision 1 and stock is restored to its original post-sale quantity. The dark-launch flag was reset to `false`, and a fresh PWA reload no longer exposes the reopen action. This completes staging functional homologation only; the Environment Guardian and Delivery Guardian gates remain required for `main` and production.
