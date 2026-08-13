@@ -81,6 +81,42 @@ export function createOrdersService(supabaseAdmin) {
       return data;
     },
 
+    async reopenRequest({ organizationId, actorUserId, orderId, idempotencyKey, reasonCode, reasonDetail }) {
+      const { data, error } = await supabaseAdmin.rpc('order_reopen_request', {
+        p_organization_id: organizationId, p_actor_user_id: actorUserId, p_idempotency_key: idempotencyKey,
+        p_order_id: orderId, p_reason_code: reasonCode, p_reason_detail: reasonDetail,
+      });
+      if (error) throw mapRpcError(error);
+      return data;
+    },
+
+    async reopen({ organizationId, actorUserId, orderId, idempotencyKey, reopenAttemptId }) {
+      const { data, error } = await supabaseAdmin.rpc('order_reopen', {
+        p_organization_id: organizationId, p_actor_user_id: actorUserId, p_idempotency_key: idempotencyKey,
+        p_order_id: orderId, p_reopen_attempt_id: reopenAttemptId,
+      });
+      if (error) throw mapRpcError(error);
+      return data;
+    },
+
+    async reopenApprove({ organizationId, actorUserId, orderId, idempotencyKey, reopenAttemptId }) {
+      const { data, error } = await supabaseAdmin.rpc('order_reopen_approve', {
+        p_organization_id: organizationId, p_actor_user_id: actorUserId, p_idempotency_key: idempotencyKey,
+        p_order_id: orderId, p_reopen_attempt_id: reopenAttemptId,
+      });
+      if (error) throw mapRpcError(error);
+      return data;
+    },
+
+    async reopenDiscard({ organizationId, actorUserId, orderId, idempotencyKey, reopenAttemptId }) {
+      const { data, error } = await supabaseAdmin.rpc('order_reopen_discard', {
+        p_organization_id: organizationId, p_actor_user_id: actorUserId, p_idempotency_key: idempotencyKey,
+        p_order_id: orderId, p_reopen_attempt_id: reopenAttemptId,
+      });
+      if (error) throw mapRpcError(error);
+      return data;
+    },
+
     async reclose({ organizationId, unitId, actorUserId, orderId, reopenAttemptId, idempotencyKey, payload }) {
       let scopeQuery = supabaseAdmin
         .from('orders')
