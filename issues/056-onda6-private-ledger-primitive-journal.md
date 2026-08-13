@@ -1,10 +1,10 @@
 ---
 title: "Onda 6 — primitive de ledger privada e journal por conta"
-status: "APROVADO"
+status: "IMPLEMENTADA"
 stage: "ISSUE"
 governance_ref: ["DEC-62", "DEC-66", "ADR-0025"]
 upstream_doc: "docs/waves/onda-6-checkout-reopen/BLUEPRINT_ONDA_6.md"
-last_updated: "2026-08-12"
+last_updated: "2026-08-13"
 ---
 
 # 056 — Primitive de ledger privada e journal por conta
@@ -15,3 +15,9 @@ Aceite: pgTAP prova que `authenticated` e `service_role` não conseguem chamar a
 
 Type: AFK — contrato de grants/journal já fechado pela 3ª e 4ª rodadas de Red Team de desenho (§8 do Blueprint).
 Blocked by: `issues/055-onda6-checkout-reopen-flag-immutable-schema.md`.
+
+## Implementacao local e evidencia
+
+Implementada localmente em 2026-08-13 pela migration forward-only `20260813121110_onda6_private_ledger_journal.sql`, sem ativar flag, rota ou alterar `checkout_close`/`order_refund`. A RPC administrativa conserva a alçada de `owner`/`admin`/`manager`; o write-path comum agora está em `private.kortex_ledger_post_entries(...)` e as duas primitives privadas têm `EXECUTE` explicitamente revogado de `PUBLIC`, `anon`, `authenticated` e `service_role`.
+
+O journal de closure deriva somente dos fatos persistidos da comanda e recalcula o maior resto por `frac DESC, id`; gorjeta permanece em `tip_liability` e comissão em contas correntes por profissional. O contexto interno de `order_refund` inverte a closure vinculada, com chave filha distinta. O Red Team de implementação encontrou e corrigiu, antes do fechamento, a ausência de escopo de unidade para `reception`; gestão continua organizacional e `reception` só alcança a unidade da membership. Evidência local: novo pgTAP com 27 casos (grants e chamadas diretas negadas, isolamento cross-unit, journal misto com desconto/gorjeta/dois profissionais, replay divergente e inversão de refund), regressão do ledger administrativo 33/33 e lint SQL sem achados. O gate final, após `supabase db reset --local`, confirmou 965/965 pgTAP (60 arquivos), 325/325 backend e lint limpo. Veredito local: `GO` para a fatia 057 autorizada, ainda `NO-GO` para ativação, `staging`, `main` e produção sob DEC-66.
