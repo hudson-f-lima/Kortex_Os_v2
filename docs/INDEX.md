@@ -48,6 +48,7 @@ Documentação de visão não autoriza schema, endpoint, tela, deploy ou promoç
 - [Global Benchmark Map](architecture/vision/KORTEXOS_5_1_2_GLOBAL_BENCHMARK_MAP.md)
 - [Comparative Proposal](architecture/vision/KORTEXOS_5_1_2_COMPARATIVE_PROPOSAL.md)
 - [Pontos Cegos Pré-Blueprint](architecture/vision/KORTEXOS_5_1_2_PONTOS_CEGOS_PRE_BLUEPRINT.md)
+- [Rodada 5 — Benchmark Global + Cross-Industry e Auditoria de Lacunas](architecture/vision/KORTEXOS_5_1_2_RODADA_5_BENCHMARK_GAP_AUDIT.md) — **v0.2, PROPOSTA (pendente de aprovação do Platform Owner; sem DEC).** 18 lacunas de adoção, conformidade e confiança operacional, reverificadas contra `staging`; 4 P0 e spec de produto. Insumo a nova versão do Migration Map; não altera o Master Briefing.
 - [Instrução histórica de Truth Map](architecture/governance/instructions/KORTEXOS_5_1_2_INSTRUCAO_CLAUDE_CODE_TRUTH_MAP.md)
 
 ## Referência

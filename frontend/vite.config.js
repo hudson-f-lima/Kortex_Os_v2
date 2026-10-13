@@ -12,8 +12,10 @@ import { VitePWA } from 'vite-plugin-pwa';
 // VITE_BASE_PATH é setado só no workflow do GitHub Pages (env do passo de
 // build), então o default '/' cobre Render e desenvolvimento local sem
 // precisar de config própria em nenhum dos dois.
+const basePath = process.env.VITE_BASE_PATH || '/';
+
 export default defineConfig({
-  base: process.env.VITE_BASE_PATH || '/',
+  base: basePath,
   envDir: '..',
   plugins: [
     react(),
@@ -27,7 +29,9 @@ export default defineConfig({
         theme_color: '#141414',
         background_color: '#141414',
         display: 'standalone',
-        start_url: '/',
+        // Deve ficar dentro do `scope` (derivado do base): com '/' fixo, o
+        // build do GitHub Pages (/Kortex_Os_v2/) gerava start_url fora do scope.
+        start_url: basePath,
         icons: [
           { src: 'icon.svg', sizes: 'any', type: 'image/svg+xml' },
           { src: 'maskable-icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'maskable' },
