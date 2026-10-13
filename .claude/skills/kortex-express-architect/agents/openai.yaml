@@ -1,0 +1,4 @@
+﻿interface:
+  display_name: "Kortex Express Architect"
+  short_description: "Planeja APIs e regras no backend Express"
+  default_prompt: "Use $kortex-express-architect para desenhar um módulo Node.js/Express como fonte de verdade do domínio."

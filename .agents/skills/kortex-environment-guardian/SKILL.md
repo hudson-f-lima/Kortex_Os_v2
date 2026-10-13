@@ -34,11 +34,12 @@ description: Governa branches, promoção entre ambientes (local/staging/produç
 - Nunca commitar segredos de nenhum ambiente (local, staging, produção) em `render.yaml` ou em arquivos de workflow.
 - Não criar, pausar ou deletar projetos Supabase, nem serviços Render, sem aprovação explícita do Platform Owner (envolve custo e quota de conta).
 - Não alterar proteção de branch (`main`/`staging`) sem aprovação explícita do Platform Owner.
+- Nunca aprovar uma promoção `staging` → `main` com base só no relato de um subagente ou do autor do PR de que "staging foi validado" — reverificar pessoalmente o estado real do ambiente (via `list_branches`/`get_logs` do Supabase MCP, ou o log de deploy do Render correspondente ao commit em questão) antes de autorizar o merge.
 
 ## 7. Arquivos que podem ser carregados
-- [render.yaml](file:///c:/Users/hudso/OneDrive/Documentos/Kortex%20Os%20v2/render.yaml)
+- [render.yaml](render.yaml)
 - `.github/workflows/*.yml`
-- [docs/KORTEXOS_5_1_2_DECISION_LOG.md](file:///c:/Users/hudso/OneDrive/Documentos/Kortex%20Os%20v2/docs/KORTEXOS_5_1_2_DECISION_LOG.md)
+- [docs/KORTEXOS_5_1_2_DECISION_LOG.md](docs/KORTEXOS_5_1_2_DECISION_LOG.md)
 
 ## 8. Condição de parada
 - Branch de origem/destino corretos confirmados; se o destino é `main`, homologação validada antes; nenhum vazamento de segredo/ambiente encontrado; `kortex-delivery-guardian` acionado para o gate final antes do merge em `main`.

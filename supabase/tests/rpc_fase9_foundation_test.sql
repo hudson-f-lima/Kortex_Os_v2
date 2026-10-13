@@ -83,7 +83,8 @@ select results_eq(
 -- T2: Verifica que a ordem sem desconto/gorjeta do T1 fechou com os dois zerados
 select results_eq(
   $$ select discount_cents, tip_cents, total_cents
-     from public.orders where total_cents = 10000 and discount_cents = 0 and tip_cents = 0 limit 1 $$,
+     from public.orders where total_cents = 10000 and discount_cents = 0 and tip_cents = 0
+       and organization_id = (select org_id from test_context) limit 1 $$,
   $$ select 0::bigint, 0::bigint, 10000::bigint $$,
   'T2: ordem sem desconto tem discount_cents=0, tip_cents=0, total=subtotal'
 );
@@ -112,7 +113,7 @@ select results_eq(
 -- T4: Verifica desconto rateado em order_items
 select results_eq(
   $$ select sum(discount_cents)::bigint from public.order_items
-     where order_id in (select id from public.orders where discount_cents = 2000 limit 1) $$,
+     where order_id in (select id from public.orders where discount_cents = 2000 and organization_id = (select org_id from test_context) limit 1) $$,
   $$ select 2000::bigint $$,
   'T4: desconto foi rateado e somado nos items'
 );
@@ -141,7 +142,7 @@ select results_eq(
 -- T6: Verifica gorjeta rateada em order_items
 select results_eq(
   $$ select sum(tip_cents)::bigint from public.order_items
-     where order_id in (select id from public.orders where tip_cents = 1000 limit 1) $$,
+     where order_id in (select id from public.orders where tip_cents = 1000 and organization_id = (select org_id from test_context) limit 1) $$,
   $$ select 1000::bigint $$,
   'T6: gorjeta foi rateada e somada nos items'
 );
@@ -287,7 +288,7 @@ select throws_ok(
 -- Comissão 20% (2000 bps) = R$ 16 (1600 centavos)
 select results_eq(
   $$ select commission_cents from public.order_items
-     where order_id in (select id from public.orders where discount_cents = 2000 limit 1)
+     where order_id in (select id from public.orders where discount_cents = 2000 and organization_id = (select org_id from test_context) limit 1)
        and kind = 'service' $$,
   $$ select 1600::bigint $$,
   'T13: comissão calculada sobre net_cents (100 - 20 = 80; 80 * 20% = 16)'
@@ -452,7 +453,8 @@ select results_eq(
        (select org_id from test_context),
        (select user_id from test_context),
        'refund-001',
-       (select id from public.orders where status = 'closed' order by created_at limit 1),
+       (select id from public.orders where status = 'closed'
+          and organization_id = (select org_id from test_context) order by created_at limit 1),
        'customer_cancellation'
      ) ->> 'status')::text $$,
   $$ select 'refunded'::text $$,
@@ -461,7 +463,8 @@ select results_eq(
 
 -- T21b: motivo do estorno gravado no pedido
 select results_eq(
-  $$ select refund_reason from public.orders where status = 'refunded' limit 1 $$,
+  $$ select refund_reason from public.orders
+     where status = 'refunded' and organization_id = (select org_id from test_context) limit 1 $$,
   $$ select 'customer_cancellation'::text $$,
   'T21b: refund_reason gravado no pedido'
 );
@@ -472,7 +475,8 @@ select throws_ok(
     (select org_id from test_context),
     (select user_id from test_context),
     'refund-002',
-    (select id from public.orders where status = 'refunded' limit 1),
+    (select id from public.orders where status = 'refunded'
+       and organization_id = (select org_id from test_context) limit 1),
     'customer_cancellation'
   ) $$,
   'P0001',
@@ -522,7 +526,9 @@ begin
     (select org_id from test_context),
     (select user_id from test_context),
     'stock-test-refund',
-    (select id from public.orders where status = 'closed' and exists (
+    (select id from public.orders where status = 'closed'
+      and organization_id = (select org_id from test_context)
+      and exists (
       select 1 from public.order_items oi
       where oi.order_id = public.orders.id and oi.kind = 'product'
     ) order by created_at desc limit 1),
@@ -542,7 +548,8 @@ select throws_ok(
     (select org_id from test_context),
     (select user_id from test_context),
     'bad',
-    (select id from public.orders where status = 'closed' limit 1),
+    (select id from public.orders where status = 'closed'
+       and organization_id = (select org_id from test_context) limit 1),
     'customer_cancellation'
   ) $$,
   '22023',
@@ -556,7 +563,8 @@ select throws_ok(
     (select org_id from test_context),
     (select user_id from test_context),
     'refund-missing-reason',
-    (select id from public.orders where status = 'closed' limit 1),
+    (select id from public.orders where status = 'closed'
+       and organization_id = (select org_id from test_context) limit 1),
     null
   ) $$,
   '22023',
@@ -570,7 +578,8 @@ select throws_ok(
     (select org_id from test_context),
     (select user_id from test_context),
     'refund-invalid-reason',
-    (select id from public.orders where status = 'closed' limit 1),
+    (select id from public.orders where status = 'closed'
+       and organization_id = (select org_id from test_context) limit 1),
     'because_i_said_so'
   ) $$,
   '22023',

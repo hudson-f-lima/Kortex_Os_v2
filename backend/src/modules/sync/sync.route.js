@@ -1,6 +1,7 @@
 import { Router } from 'express';
+import { setInterval as nodeSetInterval, clearInterval as nodeClearInterval } from 'node:timers';
 import { requireRole } from '../../middleware/requireRole.js';
-import { createSyncService } from './sync.service.js';
+import { canAccessSyncEvent, createSyncService } from './sync.service.js';
 
 const ALL_ROLES = ['owner', 'admin', 'manager', 'reception', 'professional'];
 
@@ -79,6 +80,7 @@ export function syncRouter({ supabaseAdmin, organizationContext }) {
       const events = await service.listEvents({
         organizationId: req.auth.organizationId,
         sinceId,
+        auth: req.auth,
       });
 
       res.status(200).json({ events });
@@ -87,7 +89,7 @@ export function syncRouter({ supabaseAdmin, organizationContext }) {
     }
   });
 
-  router.get('/sync/stream', requireRole(...ALL_ROLES), async (req, res, next) => {
+  router.get('/sync/stream', requireRole(...ALL_ROLES), async (req, res) => {
     const organizationId = req.auth.organizationId;
 
     res.setHeader('Content-Type', 'text/event-stream');
@@ -105,6 +107,7 @@ export function syncRouter({ supabaseAdmin, organizationContext }) {
       }
 
       const payload = message.payload;
+      if (!canAccessSyncEvent(payload, req.auth)) return;
       res.write(`data: ${JSON.stringify({
         id: payload.id,
         table_name: payload.table_name,
@@ -121,12 +124,12 @@ export function syncRouter({ supabaseAdmin, organizationContext }) {
       listener({ type: 'subscribed' });
     }
 
-    const keepAlive = setInterval(() => {
+    const keepAlive = nodeSetInterval(() => {
       res.write(': keep-alive\n\n');
     }, 15000);
 
     req.on('close', () => {
-      clearInterval(keepAlive);
+      nodeClearInterval(keepAlive);
       releaseOrgChannel(organizationId, listener);
     });
   });

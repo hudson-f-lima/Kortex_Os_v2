@@ -13,7 +13,7 @@ const app = createApp(env, supabaseAdmin);
 const setUpOrgWithRole = (role) => setUpOrg(supabaseAdmin, role);
 
 test('owner can invite a new team member and it lands as an active membership', async () => {
-  const { organizationId, accessToken } = await setUpOrgWithRole('owner');
+  const { organizationId, accessToken, userId } = await setUpOrgWithRole('owner');
   const email = `invite-${randomUUID()}@test.local`;
 
   const res = await request(app)
@@ -36,6 +36,19 @@ test('owner can invite a new team member and it lands as an active membership', 
   assert.ok(invited, 'invited user has an active membership');
   assert.equal(invited.role, 'reception');
   assert.equal(invited.active, true);
+  assert.ok(invited.unit_id, 'unit-scoped invite receives the active default unit');
+
+  const { data: audit, error: auditError } = await supabaseAdmin
+    .from('unit_access_audit_events')
+    .select('actor_user_id, target_user_id, after_state')
+    .eq('organization_id', organizationId)
+    .eq('target_user_id', res.body.invite.userId)
+    .eq('event_type', 'membership_scope_changed')
+    .single();
+  assert.equal(auditError, null, auditError?.message);
+  assert.equal(audit.actor_user_id, userId);
+  assert.equal(audit.target_user_id, res.body.invite.userId);
+  assert.equal(audit.after_state.role, 'reception');
 });
 
 test('inviting with role professional and a professionalName creates and links a new professional row', async () => {

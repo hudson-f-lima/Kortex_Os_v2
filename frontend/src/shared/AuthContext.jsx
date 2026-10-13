@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from './supabaseClient.js';
 import { AuthContext } from './useAuth.js';
 import { onSessionExpired } from './sessionExpired.js';
@@ -35,14 +35,19 @@ export function AuthProvider({ children }) {
     });
   }, []);
 
-  const value = {
-    session,
-    user: session?.user ?? null,
-    loading,
-    accessToken: session?.access_token ?? null,
-    signIn: (email, password) => supabase.auth.signInWithPassword({ email, password }),
-    signOut: () => supabase.auth.signOut(),
-  };
+  const signIn = useCallback(
+    (email, password) => supabase.auth.signInWithPassword({ email, password }),
+    [],
+  );
+  const signOut = useCallback(() => supabase.auth.signOut(), []);
+
+  const user = session?.user ?? null;
+  const accessToken = session?.access_token ?? null;
+
+  const value = useMemo(
+    () => ({ session, user, loading, accessToken, signIn, signOut }),
+    [session, user, loading, accessToken, signIn, signOut],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

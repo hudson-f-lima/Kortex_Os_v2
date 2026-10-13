@@ -4,8 +4,8 @@ import { validateId } from '../../shared/validation.js';
 import { createMembershipsService } from './memberships.service.js';
 import { validateMembershipPayload } from './memberships.validation.js';
 
-// Mirrors RLS/RPC: memberships_select allows any active member; upserting a
-// membership requires owner (membership_set's internal actor_has_role check).
+// Mirrors RLS/RPC: memberships_select allows any active member; changing a
+// membership scope requires owner at the route and owner/admin in the RPC.
 const SET_ROLES = ['owner'];
 
 export function membershipsRouter({ supabaseAdmin, organizationContext }) {

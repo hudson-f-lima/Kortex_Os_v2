@@ -28,7 +28,7 @@ description: Audita a verdade operacional e maturidade de implementações no Ko
 - Proibir elevação de classificações com base em otimismo ou inferência sem teste executável.
 
 ## 7. Arquivos que podem ser carregados
-- [references/classification.md](file:///c:/Users/hudso/OneDrive/Documentos/Kortex%20Os%20v2/.agents/skills/kortex-truth-mapper/references/classification.md)
+- [references/classification.md](references/classification.md)
 
 ## 8. Condição de parada
 - Matriz de maturidade preenchida com caminhos, símbolos e testes que sustentam cada classificação.

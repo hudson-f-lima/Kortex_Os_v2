@@ -84,20 +84,33 @@ function validateCheckoutPayment(payment, index) {
   return { method: payment.method, amount_cents: payment.amount_cents };
 }
 
-export function validateCheckoutPayload(body) {
+export function validateCheckoutPayload(
+  body,
+  { allowClientId = true, allowAppointmentId = true, allowEmptyPayments = false } = {},
+) {
   if (body === null || typeof body !== 'object' || Array.isArray(body)) {
     throw HttpError.badRequest('invalid_payload', 'payload must be a JSON object');
   }
 
-  const allowed = new Set(['client_id', 'items', 'payments', 'discount_cents', 'tip_cents']);
+  const allowed = new Set(['items', 'payments', 'discount_cents', 'tip_cents']);
+  if (allowClientId) allowed.add('client_id');
+  if (allowAppointmentId) allowed.add('appointment_id');
   const unknown = Object.keys(body).filter((key) => !allowed.has(key));
   if (unknown.length > 0) {
     throw HttpError.badRequest('unknown_fields', 'payload has unsupported fields', { fields: unknown });
   }
 
-  if (body.client_id !== undefined && body.client_id !== null) {
+  if (allowClientId && body.client_id !== undefined && body.client_id !== null) {
     if (typeof body.client_id !== 'string' || !UUID_RE.test(body.client_id)) {
       throw HttpError.badRequest('invalid_client_id', 'client_id must be a uuid or null');
+    }
+  }
+
+  // Kept only for explicitly opted-in internal callers during the route
+  // migration; the public walk-in route never enables this field.
+  if (allowAppointmentId && body.appointment_id !== undefined && body.appointment_id !== null) {
+    if (typeof body.appointment_id !== 'string' || !UUID_RE.test(body.appointment_id)) {
+      throw HttpError.badRequest('invalid_appointment_id', 'appointment_id must be a uuid or null');
     }
   }
 
@@ -106,7 +119,13 @@ export function validateCheckoutPayload(body) {
   }
   const items = body.items.map(validateCheckoutItem);
 
-  if (!Array.isArray(body.payments) || body.payments.length === 0) {
+  if (!Array.isArray(body.payments)) {
+    throw HttpError.badRequest('invalid_payments', 'payments must be an array');
+  }
+  // An empty array is only legitimate when a deposit might cover the whole
+  // order (appointment_id present) — checkout_close's own v_paid <> v_total
+  // check is still the real source of truth either way.
+  if (body.payments.length === 0 && !allowEmptyPayments) {
     throw HttpError.badRequest('invalid_payments', 'payments must be a non-empty array');
   }
   const payments = body.payments.map(validateCheckoutPayment);
@@ -121,5 +140,22 @@ export function validateCheckoutPayload(body) {
     throw HttpError.badRequest('invalid_tip_cents', 'tip_cents must be a non-negative integer');
   }
 
-  return { client_id: body.client_id ?? null, items, payments, discount_cents: discountCents, tip_cents: tipCents };
+  return {
+    ...(allowClientId ? { client_id: body.client_id ?? null } : {}),
+    items,
+    payments,
+    discount_cents: discountCents,
+    tip_cents: tipCents,
+    ...(allowAppointmentId ? { appointment_id: body.appointment_id ?? null } : {}),
+  };
+}
+
+// Appointment identity and client are derived by the server-owned RPC, never
+// accepted in the public body.
+export function validateAppointmentCheckoutPayload(body) {
+  return validateCheckoutPayload(body, {
+    allowClientId: false,
+    allowAppointmentId: false,
+    allowEmptyPayments: true,
+  });
 }

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Kortex Blueprint Architect"
+  short_description: "Desenha o Blueprint técnico de uma Onda, fechando decisões por interview"
+  default_prompt: "Use $kortex-blueprint-architect para desenhar o Blueprint técnico (Etapa 7) da Onda aprovada no Migration Map."

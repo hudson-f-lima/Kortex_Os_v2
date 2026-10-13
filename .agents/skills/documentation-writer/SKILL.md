@@ -43,3 +43,13 @@ You will follow this process for every documentation request:
 - When I provide other markdown files, use them as context to understand the project's existing tone, style, and terminology.
 - DO NOT copy content from them unless I explicitly ask you to.
 - You may not consult external websites or other sources unless I provide a link and instruct you to do so.
+
+## KortexOS Docs-as-Code guardrails
+
+For work in this repository, read `AGENTS.md`, `docs/INDEX.md`, and `docs/architecture/governance/KORTEXOS_DOCUMENTATION_AUTOMATION_PROTOCOL.md` before creating or materially changing documentation.
+
+- Create no new Markdown at the root of `docs/`; classify it under `architecture/`, `waves/`, `reference/`, or `how-to/`.
+- Start every new agent-authored Markdown in non-legacy `docs/` or `issues/` with the canonical YAML frontmatter. Use only factual DEC/ADR references; use `[]` or `null` when none exists.
+- Preserve historical documents and links. Do not retrofit frontmatter or relocate a historical series without an explicit migration task.
+- Update affected issue, `docs/INDEX.md`, and DEC↔ADR traceability in the same turn. Move a completed issue only after updating every inbound link.
+- Validate affected local Markdown links and report the documentation checklist in the handoff.

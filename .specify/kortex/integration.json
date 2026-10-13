@@ -1,0 +1,37 @@
+{
+  "integration": "kortexos-spec-kit",
+  "status": "controlled",
+  "cli": {
+    "package": "specify-cli",
+    "version": "0.12.11",
+    "source": "isolated pilot evidence recorded in KORTEXOS_SPECKIT_BASELINE.md"
+  },
+  "mode": "read-only-dry-run",
+  "approval": {
+    "adapter": "allowlisted",
+    "verdict_input_trusted": false,
+    "protected_actions": ["product-behavior", "migration", "promotion", "external-write"]
+  },
+  "parallelism": {
+    "max_workers": 2,
+    "requires_disjoint_write_sets": true,
+    "requires_isolated_worktrees": true
+  },
+  "authorized_root_env": "KORTEXOS_AUTHORIZED_ROOT",
+  "canonical_sources": [
+    "AGENTS.md",
+    "docs/INDEX.md",
+    "docs/waves/KORTEXOS_5_1_2_TRUTH_MAP.md",
+    "docs/waves/KORTEXOS_5_1_2_MIGRATION_MAP.md",
+    "docs/architecture/governance/KORTEXOS_DOCUMENTATION_AUTOMATION_PROTOCOL.md",
+    "docs/architecture/adr/0024-adocao-controlada-spec-kit-fluxo-agentico.md"
+  ],
+  "forbidden": [
+    "write product code without an approved issue",
+    "write migrations without Blueprint and Etapa 8 authorization",
+    "promote staging/main/production",
+    "activate feature flags",
+    "copy secrets, JWTs, tokens, PII or raw tool output"
+  ],
+  "rollback": "remove only .specify/kortex integration artifacts after stopping runs"
+}

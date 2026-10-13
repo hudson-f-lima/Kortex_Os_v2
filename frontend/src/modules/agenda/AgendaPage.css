@@ -224,6 +224,50 @@
   background-color: var(--color-danger);
 }
 
+/* Drop preview do drag-to-reschedule — mostra onde o agendamento vai cair
+   na coluna do profissional sob o ponteiro (ver TimelineView). */
+.k-agenda__drop-preview {
+  position: absolute;
+  left: var(--space-2);
+  right: var(--space-2);
+  border: 2px dashed var(--color-action-primary);
+  border-radius: var(--radius-sm);
+  background-color: rgba(16, 185, 129, 0.1);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 2px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-action-primary);
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* Erro de negócio/rede do drag-to-reschedule (ex.: professional_double_booked,
+   version_conflict) — banner dispensável no topo da grade. */
+.k-agenda__drag-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background-color: #FEF2F2;
+  border-bottom: 1px solid var(--color-danger);
+  color: var(--color-danger);
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.k-agenda__drag-error button {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.875rem;
+  line-height: 1;
+}
+
 /* FAB */
 .k-agenda__fab {
   position: fixed;

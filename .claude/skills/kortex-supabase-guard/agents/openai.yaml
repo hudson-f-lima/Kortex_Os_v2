@@ -1,0 +1,4 @@
+﻿interface:
+  display_name: "Kortex Supabase Guard"
+  short_description: "Projeta Auth, RLS e schema multi-tenant"
+  default_prompt: "Use $kortex-supabase-guard para projetar e testar uma migration greenfield do KortexOS."

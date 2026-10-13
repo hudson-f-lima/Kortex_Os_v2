@@ -1,8 +1,8 @@
 
 import './Button.css';
 
-export function Button({ 
-  variant = 'primary', 
+export function Button({
+  variant = 'primary',
   size = 'md',
   isLoading = false,
   leftIcon,
@@ -10,7 +10,8 @@ export function Button({
   children,
   className = '',
   disabled,
-  ...props 
+  type = 'button',
+  ...props
 }) {
   const baseClass = 'k-button';
   const variantClass = `k-button--${variant}`;
@@ -19,8 +20,9 @@ export function Button({
   const finalClassName = [baseClass, variantClass, sizeClass, loadingClass, className].filter(Boolean).join(' ');
 
   return (
-    <button 
-      className={finalClassName} 
+    <button
+      type={type}
+      className={finalClassName}
       disabled={disabled || isLoading}
       {...props}
     >

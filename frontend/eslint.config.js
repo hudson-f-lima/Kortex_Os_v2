@@ -29,6 +29,8 @@ export default [
         indexedDB: "readonly",
         TextDecoder: "readonly",
         TextEncoder: "readonly",
+        Element: "readonly",
+        Event: "readonly",
       },
     },
     plugins: {

@@ -1,0 +1,4 @@
+﻿interface:
+  display_name: "Kortex Truth Mapper"
+  short_description: "Confronta cânone, código e evidências reais"
+  default_prompt: "Use $kortex-truth-mapper para classificar o estado real de módulos e documentos do KortexOS."

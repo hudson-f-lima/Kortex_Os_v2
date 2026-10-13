@@ -50,6 +50,15 @@ export function validateCommissionType(value, fieldName = 'commission_type') {
   return value;
 }
 
+const DEPOSIT_MECHANICS = ['hold', 'immediate_charge'];
+
+export function validateDepositMechanic(value, fieldName = 'deposit_mechanic') {
+  if (!DEPOSIT_MECHANICS.includes(value)) {
+    throw HttpError.badRequest(`invalid_${fieldName}`, `${fieldName} must be one of: ${DEPOSIT_MECHANICS.join(', ')}`);
+  }
+  return value;
+}
+
 export function validateCommissionValue(value, type, fieldName = 'commission_value') {
   if (!Number.isInteger(value) || value < 0) {
     throw HttpError.badRequest(`invalid_${fieldName}`, `${fieldName} must be a non-negative integer`);

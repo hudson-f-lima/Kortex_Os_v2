@@ -44,6 +44,16 @@ test('a valid Supabase session lists only the caller organizations, and X-Organi
   assert.equal(listWithOrg.body.organizations[0].id, org.id);
   assert.equal(listWithOrg.body.organizations[0].role, 'owner');
 
+  const { error: settingsError } = await supabaseAdmin
+    .from('organizations')
+    .update({ settings: { checkout_reopen_enabled: true } })
+    .eq('id', org.id);
+  assert.equal(settingsError, null, settingsError?.message);
+
+  const listWithFlags = await request(app).get('/api/v1/organizations').set('Authorization', `Bearer ${accessToken}`);
+  assert.equal(listWithFlags.status, 200);
+  assert.deepEqual(listWithFlags.body.organizations[0].settings, { checkout_reopen_enabled: true });
+
   const missingHeader = await request(app)
     .get('/api/v1/organizations/current')
     .set('Authorization', `Bearer ${accessToken}`);

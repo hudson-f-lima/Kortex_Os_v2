@@ -1,0 +1,4 @@
+﻿interface:
+  display_name: "Kortex Delivery Guardian"
+  short_description: "Protege dados, segredos, Git e Render"
+  default_prompt: "Use $kortex-delivery-guardian para revisar data/*.json, .env, .gitignore, GitHub e Render do KortexOS."

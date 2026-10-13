@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(32);
+SELECT plan(34);
 
 CREATE FUNCTION pg_temp.mk_user(p_email text) RETURNS uuid
 LANGUAGE sql AS $$
@@ -70,6 +70,13 @@ SELECT public.checkout_close(
   )
 ) AS checkout_response \gset
 SELECT ok(:'checkout_response' IS NOT NULL, 'checkout_close returns a response for a valid payload');
+-- Fatia 021 (DEC-48): order_items.package_id stays null for items that were
+-- not expanded from a package sale (product + avulso service, this checkout).
+SELECT is(
+  (SELECT count(*)::int FROM public.order_items WHERE order_id = (:'checkout_response'::jsonb ->> 'order_id')::uuid AND package_id IS NULL),
+  2,
+  'a checkout without a package leaves order_items.package_id null (product + avulso service)'
+);
 SELECT is(
   (SELECT stock_on_hand FROM public.products WHERE id = :'product1'::uuid),
   3,
@@ -306,6 +313,13 @@ SELECT is(
   (SELECT sum(total_cents)::bigint FROM public.order_items WHERE order_id = (:'package_response'::jsonb ->> 'order_id')::uuid),
   22000::bigint,
   'the allocated component values sum exactly to the package price (no lost/extra cent)'
+);
+-- Fatia 021 (DEC-48): every order_item expanded from a package sale carries
+-- the package_id it came from — the vínculo pacote↔pedido that P1 found missing.
+SELECT is(
+  (SELECT count(*)::int FROM public.order_items WHERE order_id = (:'package_response'::jsonb ->> 'order_id')::uuid AND package_id = :'package1'::uuid),
+  3,
+  'checkout_close stamps package_id on every order_item expanded from a package sale'
 );
 SELECT is(
   (SELECT total_cents FROM public.order_items WHERE order_id = (:'package_response'::jsonb ->> 'order_id')::uuid AND service_id = :'service_a'::uuid),

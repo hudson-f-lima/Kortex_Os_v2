@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ComandaPage } from './ComandaPage.jsx';
 import { ApiError } from '../../shared/apiClient.js';
@@ -14,6 +14,7 @@ const apiClientMock = {
 
 vi.mock('../../shared/useOrganization.js', () => ({
   useOrganization: () => useOrganizationMock(),
+  useFeatureFlag: (flagName) => Boolean(useOrganizationMock().settings?.[flagName]),
 }));
 vi.mock('../../shared/useApiClient.js', () => ({
   useApiClient: () => apiClientMock,
@@ -233,6 +234,114 @@ describe('ComandaPage', () => {
     fireEvent.click(screen.getByText('Comandas fechadas'));
     await waitFor(() => expect(screen.getByText(/Pedido #order-ab/)).toBeInTheDocument());
     expect(screen.queryByText('Estornar')).not.toBeInTheDocument();
+  });
+
+  it('recloses a reopened order only through the dark-launched backend command', async () => {
+    useOrganizationMock.mockReturnValue({ role: 'owner', settings: { checkout_reopen_enabled: true } });
+    mockLists();
+    apiClientMock.get.mockImplementation((path) => {
+      if (path.startsWith('/professionals')) return Promise.resolve({ professionals: PROFESSIONALS });
+      if (path.startsWith('/catalog')) return Promise.resolve({ items: CATALOG_ITEMS });
+      if (path.startsWith('/clients')) return Promise.resolve({ clients: CLIENTS });
+      if (path === '/orders') {
+        return Promise.resolve({
+          orders: [{ id: 'order-reclose-1', status: 'reopened', total_cents: 5000, created_at: '2026-08-13T12:00:00Z' }],
+        });
+      }
+      if (path === '/orders/order-reclose-1') {
+        return Promise.resolve({
+          order: {
+            id: 'order-reclose-1', client_id: 'client-1', status: 'reopened', reopen_attempt_id: 'attempt-1',
+            total_cents: 5000, discount_cents: 0, tip_cents: 0,
+            items: [{ id: 'item-1', product_id: 'prod-1', description: 'Shampoo', quantity: 1, total_cents: 5000 }],
+            payments: [{ method: 'cash', amount_cents: 5000 }],
+          },
+        });
+      }
+      throw new Error(`unexpected path: ${path}`);
+    });
+    apiClientMock.post.mockResolvedValue({ order_id: 'order-reclose-1', status: 'closed', current_revision: 2 });
+
+    renderComanda();
+
+    await waitFor(() => expect(screen.getByText('Corte', { exact: false })).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Comandas fechadas'));
+    await waitFor(() => expect(screen.getByText('Refinalizar')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Refinalizar'));
+    await waitFor(() => expect(screen.getByText('Total revisado: R$ 50,00')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar refinalização' }));
+
+    await waitFor(() =>
+      expect(apiClientMock.post).toHaveBeenCalledWith(
+        '/orders/order-reclose-1/reclose',
+        {
+          reopen_attempt_id: 'attempt-1', client_id: 'client-1',
+          items: [{ kind: 'product', id: 'prod-1', quantity: 1 }],
+          payments: [{ method: 'cash', amount_cents: 5000 }],
+          discount_cents: 0, tip_cents: 0,
+        },
+        expect.objectContaining({ headers: expect.objectContaining({ 'Idempotency-Key': expect.any(String) }) }),
+      ),
+    );
+  });
+
+  it('reopens a closed order through the dark-launched server commands', async () => {
+    useOrganizationMock.mockReturnValue({ role: 'owner', settings: { checkout_reopen_enabled: true } });
+    mockLists();
+    apiClientMock.get.mockImplementation((path) => {
+      if (path.startsWith('/professionals')) return Promise.resolve({ professionals: PROFESSIONALS });
+      if (path.startsWith('/catalog')) return Promise.resolve({ items: CATALOG_ITEMS });
+      if (path.startsWith('/clients')) return Promise.resolve({ clients: CLIENTS });
+      if (path === '/orders') return Promise.resolve({ orders: [{ id: 'order-reopen-1', status: 'closed', total_cents: 5000, created_at: '2026-08-13T12:00:00Z' }] });
+      throw new Error(`unexpected path: ${path}`);
+    });
+    apiClientMock.post
+      .mockResolvedValueOnce({ order_id: 'order-reopen-1', reopen_attempt_id: 'attempt-1', status: 'requested' })
+      .mockResolvedValueOnce({ order_id: 'order-reopen-1', reopen_attempt_id: 'attempt-1', status: 'reopened' });
+
+    renderComanda();
+    await waitFor(() => expect(screen.getByText('Corte', { exact: false })).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Comandas fechadas'));
+    await waitFor(() => expect(screen.getByText('Reabrir')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Reabrir'));
+    fireEvent.change(screen.getByLabelText('Descrição'), { target: { value: 'corrigir item' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar reabertura' }));
+
+    await waitFor(() => expect(apiClientMock.post).toHaveBeenNthCalledWith(
+      1, '/orders/order-reopen-1/reopen-request',
+      { reason_code: 'item_correction', reason_detail: 'corrigir item' }, expect.anything(),
+    ));
+    expect(apiClientMock.post).toHaveBeenNthCalledWith(
+      2, '/orders/order-reopen-1/reopen', { reopen_attempt_id: 'attempt-1' }, expect.anything(),
+    );
+  });
+
+  it('discards an open reactivation through the dark-launched server command', async () => {
+    useOrganizationMock.mockReturnValue({ role: 'owner', settings: { checkout_reopen_enabled: true } });
+    mockLists();
+    apiClientMock.get.mockImplementation((path) => {
+      if (path.startsWith('/professionals')) return Promise.resolve({ professionals: PROFESSIONALS });
+      if (path.startsWith('/catalog')) return Promise.resolve({ items: CATALOG_ITEMS });
+      if (path.startsWith('/clients')) return Promise.resolve({ clients: CLIENTS });
+      if (path === '/orders') return Promise.resolve({ orders: [{ id: 'order-discard-1', status: 'reopened', total_cents: 5000, created_at: '2026-08-13T12:00:00Z' }] });
+      if (path === '/orders/order-discard-1') return Promise.resolve({ order: { id: 'order-discard-1', reopen_attempt_id: 'attempt-discard-1' } });
+      throw new Error(`unexpected path: ${path}`);
+    });
+    apiClientMock.post.mockResolvedValue({ order_id: 'order-discard-1', status: 'closed' });
+
+    renderComanda();
+    await waitFor(() => expect(screen.getByText('Corte', { exact: false })).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Comandas fechadas'));
+    await waitFor(() => expect(screen.getByText('Descartar reabertura')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Descartar reabertura'));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Descartar reabertura' }));
+
+    await waitFor(() => expect(apiClientMock.post).toHaveBeenCalledWith(
+      '/orders/order-discard-1/reopen-discard',
+      { reopen_attempt_id: 'attempt-discard-1' },
+      expect.objectContaining({ headers: expect.objectContaining({ 'Idempotency-Key': expect.any(String) }) }),
+    ));
   });
 
   it('prefills client and service from an appointment_id query param', async () => {

@@ -1,12 +1,18 @@
 import { useEffect } from 'react';
 
-// Casca compartilhada de modal (antes duplicada à mão em 13 arquivos):
-// fecha com Esc e com clique fora do card, além do botão de fechar próprio
-// de cada formulário. `onClose` deve ser um no-op enquanto o modal estiver
-// em meio a um submit, se perder o trabalho em andamento não for aceitável
-// para aquele formulário específico — decisão de cada chamador, não deste
-// componente.
-export function Modal({ onClose, children, className }) {
+/**
+ * Shared Adaptive Modal Shell (Kortex Design System).
+ * Supports sizes: 'sm' (400px), 'md' (540px), 'lg' (720px), 'xl' (900px).
+ * Transforms into a responsive Bottom-Sheet on mobile viewports (< 640px).
+ *
+ * @param {Object} props
+ * @param {Function} props.onClose - Callback on close request (Escape, overlay click, close X)
+ * @param {string} [props.title] - Optional header title
+ * @param {'sm'|'md'|'lg'|'xl'} [props.size='md'] - Adaptive modal width
+ * @param {string} [props.className] - Additional CSS class names
+ * @param {React.ReactNode} props.children - Modal content
+ */
+export function Modal({ onClose, title, size = 'md', children, className }) {
   useEffect(() => {
     function handleKeyDown(event) {
       if (event.key === 'Escape') onClose();
@@ -14,6 +20,9 @@ export function Modal({ onClose, children, className }) {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
+
+  const sizeClass = size ? `modal-card--${size}` : '';
+  const cardClasses = ['modal-card', sizeClass, className].filter(Boolean).join(' ');
 
   return (
     <div
@@ -24,7 +33,22 @@ export function Modal({ onClose, children, className }) {
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div className={className ? `modal-card ${className}` : 'modal-card'}>{children}</div>
+      <div className={cardClasses}>
+        {title && (
+          <div className="modal-header">
+            <h3>{title}</h3>
+            <button
+              type="button"
+              className="modal-close-btn"
+              onClick={onClose}
+              aria-label="Fechar modal"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+        {children}
+      </div>
     </div>
   );
 }

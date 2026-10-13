@@ -53,6 +53,21 @@ services:
       # API BASE URL: Aponta para o backend hospedado no Render
       - key: VITE_API_BASE_URL
         value: https://kortex-os-v2.onrender.com/api/v1
+    # Issue 043 — hardening de headers HTTP. connect-src precisa da origem
+    # própria da API e do Supabase (o client @supabase/supabase-js chama
+    # VITE_SUPABASE_URL diretamente, fora de VITE_API_BASE_URL); o stream de
+    # sync (frontend/src/shared/syncEngine.js) usa fetch() contra a própria
+    # API, não websocket, então não precisa de entrada wss:// separada.
+    # Strict-Transport-Security e X-Content-Type-Options já chegam por
+    # default do Render/Cloudflare (confirmado via curl -sI antes desta
+    # fatia) — não redeclarados aqui para não arriscar conflito de precedência.
+    headers:
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://kortex-os-v2.onrender.com https://kpedsuklnedlhjvadiyc.supabase.co; manifest-src 'self'; worker-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
 
   # Ambiente de homologação (staging) — DEC-28(c). Cópia isolada de
   # produção: projeto Supabase próprio (kortex-os-v2-staging) e serviços
@@ -109,3 +124,12 @@ services:
       # API BASE URL: aponta para o backend de staging (acima), não o de produção
       - key: VITE_API_BASE_URL
         value: https://kortex-api-staging.onrender.com/api/v1
+    # Issue 043 — hardening de headers HTTP. Ver comentário equivalente no
+    # kortex-pwa (produção) acima; origens trocadas para as de staging.
+    headers:
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://kortex-api-staging.onrender.com https://hyzoocmmtmjlgdyifwhu.supabase.co; manifest-src 'self'; worker-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+      - path: /*
+        name: X-Frame-Options
+        value: DENY

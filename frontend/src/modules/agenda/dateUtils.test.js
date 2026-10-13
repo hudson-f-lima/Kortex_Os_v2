@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import {
   addDays,
+  clamp,
   dateKey,
   daySlots,
   dayRange,
   slotIndexForTime,
+  snapMinutes,
   startOfWeek,
   totalSlots,
   weekDays,
@@ -54,5 +56,26 @@ describe('dateUtils', () => {
     const next = addDays(original, 3);
     expect(dateKey(original)).toBe('2026-07-15');
     expect(dateKey(next)).toBe('2026-07-18');
+  });
+
+  // snapMinutes/clamp servem tanto ao clique-para-criar quanto ao
+  // drag-to-reschedule da TimelineView (ver AgendaPage.jsx).
+  it('snapMinutes rounds to the nearest 30-minute step by default', () => {
+    expect(snapMinutes(14)).toBe(0);
+    expect(snapMinutes(16)).toBe(30);
+    expect(snapMinutes(30)).toBe(30);
+    expect(snapMinutes(44)).toBe(30);
+    expect(snapMinutes(46)).toBe(60);
+  });
+
+  it('snapMinutes accepts a custom step', () => {
+    expect(snapMinutes(7, 15)).toBe(0);
+    expect(snapMinutes(8, 15)).toBe(15);
+  });
+
+  it('clamp keeps a value within [min, max]', () => {
+    expect(clamp(-10, 0, 100)).toBe(0);
+    expect(clamp(150, 0, 100)).toBe(100);
+    expect(clamp(42, 0, 100)).toBe(42);
   });
 });

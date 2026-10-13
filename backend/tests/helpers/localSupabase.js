@@ -63,13 +63,30 @@ export async function setUpOrgWithRole(supabaseAdmin, role) {
 
   const memberEmail = `test-member-${randomUUID()}@test.local`;
   const member = await signUpTestUser(memberEmail, 'S3nhaForte!123');
-  const { error: memberError } = await supabaseAdmin.rpc('membership_set', {
-    p_organization_id: org.id,
-    p_actor_user_id: owner.userId,
-    p_target_user_id: member.userId,
-    p_role: role,
-  });
-  if (memberError) throw new Error(`membership_set failed: ${memberError.message}`);
+  const unitScoped = role === 'reception' || role === 'professional';
+  const { data: defaultUnit, error: unitError } = unitScoped
+    ? await supabaseAdmin
+      .from('units')
+      .select('id')
+      .eq('organization_id', org.id)
+      .eq('is_default', true)
+      .eq('active', true)
+      .single()
+    : { data: null, error: null };
+  if (unitError) throw new Error(`default unit lookup failed: ${unitError.message}`);
+
+  // Tests may create/link a professional profile later. Fixture insertion is
+  // deliberately direct; production code must use membership_scope_set.
+  const { error: memberError } = await supabaseAdmin
+    .from('memberships')
+    .insert({
+      organization_id: org.id,
+      user_id: member.userId,
+      role,
+      unit_id: defaultUnit?.id ?? null,
+      active: true,
+    });
+  if (memberError) throw new Error(`membership fixture failed: ${memberError.message}`);
 
   return { ...base, accessToken: member.accessToken, userId: member.userId };
 }

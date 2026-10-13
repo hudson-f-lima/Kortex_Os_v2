@@ -30,9 +30,12 @@ description: Planeja e revisa a PWA modular, segura e offline-ready do KortexOS.
 - Não persistir informações pessoais sensíveis (PII) ou dados financeiros locais sem criptografia ou expirar adequadamente.
 - Obrigatoriamente utilizar os componentes do Kortex Design System localizados em `frontend/src/ui/primitives/` para formulários e botões, nunca tags HTML nativas (`<button>`, `<input>`).
 - A tela da Agenda é a principal interface e deve utilizar layout em Timeline Vertical.
+- `ui-ux-pro-max` e `frontend-design` só podem ser consultados para padrões gerais de UX, acessibilidade e animação — nunca como fonte de tokens, cores, tipografia ou componentes, que vêm exclusivamente de `frontend/src/ui/primitives/` e `frontend/src/ui/foundations/` (`tokens.css`).
+- Proibido rodar `ui-ux-pro-max --design-system --persist` neste projeto — geraria um `MASTER.md` concorrente ao design system real já existente.
+- Qualquer check de contraste sugerido pelo `ui-ux-pro-max` (baseline WCAG AA, 4.5:1) deve ser reverificado contra o invariante do projeto (WCAG AAA, `AGENTS.md`) antes de ser considerado suficiente.
 
 ## 7. Arquivos que podem ser carregados
-- [references/cache-policy.md](file:///c:/Users/hudso/OneDrive/Documentos/Kortex%20Os%20v2/.agents/skills/kortex-pwa-architect/references/cache-policy.md)
+- [references/cache-policy.md](references/cache-policy.md)
 
 ## 8. Condição de parada
 - Módulo frontend implementado e build de produção concluído com sucesso, com o service worker registrando normalmente e testes passando (100% PASS).

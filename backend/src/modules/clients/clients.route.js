@@ -5,9 +5,16 @@ import { validateClientId, validateClientPayload } from './clients.validation.js
 
 // Mirrors the RLS role allowlists on public.clients (defense in depth):
 // clients_select / clients_insert / clients_update / clients_delete.
-const READ_ROLES = ['owner', 'admin', 'manager', 'reception'];
+const READ_ROLES = ['owner', 'admin', 'manager', 'reception', 'professional'];
 const WRITE_ROLES = ['owner', 'admin', 'manager', 'reception'];
 const DELETE_ROLES = ['owner', 'admin', 'manager'];
+
+function getProfessionalScope(auth) {
+  if (auth.role !== 'professional' || auth.permissions.includes('clients:view_all')) {
+    return undefined;
+  }
+  return { unitId: auth.unitId, professionalId: auth.professionalId };
+}
 
 export function clientsRouter({ supabaseAdmin, organizationContext }) {
   const router = Router();
@@ -21,6 +28,7 @@ export function clientsRouter({ supabaseAdmin, organizationContext }) {
       const clients = await service.list({
         organizationId: req.auth.organizationId,
         active: active === undefined ? undefined : active === 'true',
+        professionalScope: getProfessionalScope(req.auth),
       });
       res.status(200).json({ clients });
     } catch (err) {
@@ -31,7 +39,11 @@ export function clientsRouter({ supabaseAdmin, organizationContext }) {
   router.get('/clients/:id', requireRole(...READ_ROLES), async (req, res, next) => {
     try {
       const clientId = validateClientId(req.params.id);
-      const client = await service.get({ organizationId: req.auth.organizationId, clientId });
+      const client = await service.get({
+        organizationId: req.auth.organizationId,
+        clientId,
+        professionalScope: getProfessionalScope(req.auth),
+      });
       res.status(200).json({ client });
     } catch (err) {
       next(err);

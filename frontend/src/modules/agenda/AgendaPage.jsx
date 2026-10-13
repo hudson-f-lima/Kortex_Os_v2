@@ -1,20 +1,31 @@
-import { useCallback, useMemo, useState, useEffect } from 'react';
+import { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { ApiError } from '../../shared/apiClient.js';
 import { useApiClient } from '../../shared/useApiClient.js';
 import { useAuth } from '../../shared/useAuth.js';
 import { useOrganization } from '../../shared/useOrganization.js';
 import { useCachedQuery } from '../../shared/useCachedQuery.js';
+import { Modal } from '../../shared/Modal.jsx';
+import { messageForError, FORBIDDEN_MESSAGE } from '../../shared/apiErrorMessage.js';
+import { newIdempotencyKey } from '../../shared/idempotencyKey.js';
 import { AppointmentModal } from './AppointmentModal.jsx';
+import { ChangeDiff } from './ChangeDiff.jsx';
+import { APPOINTMENT_ERROR_MESSAGES } from './appointmentErrorMessages.js';
+import { BLOCKING_STATUSES } from './appointmentStatus.js';
 import { SmartStrip } from '../../ui/domain/SmartStrip.jsx';
 import { AppointmentCard } from '../../ui/domain/AppointmentCard.jsx';
 import { Button } from '../../ui/primitives/Button.jsx';
 import { Plus } from 'lucide-react';
 import {
   addDays,
+  addMinutes,
+  clamp,
   dateKey,
   dayRange,
   formatDateHeading,
   formatDayLabel,
+  formatTime,
+  snapMinutes,
+  startOfDay,
   startOfWeek,
   weekDays,
 } from './dateUtils.js';
@@ -54,6 +65,13 @@ export function AgendaPage() {
   const [anchorDate, setAnchorDate] = useState(() => new Date());
   const [professionalFilter, setProfessionalFilter] = useState('all');
   const [modal, setModal] = useState(null);
+
+  // Drag-to-reschedule (ver TimelineView): id do agendamento com PATCH em
+  // voo, erro de rede/negócio pra mostrar num banner, e a confirmação
+  // pendente quando o PATCH responde 409 confirmation_required (ADR 0013).
+  const [savingAppointmentId, setSavingAppointmentId] = useState(null);
+  const [dragError, setDragError] = useState(null);
+  const [pendingDragChange, setPendingDragChange] = useState(null);
 
   // Mocks para o SmartStrip (Tela Deus)
   const [smartStripVisible, setSmartStripVisible] = useState(true);
@@ -123,6 +141,53 @@ export function AgendaPage() {
       });
     } else {
       loadAppointments();
+    }
+  }
+
+  async function submitAppointmentPatch(appointmentId, patch) {
+    const result = await apiClient.patch(`/appointments/${appointmentId}`, patch, {
+      headers: { 'Idempotency-Key': newIdempotencyKey() },
+    });
+    return result.appointment;
+  }
+
+  // Drag-to-reschedule da grade: mesmo PATCH que o AppointmentModal usa
+  // (version + confirmation_required do ADR 0013), só disparado por arrastar
+  // o card em vez de editar o formulário. `changes` só carrega os campos que
+  // de fato mudaram (starts_at e/ou professional_id) — arrastar nunca manda
+  // duração/ends_at, que o backend recusa (ver appointments.validation.js).
+  async function handleReschedule(appointment, changes) {
+    setDragError(null);
+    setSavingAppointmentId(appointment.id);
+    try {
+      const updated = await submitAppointmentPatch(appointment.id, { version: appointment.version, ...changes });
+      handleSaved(updated);
+    } catch (err) {
+      if (err instanceof ApiError && err.code === 'confirmation_required') {
+        setPendingDragChange({ appointment, patch: { version: appointment.version, ...changes }, diff: err.details });
+        return;
+      }
+      setDragError(messageForError(err, { statuses: { 403: FORBIDDEN_MESSAGE }, codes: APPOINTMENT_ERROR_MESSAGES }));
+      loadAppointments(); // volta a grade pra posição real depois de um erro
+    } finally {
+      setSavingAppointmentId(null);
+    }
+  }
+
+  async function handleConfirmDragChange() {
+    const pending = pendingDragChange;
+    if (!pending) return;
+    setSavingAppointmentId(pending.appointment.id);
+    try {
+      const updated = await submitAppointmentPatch(pending.appointment.id, { ...pending.patch, confirm: true });
+      handleSaved(updated);
+      setPendingDragChange(null);
+    } catch (err) {
+      setPendingDragChange(null);
+      setDragError(messageForError(err, { statuses: { 403: FORBIDDEN_MESSAGE }, codes: APPOINTMENT_ERROR_MESSAGES }));
+      loadAppointments();
+    } finally {
+      setSavingAppointmentId(null);
     }
   }
 
@@ -231,6 +296,13 @@ export function AgendaPage() {
       )}
 
       <div className="k-agenda__main">
+        {dragError && (
+          <div className="k-agenda__drag-error" role="alert">
+            <span>{dragError}</span>
+            <button type="button" onClick={() => setDragError(null)} aria-label="Fechar aviso">✕</button>
+          </div>
+        )}
+
         {listsLoading && <div style={{ padding: '24px' }}>Carregando agenda…</div>}
 
         {!listsLoading && listsError && (
@@ -264,7 +336,7 @@ export function AgendaPage() {
             )}
 
             {!appointmentsLoading && !appointmentsError && (
-              <TimelineView 
+              <TimelineView
                 anchorDate={anchorDate}
                 professionals={professionalsForGrid}
                 appointments={appointments}
@@ -272,6 +344,9 @@ export function AgendaPage() {
                 serviceName={serviceName}
                 onAppointmentClick={openAppointment}
                 onSlotClick={openCreateAt}
+                canDrag={canWrite}
+                savingAppointmentId={savingAppointmentId}
+                onReschedule={handleReschedule}
               />
             )}
           </>
@@ -304,16 +379,41 @@ export function AgendaPage() {
           onClientCreated={handleClientCreated}
         />
       )}
+
+      {pendingDragChange && (
+        <Modal onClose={() => setPendingDragChange(null)} title="Confirmar alteração">
+          <ChangeDiff
+            diff={pendingDragChange.diff}
+            professionals={professionals}
+            services={services}
+            submitting={savingAppointmentId === pendingDragChange.appointment.id}
+            onConfirm={handleConfirmDragChange}
+            onCancel={() => setPendingDragChange(null)}
+          />
+        </Modal>
+      )}
     </div>
   );
 }
 
-function TimelineView({ anchorDate, professionals, appointments, clientName, serviceName, onAppointmentClick, onSlotClick }) {
+function TimelineView({
+  anchorDate,
+  professionals,
+  appointments,
+  clientName,
+  serviceName,
+  onAppointmentClick,
+  onSlotClick,
+  canDrag = false,
+  savingAppointmentId = null,
+  onReschedule,
+}) {
   // Timeline hours from 8:00 to 22:00
   const START_HOUR = 8;
   const END_HOUR = 22;
+  const GRID_MINUTES = (END_HOUR - START_HOUR) * 60;
   const hours = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => START_HOUR + i);
-  
+
   const [nowOffset, setNowOffset] = useState(null);
 
   useEffect(() => {
@@ -336,6 +436,107 @@ function TimelineView({ anchorDate, professionals, appointments, clientName, ser
     const interval = window.setInterval(updateNow, 60000);
     return () => window.clearInterval(interval);
   }, [anchorDate]);
+
+  // Drag-to-reschedule (copiado do comportamento grátis do plugin
+  // `interaction` do FullCalendar — eventDrop — via Pointer Events, não
+  // HTML5 drag-and-drop nativo, pra funcionar em touch). `drag` guarda a
+  // pré-visualização (posição/coluna sob o ponteiro); `dragRef` espelha o
+  // mesmo valor pra ser lido de dentro dos listeners de window sem precisar
+  // reanexá-los a cada pixel de movimento. `justDraggedRef` evita que o
+  // `click` sintético disparado pelo navegador logo após o pointerup reabra
+  // o modal de edição quando o gesto foi, na verdade, um arraste.
+  const columnRefs = useRef({});
+  const dragRef = useRef(null);
+  const justDraggedRef = useRef(false);
+  const [drag, setDrag] = useState(null);
+  dragRef.current = drag;
+
+  const beginDrag = useCallback((appt, event) => {
+    if (!canDrag) return;
+    event.stopPropagation();
+    const start = new Date(appt.starts_at);
+    const end = new Date(appt.ends_at);
+    const startMinutes = (start.getHours() * 60) + start.getMinutes();
+    const originTop = startMinutes - START_HOUR * 60;
+    const durationMinutes = Math.max(1, Math.round((end.getTime() - start.getTime()) / 60000));
+    setDrag({
+      appointment: appt,
+      originTop,
+      originProfessionalId: appt.professional_id,
+      durationMinutes,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      previewTop: originTop,
+      previewProfessionalId: appt.professional_id,
+      moved: false,
+    });
+  }, [canDrag]);
+
+  const isDragging = Boolean(drag);
+
+  useEffect(() => {
+    if (!isDragging) return undefined;
+
+    function professionalAt(clientX) {
+      for (const prof of professionals) {
+        const node = columnRefs.current[prof.id];
+        if (!node) continue;
+        const rect = node.getBoundingClientRect();
+        if (clientX >= rect.left && clientX <= rect.right) return prof.id;
+      }
+      return dragRef.current?.previewProfessionalId ?? null;
+    }
+
+    function handleMove(event) {
+      const current = dragRef.current;
+      if (!current) return;
+      const deltaX = event.clientX - current.startClientX;
+      const deltaY = event.clientY - current.startClientY;
+      const moved = current.moved || Math.abs(deltaX) > 4 || Math.abs(deltaY) > 4;
+
+      const maxTop = Math.max(GRID_MINUTES - current.durationMinutes, 0);
+      const previewTop = clamp(snapMinutes(current.originTop + deltaY), 0, maxTop);
+
+      setDrag((prev) => (prev ? {
+        ...prev,
+        moved,
+        previewTop,
+        previewProfessionalId: professionalAt(event.clientX),
+      } : prev));
+    }
+
+    function handleUp() {
+      const current = dragRef.current;
+      setDrag(null);
+      if (!current || !current.moved) return; // sem deslocamento real = deixa o click abrir o modal de edição
+
+      justDraggedRef.current = true;
+
+      const changes = {};
+      if (current.previewTop !== current.originTop) {
+        changes.starts_at = addMinutes(startOfDay(anchorDate), START_HOUR * 60 + current.previewTop).toISOString();
+      }
+      if (current.previewProfessionalId && current.previewProfessionalId !== current.originProfessionalId) {
+        changes.professional_id = current.previewProfessionalId;
+      }
+      if (Object.keys(changes).length > 0) {
+        onReschedule?.(current.appointment, changes);
+      }
+    }
+
+    window.addEventListener('pointermove', handleMove);
+    window.addEventListener('pointerup', handleUp);
+    window.addEventListener('pointercancel', handleUp);
+    return () => {
+      window.removeEventListener('pointermove', handleMove);
+      window.removeEventListener('pointerup', handleUp);
+      window.removeEventListener('pointercancel', handleUp);
+    };
+  }, [isDragging, professionals, anchorDate, onReschedule, GRID_MINUTES]);
+
+  const previewStart = drag?.moved
+    ? addMinutes(startOfDay(anchorDate), START_HOUR * 60 + drag.previewTop)
+    : null;
 
   return (
     <div className="k-agenda__scroll-area">
@@ -369,26 +570,45 @@ function TimelineView({ anchorDate, professionals, appointments, clientName, ser
         <div className="k-agenda__columns">
           {professionals.map(prof => {
             const profAppts = appointments.filter(a => a.professional_id === prof.id);
+            const showDropPreview = drag?.moved && drag.previewProfessionalId === prof.id;
 
             return (
-              <div key={prof.id} className="k-agenda__prof-column" onClick={(e) => {
-                // Approximate time clicked based on Y position (if clicking empty space)
-                const rect = e.currentTarget.getBoundingClientRect();
-                const y = e.clientY - rect.top;
-                const totalMinutes = y; // since 1px = 1min
-                const clickedHour = Math.floor(totalMinutes / 60) + START_HOUR;
-                const clickedMin = totalMinutes % 60 < 30 ? 0 : 30; // snap to 30 min
-                const start = new Date(anchorDate);
-                start.setHours(clickedHour, clickedMin, 0, 0);
-                onSlotClick(prof.id, start);
-              }}>
+              <div
+                key={prof.id}
+                ref={(node) => { columnRefs.current[prof.id] = node; }}
+                data-professional-id={prof.id}
+                className="k-agenda__prof-column"
+                onClick={(e) => {
+                  // Approximate time clicked based on Y position (if clicking empty space)
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const y = e.clientY - rect.top;
+                  const clickedMinutes = snapMinutes(y); // since 1px = 1min
+                  const start = addMinutes(startOfDay(anchorDate), START_HOUR * 60 + clickedMinutes);
+                  onSlotClick(prof.id, start);
+                }}
+              >
+                {showDropPreview && (
+                  <div
+                    className="k-agenda__drop-preview"
+                    style={{ top: `${drag.previewTop}px`, height: `${drag.durationMinutes}px` }}
+                  >
+                    {previewStart && formatTime(previewStart)}
+                  </div>
+                )}
+
                 {profAppts.map(appt => {
+                  const isDraggingThis = drag?.appointment.id === appt.id;
+                  // Enquanto este card está sendo arrastado, ele fica oculto na
+                  // posição de origem — quem representa a posição atual é o
+                  // k-agenda__drop-preview acima, na coluna sob o ponteiro.
+                  if (isDraggingThis && drag.moved) return null;
+
                   const start = new Date(appt.starts_at);
                   const end = new Date(appt.ends_at);
-                  
+
                   const startMinutes = (start.getHours() * 60) + start.getMinutes();
                   const endMinutes = (end.getHours() * 60) + end.getMinutes();
-                  
+
                   const topOffset = startMinutes - (START_HOUR * 60);
                   const duration = endMinutes - startMinutes;
 
@@ -397,17 +617,25 @@ function TimelineView({ anchorDate, professionals, appointments, clientName, ser
                   if (topOffset < 0 || topOffset > (END_HOUR - START_HOUR) * 60) return null;
 
                   return (
-                    <AppointmentCard 
+                    <AppointmentCard
                       key={appt.id}
                       appointment={appt}
                       clientName={clientName(appt.client_id)}
                       serviceName={serviceName(appt.service_id)}
                       onAppointmentClick={(e) => {
                         e.stopPropagation();
+                        if (justDraggedRef.current) {
+                          justDraggedRef.current = false;
+                          return;
+                        }
                         onAppointmentClick(appt);
                       }}
                       top={`${topOffset}px`}
                       height={`${duration}px`}
+                      draggable={canDrag && BLOCKING_STATUSES.includes(appt.status)}
+                      dragging={isDraggingThis}
+                      saving={savingAppointmentId === appt.id}
+                      onDragPointerDown={(e) => beginDrag(appt, e)}
                     />
                   );
                 })}

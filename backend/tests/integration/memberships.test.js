@@ -79,7 +79,58 @@ test('any active member can list memberships, but only owner can upsert', async 
     .set('Authorization', `Bearer ${manager.accessToken}`)
     .set('X-Organization-Id', manager.organizationId)
     .send({ role: 'manager' });
-  assert.equal(setAsManager.status, 403, 'membership_set requires owner, not just manager');
+  assert.equal(setAsManager.status, 403, 'membership scope changes require owner at the API boundary');
+});
+
+test('membership API revokes stale professional permissions and audits the human actor', async () => {
+  const actor = await setUpOrgWithRole('professional');
+  const { error: profileError } = await supabaseAdmin
+    .from('professionals')
+    .insert({
+      organization_id: actor.organizationId,
+      user_id: actor.userId,
+      name: 'Scoped Professional',
+    });
+  assert.equal(profileError, null, profileError?.message);
+
+  const { error: grantError } = await supabaseAdmin.rpc('membership_permission_grant', {
+    p_organization_id: actor.organizationId,
+    p_actor_user_id: actor.ownerUserId,
+    p_target_user_id: actor.userId,
+    p_permission_code: 'schedule:view_all',
+  });
+  assert.equal(grantError, null, grantError?.message);
+
+  const changed = await request(app)
+    .put(`/api/v1/memberships/${actor.userId}`)
+    .set('Authorization', `Bearer ${actor.ownerAccessToken}`)
+    .set('X-Organization-Id', actor.organizationId)
+    .send({ role: 'manager' });
+  assert.equal(changed.status, 200);
+  assert.equal(changed.body.membership.role, 'manager');
+  assert.equal(changed.body.membership.unit_id, null);
+
+  const { data: permission } = await supabaseAdmin
+    .from('membership_permissions')
+    .select('revoked_at, revoked_by')
+    .eq('organization_id', actor.organizationId)
+    .eq('user_id', actor.userId)
+    .eq('permission_code', 'schedule:view_all')
+    .single();
+  assert.ok(permission.revoked_at);
+  assert.equal(permission.revoked_by, actor.ownerUserId);
+
+  const { data: audit } = await supabaseAdmin
+    .from('unit_access_audit_events')
+    .select('actor_user_id, after_state')
+    .eq('organization_id', actor.organizationId)
+    .eq('target_user_id', actor.userId)
+    .eq('event_type', 'membership_scope_changed')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+  assert.equal(audit.actor_user_id, actor.ownerUserId);
+  assert.equal(audit.after_state.role, 'manager');
 });
 
 test('validation and RPC errors surface with the stable contract', async () => {

@@ -17,10 +17,10 @@ description: Mapeia nomes, domínios, prefixos e impacto de promoção do MVP pa
 - Traduzir cada lacuna `CRÍTICO`/`AUSENTE` do Truth Map em: domínio canônico (D00–D31), nome de tabela/objeto seguindo a convenção `kortex_*` do Master §7.4, dependências de ordem (FK/migration order) e impacto sobre tabelas MVP existentes (rename, extensão ou coexistência).
 
 ## 4. Entradas necessárias
-- [docs/KORTEXOS_5_1_2_TRUTH_MAP.md](file:///c:/Users/hudso/OneDrive/Documentos/Kortex%20Os%20v2/docs/KORTEXOS_5_1_2_TRUTH_MAP.md) — aprovado, com DEC registrado.
-- [docs/KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md](file:///c:/Users/hudso/OneDrive/Documentos/Kortex%20Os%20v2/docs/KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md) — domínios D00–D31 (§5), objetos conceituais (§7.4), Gates (§21).
+- [docs/KORTEXOS_5_1_2_TRUTH_MAP.md](docs/KORTEXOS_5_1_2_TRUTH_MAP.md) — aprovado, com DEC registrado.
+- [docs/KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md](docs/KORTEXOS_5_1_2_MASTER_BRIEFING_CANONICO.md) — domínios D00–D31 (§5), objetos conceituais (§7.4), Gates (§21).
 - Schema real do banco (`list_tables`/`supabase/migrations/`) — nunca supor nome de tabela sem checar o schema vigente.
-- [references/mapping-conventions.md](file:///c:/Users/hudso/OneDrive/Documentos/Kortex%20Os%20v2/.agents/skills/kortex-migration-mapper/references/mapping-conventions.md)
+- [references/mapping-conventions.md](references/mapping-conventions.md)
 
 ## 5. Fluxo mínimo
 1. Confirmar que o Truth Map de entrada está aprovado (DEC correspondente existe no Decision Log) — sem isso, parar e reportar bloqueio.
@@ -34,10 +34,11 @@ description: Mapeia nomes, domínios, prefixos e impacto de promoção do MVP pa
 - Nunca renomear ou alterar tabela MVP existente sem marcar como decisão do Platform Owner, nunca silenciosa.
 - Preservar todos os invariantes do MVP técnico (AGENTS.md) — tenant, RLS, `_cents`, idempotência, backend-only.
 - Não avançar para Blueprint (Etapa 7) dentro deste skill — condição de parada é o Migration Map em si.
+- Nunca aceitar como verdade o relato de um subagente sobre o schema atual do banco ou sobre a aprovação do Truth Map de entrada — reexecutar pessoalmente `list_tables`/conferir `supabase/migrations/` para o schema, e conferir o DEC correspondente em `docs/KORTEXOS_5_1_2_DECISION_LOG.md` para a aprovação, antes de produzir o Migration Map.
 
 ## 7. Arquivos que podem ser carregados
-- [references/mapping-conventions.md](file:///c:/Users/hudso/OneDrive/Documentos/Kortex%20Os%20v2/.agents/skills/kortex-migration-mapper/references/mapping-conventions.md)
-- [../kortex-truth-mapper/references/classification.md](file:///c:/Users/hudso/OneDrive/Documentos/Kortex%20Os%20v2/.agents/skills/kortex-truth-mapper/references/classification.md)
+- [references/mapping-conventions.md](references/mapping-conventions.md)
+- [../kortex-truth-mapper/references/classification.md](../kortex-truth-mapper/references/classification.md)
 
 ## 8. Condição de parada
 - Migration Map completo: cada lacuna do Truth Map aprovado tem domínio, nome proposto, ordem de dependência e impacto sobre schema existente — revisado pelo Platform Owner, sem SQL escrito.

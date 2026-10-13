@@ -7,7 +7,7 @@ import { Button } from '../../ui/primitives/Button.jsx';
 import { Input } from '../../ui/primitives/Input.jsx';
 import { Select } from '../../ui/primitives/Select.jsx';
 
-// Todo serviço pertence a um grupo (cascata de comissão profissional>serviço>
+// Cada serviço pertence a um grupo (cascata de comissão profissional>serviço>
 // grupo só termina se houver um padrão de grupo) — este é o fundamento da
 // cascata, criado antes de qualquer serviço poder existir.
 export function ServiceGroupModal({ mode, group, apiClient, onClose, onSaved }) {

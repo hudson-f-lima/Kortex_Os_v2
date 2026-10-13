@@ -83,3 +83,29 @@ test('validateCheckoutPayload accepts a null client_id', () => {
 test('validateCheckoutPayload rejects unknown top-level fields', () => {
   throwsCode(() => validateCheckoutPayload({ ...VALID, total_cents: 1000 }), 'unknown_fields');
 });
+
+test('validateCheckoutPayload defaults appointment_id to null when omitted', () => {
+  const result = validateCheckoutPayload(VALID);
+  assert.equal(result.appointment_id, null);
+});
+
+test('validateCheckoutPayload accepts a valid appointment_id', () => {
+  const result = validateCheckoutPayload({ ...VALID, appointment_id: UUID });
+  assert.equal(result.appointment_id, UUID);
+});
+
+test('validateCheckoutPayload rejects a malformed appointment_id', () => {
+  throwsCode(() => validateCheckoutPayload({ ...VALID, appointment_id: 'not-a-uuid' }), 'invalid_appointment_id');
+});
+
+test('validateCheckoutPayload only allows an empty payments array for the server-owned appointment command', () => {
+  const result = validateCheckoutPayload(
+    { items: VALID.items, payments: [], appointment_id: UUID },
+    { allowEmptyPayments: true },
+  );
+  assert.deepEqual(result.payments, []);
+});
+
+test('validateCheckoutPayload still rejects an empty payments array without appointment_id', () => {
+  throwsCode(() => validateCheckoutPayload({ items: VALID.items, payments: [] }), 'invalid_payments');
+});

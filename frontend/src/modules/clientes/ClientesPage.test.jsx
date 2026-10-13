@@ -133,6 +133,19 @@ describe('ClientesPage', () => {
     expect(apiClientMock.post).toHaveBeenCalledWith('/clients', { name: 'Nova Cliente', phone: null, email: null });
   });
 
+  it('does not submit the form when closing the create-client modal via Fechar', async () => {
+    mockClients([]);
+    render(<ClientesPage />);
+
+    await waitFor(() => expect(screen.getByText('+ Novo cliente')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('+ Novo cliente'));
+    fireEvent.change(screen.getByLabelText('Nome'), { target: { value: 'Descartada' } });
+    fireEvent.click(screen.getByText('Fechar'));
+
+    await waitFor(() => expect(screen.queryByText('Fechar')).not.toBeInTheDocument());
+    expect(apiClientMock.post).not.toHaveBeenCalled();
+  });
+
   it('maps a 409 conflict on removal to a Portuguese message instead of the raw backend text', async () => {
     mockClients();
     apiClientMock.delete.mockRejectedValue(new ApiError(409, 'referenced_by_other_records', 'client is referenced', 'req-1'));

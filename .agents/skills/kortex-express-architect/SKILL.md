@@ -1,6 +1,6 @@
 ---
 name: kortex-express-architect
-description: Planeja e revisa o backend Node.js/Express do KortexOS.
+description: Planeja, implementa e revisa rotas HTTP, middlewares de validação, controllers e services do backend Node.js/Express do KortexOS.
 ---
 
 # Arquitetar o backend Express
@@ -31,9 +31,9 @@ description: Planeja e revisa o backend Node.js/Express do KortexOS.
 - O backend deve atuar como SSOT: preços, comissões, estoque e caixa são validados/calculados somente no servidor.
 
 ## 7. Arquivos que podem ser carregados
-- [references/api-conventions.md](file:///c:/Users/hudso/OneDrive/Documentos/Kortex%20Os%20v2/.agents/skills/kortex-express-architect/references/api-conventions.md)
+- [references/api-conventions.md](references/api-conventions.md)
 
-## 8. Condition de parada
+## 8. Condição de parada
 - Endpoints implementados, suite de testes de backend passando (100% PASS), sem vazamento de segredos e APIs expostas de forma segura.
 
 ## 9. Formato de saída

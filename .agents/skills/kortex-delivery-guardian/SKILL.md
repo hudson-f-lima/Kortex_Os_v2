@@ -29,9 +29,10 @@ description: Planeja, audita e protege segredos, integridade do repositório e d
 - Impedir que arquivos `data/*.json` sejam usados como verdade operacional dinâmica em produção.
 - Proibir ações automáticas de Git push, commits diretos em branch principal, ou aplicação de Blueprints sem aprovação explícita.
 - Não provisionar banco de dados redundante na nuvem de deploy (ex: Postgres no Render) uma vez que a persistência oficial é o Supabase.
+- Nunca declarar `Secret Scan: CLEAN` ou `CI Status: PASS` no relatório de auditoria com base no relato de um subagente delegado — reexecutar pessoalmente o secret scan (ex.: `gitleaks detect`) e conferir o status real do pipeline (`gh run list`/`gh run view`) antes de registrar o `CONFIG_AUDIT`/`DELIVERY_STATUS`.
 
 ## 7. Arquivos que podem ser carregados
-- [references/repository-contract.md](file:///c:/Users/hudso/OneDrive/Documentos/Kortex%20Os%20v2/.agents/skills/kortex-delivery-guardian/references/repository-contract.md)
+- [references/repository-contract.md](references/repository-contract.md)
 
 ## 8. Condição de parada
 - Repositório auditado, sem chaves expostas, arquivo `render.yaml` validado e build/deploy configurados corretamente.

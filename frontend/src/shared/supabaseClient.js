@@ -1,6 +1,6 @@
 import { AuthClient } from '@supabase/auth-js';
 
-// Só Auth (login/sessão) — todo domínio de negócio passa pela API Express
+// Só Auth (login/sessão) — qualquer domínio de negócio passa pela API Express
 // (AGENTS.md: "PWA não recebe service_role e não escreve diretamente
 // verdade financeira"; nenhuma tabela é consultada por este cliente).
 //
