@@ -46,7 +46,11 @@ O repositório foi clonado e atualizado localmente em `staging`, commit `ba0552e
 
 O checkout remoto atual confirma que o próximo trabalho de produto é a Onda 7. A ampliação pedida pelo Platform Owner foi registrada em DEC-69 e no Migration Map. O Blueprint permanece em revisão técnica; não se iniciou Etapa 8. A autorização explícita cobre o trabalho futuro, mas o login e o runtime de teste ainda não estão disponíveis para este checkout.
 
-O fechamento do projeto permanece um programa maior, com ondas incompletas e gates de produção pendentes. O passo imediato é fechar o gate técnico da Onda 7 e obter runtime descartável para implementar e testar; nenhuma nova confirmação de permissão é necessária.
+O fechamento do projeto permanece um programa maior, com ondas incompletas e gates de produção pendentes. O passo imediato é fechar o gate técnico da Onda 7 e validar a execução no runner descartável de CI descrito no adendo abaixo; nenhuma nova confirmação de permissão é necessária.
+
+## Adendo — CI da PR #55 (2026-10-18)
+
+O repositório já possui `.github/workflows/ci.yml` com runner hospedado `ubuntu-latest` e `supabase start` local. A PR #55 executou o workflow #186: Security & Linting e Frontend Build & Test passaram; Supabase iniciou e DB Advisors passou, mas `supabase test db` falhou. O resumo registrou 65 arquivos e 1.068 testes, com falhas distribuídas entre testes de privilégios `authenticated`/`anon` (por exemplo, INSERT em `appointment_groups`, ledger e SELECT em `sync_events`) e fluxos da Onda 5. O job de backend foi pulado por dependência da etapa pgTAP. Esta execução comprova o runner e revela um bloqueio real de baseline de banco; ainda não identifica a causa raiz dos grants. Corrigir/diagnosticar sem afrouxar as asserções de segurança antes de usar CI como gate da Onda 7. O teste local de Supabase segue indisponível neste workspace, mas um runner descartável de CI já existe.
 
 ## DOCUMENTATION_CHECK
 
