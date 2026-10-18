@@ -45,13 +45,14 @@ Esta matriz é um índice de rastreabilidade, não uma nova decisão. Ela regist
 | DEC-66 | [ADR 0025](../adr/0025-onda6-checkout-reopen-versioned-orders.md) | Valida o fatiamento 055–061 e autoriza exclusivamente a Etapa 8 local da Onda 6, uma fatia por vez sob TDD/pre-flight/Red Team; não amplia o Blueprint nem autoriza ativação ou promoção. |
 | DEC-67 | — (programa de discovery, sem ADR dedicado) | Abre o Programa de Convergência 6.x em modo read-only, subordinado ao MAS e ao Spec Kit; cada candidato futuro precisa de Blueprint, fatiamento e gate próprios. |
 | DEC-68 | [ADR 0025](../adr/0025-onda6-checkout-reopen-versioned-orders.md) (liberação operacional condicional) | Registra a autorização formal para aplicar as migrations já versionadas da Onda 6 em staging e continuar o release somente após homologação autenticada e Delivery Guardian; não é ativação da feature flag nem aprovação automática de `main`/produção. |
+| DEC-69 | — (adendo de escopo da Onda 7; ADR técnica pendente) | Registra as decisões de produto e a autorização ampla dadas em 2026-10-18 para prosseguir até a conclusão. A evidência técnica e os gates ainda devem ser executados; ver seção 34. |
 | DEC-03 a DEC-30, DEC-33, DEC-35 a DEC-37, DEC-39 e DEC-40 | — | Não há ADR dedicado ou vínculo explícito registrado; consultar a decisão primária neste log. |
 ## Índice de status
 
 | Prefixo | Escopo | Numeração |
 |---|---|---|
 | DEC-01 a DEC-19 | Decisões formais do Platform Owner, registradas em 2026-07-19, escopo: comanda, gorjeta, comissão, pacotes, planos, cadastros, configuração, dados sensíveis | Cronológica, imutável |
-| DEC-20 a DEC-68 | Decisões de processo/auditoria da ordem de construção, incluindo aprovação de Blueprints, regularizações de Etapa 8, governança documental, hardening de agentes, Onda 5 (DEC-51/DEC-52), Benchmark Gate obrigatório (DEC-53), correção pós-implementação (DEC-54), AppCliente autenticado/push FCM (DEC-55), backlog do runtime AppCliente (DEC-56), fechamento local da Onda 5 por Red Team final (DEC-57), autorização limitada de promoção para `staging` (DEC-58), adoção controlada do Spec Kit no fluxo agêntico (DEC-59), aceite temporário do risco de Leaked Password Protection ausente na Supabase de staging (DEC-60), veredito de homologação funcional das Ondas 1-5 em staging (DEC-61), aprovação do Blueprint da Onda 6 (DEC-62), runner read-only de fan-out (DEC-63), Migration Map v1.3/Onda 7 (DEC-64), reconciliação da colisão de numeração DEC-62 (DEC-65), autorização da Etapa 8 local da Onda 6 (DEC-66), abertura do Programa de Convergência 6.x em discovery (DEC-67) e a liberação operacional condicional da Onda 6 para staging (DEC-68). | Cronológica, imutável |
+| DEC-20 a DEC-69 | Decisões de processo/auditoria da ordem de construção, incluindo as Ondas 1–7 e o adendo de escopo da agenda completa (DEC-69). Cada decisão preserva seus limites e suas evidências na seção própria. | Cronológica, imutável |
 | D-01 a D-09 | Decisões conceituais originais do anexo A1 (cadastros) — **todas as 9 resolvidas**, a última (D-07) por DEC-19 | Letrada, anterior às DEC |
 
 ---
@@ -551,3 +552,11 @@ Nada deste anexo autoriza SQL, migration ou tela.
 | # | Decisão | Conteúdo | Limite explícito |
 |---:|---|---|---|
 | DEC-68 | Aplicar em staging e preparar promoção governada da Onda 6 | **Autorizado formalmente pelo Platform Owner em 2026-08-13.** Autoriza aplicar, na ordem já versionada e forward-only, as migrations da Onda 6 no Supabase de staging e prosseguir com os gates de release. A aplicação e a emenda forward-only `20260813193029_onda6_reopen_attempt_ledger_attribution.sql` foram concluídas no projeto `kortex-os-v2-staging` (`hyzoocmmtmjlgdyifwhu`). A homologação autenticada da PWA executou o ciclo real `requested` → `reopened` → `discarded` e confirmou duas tentativas descartadas, dois links de reversão/restauração atribuídos, pedido final `closed`, estoque restaurado e flag desligada. Evidência local: 1.068/1.068 pgTAP, lint limpo e 330/330 testes backend; CI verde nas PRs #50, #51 e #52. | A homologação não ativa permanentemente `checkout_reopen_enabled` nem autoriza `staging` → `main`, migrations no Supabase de produção ou deploy de produção. A promoção continua condicionada ao veredito final do Environment Guardian e Delivery Guardian. |
+
+---
+
+# SEÇÃO 34 — DEC-69: AMPLIAÇÃO DO ESCOPO DA AGENDA (2026-10-18)
+
+| # | Decisão | Conteúdo | Limite de evidência |
+|---|---|---|---|
+| DEC-69 | Agenda completa e recursos vinculados ao serviço | O Platform Owner decidiu que, no resize combinado com troca de serviço/profissional, prevalece a duração explicitamente escolhida. Conflitos devem identificar o motivo e oferecer cancelar ou encaixar, com nova confirmação. O exame cobre appointments, horário da unidade, turno/folga/exceções/feriado e recursos bloqueados. Requisitos de recursos são associados ao serviço por unidade. Em seguida o Platform Owner concedeu permissão explícita para executar o trabalho até o final, inclusive os gates necessários. Esta decisão amplia parcialmente DEC-64, apenas no sub-item 2; a entrega de arraste não é reaberta. | A autorização não é prova de que Blueprint, SQL, testes, staging ou produção estejam prontos. O Blueprint e o adendo ao Migration Map registram a expansão; a ausência de Docker/Supabase CLI local e de acesso ao projeto de staging na conexão disponível impede declarar Etapa 8 validada. Registrar evidência real antes de qualquer promoção. |
