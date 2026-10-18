@@ -102,6 +102,12 @@
       "sourceType": "github",
       "skillPath": ".claude/skills/write-a-prd/SKILL.md",
       "computedHash": "183b6824b209593f1c5fe5ad0e96e1a60d0bfe9782787c0a9733990961345e54"
+    },
+    "kortex-project-audit": {
+      "source": "local-project",
+      "sourceType": "local",
+      "skillPath": ".claude/skills/kortex-project-audit/SKILL.md",
+      "computedHash": "af44815ba90dda28359a9de7babd714564c151a7984675402e1f8f99c7c7c8c8"
     }
   }
 }

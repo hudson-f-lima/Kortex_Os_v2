@@ -142,6 +142,18 @@ Padrão adotado: **Zenoti** (herança empresa→unidade com override autorizado 
 
 **Decisão de desenho fechada nesta sessão (antes do Blueprint, registrada aqui para não repetir a interview):** mudança pura de duração sempre exige confirmação explícita (reaproveita ADR 0013), diferente de mover só o horário (que continua aplicando direto, MOVE_TIME_ONLY). Colisão com o próximo agendamento do mesmo profissional retorna `max_fit_duration_minutes` dentro do diff de confirmação — pré-checagem informativa, não substitui a exclusion constraint. Benchmark feito: FullCalendar (`eventOverlap`/`eventConstraint`/`revert`) e produtos de agenda de salão não têm convenção de auto-clamp silencioso — a tensão "recusar vs. estender" é sempre resolvida por decisão humana explícita, nunca automática.
 
+### Adendo de escopo proposto — agenda completa (2026-10-18, DEC-69)
+
+O Platform Owner pediu que o resize também suporte mudança simultânea de serviço/profissional, preserve a duração escolhida, identifique conflitos da agenda completa e ofereça cancelar ou encaixar mediante nova confirmação. Requisitos de recursos físicos passam a ser configurados por serviço e unidade, com reserva automática. O adendo afeta **somente** o sub-item 2 de DEC-64; o sub-item 1 permanece entregue. A classificação anterior de risco baixo, nenhuma tabela nova e `create_appointment` intocado não descreve a nova entrega. A linha histórica acima permanece como registro da aprovação original, sem ser apagada.
+
+| Domínio | Objeto proposto | Dependências | Risco |
+|---|---|---|---|
+| D07/D11 | `service_resource_requirements` (novo, por organização/unidade/serviço/tipo) | `units`, `services`, `resources` | Alto: alteração de configuração e backfill de appointments futuros |
+| D07/D11 | `resource_locks` (reserva automática e reconciliação) | `appointments`, `resources` | Crítico: seleção concorrente, integridade unit-safe e rollback atômico |
+| D07 | `create_appointment` e `update_appointment` (extensões), Resolver, Express e PWA | Calendar Policy, turnos, elegibilidade, series/grupos/waitlist | Crítico: compatibilidade e conflito tipado em todos os caminhos de criação/edição |
+
+O contrato físico, a estratégia de ativação e os testes estão no [Blueprint proposto](onda-7-agenda-drag-resize/BLUEPRINT_ONDA_7_RESIZE.md). O adendo registra o novo escopo autorizado pelo usuário; não é evidência de implementação nem dispensa o gate técnico de Etapa 7.
+
 ## 4. Decisões sobre os riscos de alto impacto (Platform Owner, 2026-07-20)
 
 As quatro questões abaixo foram decididas nesta revisão, antes do início do Blueprint. Nenhuma decisão aqui vira SQL — continuam sendo mapeamento (nome, domínio, dependência), não desenho de coluna/tipo/constraint.
